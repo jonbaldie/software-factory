@@ -131,9 +131,10 @@ Issue and PR comments link to the relevant workflow runs. Agent runs provide liv
 | `agent:changes-requested` | The PR needs fixes. You can add it with a comment explaining what to change. |
 | `agent:approved` | The agent approved the PR. Check whether it merged; GitHub may still block it. |
 | `agent:failed` | A stage failed, timed out, or was cancelled. Read the linked run, fix the cause, then retry as described below. |
+| `agent:wip` | Implementation failed after the agent changed files. The unfinished work and the reason it stopped are saved on the `agent/issue-N` branch. |
 | `ready-for-human` | You need to take over after three rejected reviews or a blocked merge. Check the review comments and GitHub's merge status. |
 
-To retry implementation, remove and re-add `ready-for-agent` on the issue. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.
+To retry implementation, remove and re-add `ready-for-agent` on the issue. If the issue has `agent:wip`, the retry continues from the saved work; remove `agent:wip` first to start over. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.
 
 The installer also creates `needs-triage`, `needs-info`, and `wontfix` for organising issues. These do not start agent work.
 

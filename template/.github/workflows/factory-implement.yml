@@ -35,6 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          fetch-depth: 0 # a retry can continue from work saved on agent/issue-N
           persist-credentials: false # keep the GitHub token out of the agent's sandbox
 
       - uses: actions/setup-node@v7 # the agent runs on Node
@@ -53,6 +54,12 @@ jobs:
           gh issue edit "$ISSUE" --remove-label agent:failed --add-label agent:working
           gh issue comment "$ISSUE" --body "🏭 The factory picked this up. [Watch the run]($RUN_URL)"
           labels=$(gh issue view "$ISSUE" --json labels -q '.labels[].name')
+          # agent:wip means a failed run saved its work on the branch. Without it, the run starts over from the default branch.
+          branch="agent/issue-$ISSUE"
+          wip_base=""
+          if grep -qx agent:wip <<<"$labels" && git rev-parse -q --verify "origin/$branch" >/dev/null; then
+            wip_base=$(git merge-base HEAD "origin/$branch")
+          fi
           {
             cat .github/factory/implement.md
             # The category label picks the method: a bug is diagnosed before it's fixed, an enhancement is built test-first.
@@ -61,7 +68,13 @@ jobs:
             done
             printf '\n## Test command\n\n```sh\n%s\n```\n\n' "$TEST_COMMAND"
             gh issue view "$ISSUE" --json number,title,body,comments | jq -r -f .github/factory/ticket.jq
+            if [ -n "$wip_base" ]; then
+              printf '\n## Previous attempt\n\nAn earlier run on this ticket stopped before it opened a pull request. Its work is committed on the branch you are on, and `git diff %s` shows it. Its notes, oldest first:\n\n' "$wip_base"
+              git log --reverse --format=%B "$wip_base..origin/$branch"
+            fi
           } > "$RUNNER_TEMP/prompt.md"
+          # The prompt is built from the default branch, so the prompts are current. The agent then works on the saved branch.
+          if [ -n "$wip_base" ]; then git switch -q -c "$branch" "origin/$branch"; fi
 
       - name: Set up the project
         if: env.SETUP_COMMAND != ''
@@ -81,7 +94,10 @@ jobs:
           claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
       - name: Tests must pass before a PR is opened
-        run: eval "$TEST_COMMAND"
+        id: tests
+        run: |
+          set -o pipefail
+          eval "$TEST_COMMAND" 2>&1 | tee "$RUNNER_TEMP/tests.txt" # a failure is saved with the agent's work
 
       - name: Open the pull request
         env:
@@ -95,14 +111,15 @@ jobs:
             echo "::error::The agent changed files under .github/, which the factory owns"
             exit 1
           fi
-          git switch -c "$branch"
+          git switch -q -C "$branch" # already on it when continuing from agent:wip
           git add -A
-          if git diff --cached --quiet; then
+          if git diff --cached --quiet && [ "$(git rev-parse HEAD)" = "$GITHUB_SHA" ]; then
             echo "::error::The agent finished without changing any files"
             exit 1
           fi
+          # Continuing from agent:wip, the saved commits can be the whole change, so this commit may be empty.
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "$title" -m "Closes #$ISSUE"
+            commit -q --allow-empty -m "$title" -m "Closes #$ISSUE"
           git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "$branch"
 
           printf '%s\n\nCloses #%s\n\n---\n_Opened by the factory · [implement run](%s)_\n' \
@@ -113,7 +130,7 @@ jobs:
             pr_url=$(gh pr create --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/body.md" --label agent:review)
           fi
 
-          gh issue edit "$ISSUE" --remove-label agent:working
+          gh issue edit "$ISSUE" --remove-label agent:working,agent:wip
           gh issue comment "$ISSUE" --body "🏭 Opened $pr_url"
 
           # Labels added with GITHUB_TOKEN don't trigger workflows, so hand off to the reviewer explicitly.
@@ -124,10 +141,44 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
+          AGENT_OUTCOME: ${{ steps.agent.outcome }}
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          JOB_STATUS: ${{ job.status }}
         run: |
-          gh issue edit "$ISSUE" --remove-label agent:working --add-label agent:failed
+          branch="agent/issue-$ISSUE"
+          add=agent:failed
+          # Save what the agent wrote on the issue's branch, with why the run stopped, so a retry continues from it.
+          case "$AGENT_OUTCOME" in success | failure | cancelled) agent_ran=true ;; *) agent_ran=false ;; esac
+          if $agent_ran && [ -n "$(git status --porcelain)" ] && [ -z "$(git status --porcelain -- .github)" ]; then
+            if [ "$JOB_STATUS" = cancelled ]; then reason="The run timed out or was cancelled."
+            elif [ "$TESTS_OUTCOME" = failure ]; then reason="The tests failed."
+            elif [ "$AGENT_OUTCOME" = failure ]; then reason="The agent stopped with an error."
+            else reason="The run failed."
+            fi
+            {
+              echo "WIP: $(gh issue view "$ISSUE" --json title -q .title)"
+              printf '\n%s\n' "$reason"
+              if [ "$TESTS_OUTCOME" = failure ]; then printf '\n```\n%s\n```\n' "$(tail -n 40 "$RUNNER_TEMP/tests.txt")"; fi
+              if [ -n "$AGENT_SUMMARY" ]; then printf '\nThe agent said:\n\n%s\n' "$AGENT_SUMMARY"; fi
+              printf '\n%s\n' "$RUN_URL"
+            } > "$RUNNER_TEMP/wip.txt"
+            git switch -q -C "$branch"
+            git add -A
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -F "$RUNNER_TEMP/wip.txt"
+            if git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "$branch"; then
+              add+=,agent:wip
+            else
+              echo "::warning::Couldn't save the agent's work to $branch"
+            fi
+          fi
+          gh issue edit "$ISSUE" --remove-label agent:working --add-label "$add"
           {
             echo "💥 The factory failed on this ticket. [See the run]($RUN_URL). Remove and re-add \`ready-for-agent\` to retry."
+            if gh issue view "$ISSUE" --json labels -q '.labels[].name' | grep -qx agent:wip; then
+              printf '\nThe unfinished work is saved on [`%s`](%s), and `agent:wip` makes a retry continue from it. Remove `agent:wip` first to start over.\n' \
+                "$branch" "$GITHUB_SERVER_URL/$GH_REPO/tree/$branch"
+            fi
             # The agent's own account, such as why it couldn't reproduce a bug.
             if [ -n "$AGENT_SUMMARY" ]; then printf '\n**The agent said:**\n\n%s\n' "$AGENT_SUMMARY"; fi
           } > "$RUNNER_TEMP/failure.md"
