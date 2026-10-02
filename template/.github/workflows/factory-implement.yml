@@ -52,8 +52,13 @@ jobs:
           # ready-for-agent stays on. Adding a label an issue already has starts nothing, so a re-triage can't start a second run.
           gh issue edit "$ISSUE" --remove-label agent:failed --add-label agent:working
           gh issue comment "$ISSUE" --body "🏭 The factory picked this up. [Watch the run]($RUN_URL)"
+          labels=$(gh issue view "$ISSUE" --json labels -q '.labels[].name')
           {
             cat .github/factory/implement.md
+            # The category label picks the method: a bug is diagnosed before it's fixed, an enhancement is built test-first.
+            for category in bug enhancement; do
+              if grep -qix "$category" <<<"$labels"; then echo; cat ".github/factory/$category.md"; break; fi
+            done
             printf '\n## Test command\n\n```sh\n%s\n```\n\n' "$TEST_COMMAND"
             gh issue view "$ISSUE" --json number,title,body,comments | jq -r -f .github/factory/ticket.jq
           } > "$RUNNER_TEMP/prompt.md"
@@ -102,8 +107,11 @@ jobs:
 
           printf '%s\n\nCloses #%s\n\n---\n_Opened by the factory · [implement run](%s)_\n' \
             "$AGENT_SUMMARY" "$ISSUE" "$RUN_URL" > "$RUNNER_TEMP/body.md"
-          pr_url=$(gh pr view "$branch" --json url -q .url 2>/dev/null ||
-            gh pr create --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/body.md" --label agent:review)
+          # A retry after a PR was closed opens a fresh one: the closed PR keeps the old description and can't merge.
+          pr_url=$(gh pr list --head "$branch" --state open --json url -q '.[].url')
+          if [ -z "$pr_url" ]; then
+            pr_url=$(gh pr create --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/body.md" --label agent:review)
+          fi
 
           gh issue edit "$ISSUE" --remove-label agent:working
           gh issue comment "$ISSUE" --body "🏭 Opened $pr_url"
@@ -115,6 +123,12 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
+          AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
         run: |
           gh issue edit "$ISSUE" --remove-label agent:working --add-label agent:failed
-          gh issue comment "$ISSUE" --body "💥 The factory failed on this ticket. [See the run]($RUN_URL). Remove and re-add \`ready-for-agent\` to retry."
+          {
+            echo "💥 The factory failed on this ticket. [See the run]($RUN_URL). Remove and re-add \`ready-for-agent\` to retry."
+            # The agent's own account, such as why it couldn't reproduce a bug.
+            if [ -n "$AGENT_SUMMARY" ]; then printf '\n**The agent said:**\n\n%s\n' "$AGENT_SUMMARY"; fi
+          } > "$RUNNER_TEMP/failure.md"
+          gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/failure.md"

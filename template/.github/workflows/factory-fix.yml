@@ -76,6 +76,7 @@ jobs:
         run: eval "$SETUP_COMMAND"
 
       - name: Agent addresses the feedback
+        id: agent
         uses: jonbaldie/software-factory/run-agent@v1
         with:
           name: fix-pr-${{ env.PR }}
@@ -91,20 +92,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.pr.outputs.branch }}
+          AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
         run: |
           if [ -n "$(git status --porcelain -- .github)" ]; then
             echo "::error::The agent changed files under .github/, which the factory owns"
             exit 1
           fi
           git add -A
-          if git diff --cached --quiet; then
-            echo "::error::The agent finished without changing any files"
+          # Feedback about the description alone, such as evidence the reviewer asked for, is answered in the summary with no commit.
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Address review feedback"
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "HEAD:$BRANCH"
+          elif [ -z "$AGENT_SUMMARY" ]; then
+            echo "::error::The agent finished without changing any files or writing a summary"
             exit 1
           fi
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "Address review feedback"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "HEAD:$BRANCH"
-          gh pr edit "$PR" --remove-label agent:changes-requested --add-label agent:review
+
+          # The reviewer reads the description, so it hears what changed and why.
+          {
+            gh pr view "$PR" --json body -q .body
+            printf '\n%s\n\n---\n_Fixed by the factory · [fix run](%s)_\n' "$AGENT_SUMMARY" "$RUN_URL"
+          } > "$RUNNER_TEMP/body.md"
+          gh pr edit "$PR" --body-file "$RUNNER_TEMP/body.md" --remove-label agent:changes-requested --add-label agent:review
           gh workflow run factory-review.yml -f pr="$PR"
 
       - name: Report failure
