@@ -118,7 +118,7 @@ To choose a different model for one stage, set `model` on that workflow's `run-a
 
 Put coding standards in your repository's `AGENTS.md` or `CLAUDE.md`. The implementer is told to follow them and the reviewer is told to check them.
 
-Edit the prompts in `.github/factory/` to change how the agents work. The [bug](template/.github/factory/bug.md) and [enhancement](template/.github/factory/enhancement.md) prompts contain the full methods and review checklists.
+Edit the prompts in `.github/factory/` to change how the agents work. Review and fix read the prompts from the PR's base branch, so your edits also apply to PRs that are already open. The [bug](template/.github/factory/bug.md) and [enhancement](template/.github/factory/enhancement.md) prompts contain the full methods and review checklists.
 
 ## Check progress and recover from failures
 
@@ -130,7 +130,7 @@ Issue and PR comments link to the relevant workflow runs. Agent runs provide liv
 | `agent:review` | The PR is queued for review or being reviewed. Add it to request another review. |
 | `agent:changes-requested` | The PR needs fixes. You can add it with a comment explaining what to change. |
 | `agent:approved` | The agent approved the PR. Check whether it merged; GitHub may still block it. |
-| `agent:failed` | A stage failed. Read the linked run, fix the cause, then retry as described below. |
+| `agent:failed` | A stage failed, timed out, or was cancelled. Read the linked run, fix the cause, then retry as described below. |
 | `ready-for-human` | You need to take over after three rejected reviews or a blocked merge. Check the review comments and GitHub's merge status. |
 
 To retry implementation, remove and re-add `ready-for-agent` on the issue. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.

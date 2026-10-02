@@ -65,17 +65,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           base=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
+          # The prompts come from the base branch, so a PR opened before a prompt change still gets the new one.
+          prompts="$RUNNER_TEMP/factory"
+          mkdir "$prompts" && git archive "origin/$base:.github/factory" | tar -x -C "$prompts"
           issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
           labels=$(for n in $issues; do gh issue view "$n" --json labels -q '.labels[].name'; done)
           {
-            cat .github/factory/review.md
+            cat "$prompts/review.md"
             # The same method the implementer was given, so the reviewer checks its evidence.
             for category in bug enhancement; do
-              if grep -qix "$category" <<<"$labels"; then echo; cat ".github/factory/$category.md"; break; fi
+              if grep -qix "$category" <<<"$labels"; then echo; cat "$prompts/$category.md"; break; fi
             done
             echo
             for n in $issues; do
-              gh issue view "$n" --json number,title,body,comments | jq -r -f .github/factory/ticket.jq
+              gh issue view "$n" --json number,title,body,comments | jq -r -f "$prompts/ticket.jq"
             done
             echo "## Pull request description"
             echo
@@ -158,7 +161,7 @@ jobs:
           fi
 
       - name: Report failure
-        if: failure()
+        if: failure() || cancelled() # a timeout or a cancel by hand counts as cancelled, not failed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
