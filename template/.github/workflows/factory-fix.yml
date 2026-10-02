@@ -42,6 +42,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ steps.pr.outputs.branch }}
+          fetch-depth: 0 # the prompts come from the base branch
           persist-credentials: false
 
       - uses: actions/setup-node@v7 # the agent runs on Node
@@ -56,11 +57,16 @@ jobs:
             echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
             exit 1
           fi
+          base=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
+          # The prompts come from the base branch, so a PR opened before a prompt change still gets the new one.
+          # They're unpacked outside the checkout, where the agent's commit can't pick them up.
+          prompts="$RUNNER_TEMP/factory"
+          mkdir "$prompts" && git archive "origin/$base:.github/factory" | tar -x -C "$prompts"
           {
-            cat .github/factory/fix.md
+            cat "$prompts/fix.md"
             printf '\n## Test command\n\n```sh\n%s\n```\n\n' "$TEST_COMMAND"
             for n in $(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number'); do
-              gh issue view "$n" --json number,title,body,comments | jq -r -f .github/factory/ticket.jq
+              gh issue view "$n" --json number,title,body,comments | jq -r -f "$prompts/ticket.jq"
             done
             echo "## Latest review"
             gh pr view "$PR" --json comments \
@@ -118,7 +124,7 @@ jobs:
           gh workflow run factory-review.yml -f pr="$PR"
 
       - name: Report failure
-        if: failure()
+        if: failure() || cancelled() # a timeout or a cancel by hand counts as cancelled, not failed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

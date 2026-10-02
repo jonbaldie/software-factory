@@ -122,7 +122,7 @@ agent:working|fbca04|The implementer agent is on it
 agent:review|1d76db|Reviewer agent is checking this PR
 agent:changes-requested|d93f0b|Fixer agent is addressing review feedback
 agent:approved|0e8a16|Reviewer approved; factory merged it
-agent:failed|000000|A factory stage crashed. See the linked run
+agent:failed|000000|A factory stage failed, timed out, or was cancelled. See the linked run
 EOF
   # The category labels pick the implementer's method. Most repos have them from GitHub's defaults, so they're only created when missing.
   local existing
