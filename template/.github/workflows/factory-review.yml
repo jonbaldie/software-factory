@@ -65,12 +65,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           base=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
+          issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
+          labels=$(for n in $issues; do gh issue view "$n" --json labels -q '.labels[].name'; done)
           {
             cat .github/factory/review.md
+            # The same method the implementer was given, so the reviewer checks its evidence.
+            for category in bug enhancement; do
+              if grep -qix "$category" <<<"$labels"; then echo; cat ".github/factory/$category.md"; break; fi
+            done
             echo
-            for n in $(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number'); do
+            for n in $issues; do
               gh issue view "$n" --json number,title,body,comments | jq -r -f .github/factory/ticket.jq
             done
+            echo "## Pull request description"
+            echo
+            gh pr view "$PR" --json body -q .body
+            echo
             echo "## The diff"
             echo '````diff'
             git diff "origin/$base...HEAD"

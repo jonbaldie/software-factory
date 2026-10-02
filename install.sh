@@ -124,6 +124,20 @@ agent:changes-requested|d93f0b|Fixer agent is addressing review feedback
 agent:approved|0e8a16|Reviewer approved; factory merged it
 agent:failed|000000|A factory stage crashed. See the linked run
 EOF
+  # The category labels pick the implementer's method. Most repos have them from GitHub's defaults, so they're only created when missing.
+  local existing
+  existing=$(gh label list --repo "$repo" --limit 1000 --json name -q '.[].name')
+  while IFS='|' read -r name color description; do
+    if grep -qix "$name" <<<"$existing"; then
+      echo "  $name (already there)"
+    else
+      gh label create "$name" --repo "$repo" --color "$color" --description "$description" </dev/null >/dev/null
+      echo "  $name"
+    fi
+  done <<'EOF'
+bug|d73a4a|Something isn't working
+enhancement|a2eeef|New feature or request
+EOF
 
   echo
   echo "Actions"

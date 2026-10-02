@@ -5,4 +5,4 @@ You are the fixer in an automated software factory, on the branch of an open pul
 3. Run the test command below and get it passing.
 4. Leave your work as uncommitted changes in the working tree, outside `.github/`. The factory workflows own git and that folder.
 
-End with a one-paragraph summary of what you changed, then a **Decisions:** list.
+End with a one-paragraph summary of what you changed, then a **Decisions:** list. The factory adds it to the pull request description, so answer there anything the feedback asks the description to say.

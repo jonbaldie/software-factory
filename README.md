@@ -31,7 +31,7 @@ curl -fsSL https://raw.githubusercontent.com/jonbaldie/software-factory/v1/insta
 The installer:
 
 - copies the workflows into `.github/workflows/factory-*.yml` and the agent prompts into `.github/factory/`
-- creates the [labels](#labels)
+- creates the [labels](#labels), leaving `bug` and `enhancement` as they are if the repo already has them
 - allows GitHub Actions to create and approve pull requests
 - sets the `FACTORY_TEST_COMMAND` and `FACTORY_SETUP_COMMAND` [variables](#configuration)
 - checks the agent's API key secret is set, and tells you how to add it if it isn't
@@ -61,13 +61,27 @@ The runner has Node 22, which the agent needs. Ubuntu runners also come with Pyt
 
 The prompts in `.github/factory/` are yours to tune. Write your coding standards in `AGENTS.md` (or `CLAUDE.md`): the implementer follows them and the reviewer enforces them.
 
+## Bugs and enhancements
+
+An issue's category label picks the method the implementer works by:
+
+| Label | Method | The PR shows |
+|---|---|---|
+| `bug` | [`bug.md`](template/.github/factory/bug.md): build a loop that goes red on the bug, minimise it, rank falsifiable hypotheses, probe them, then write a regression test that fails before fixing the root cause. After [`/diagnosing-bugs`](https://github.com/mattpocock/skills). | A regression test and a **Root cause:** paragraph |
+| `enhancement` | [`enhancement.md`](template/.github/factory/enhancement.md): test-first in vertical slices, one red test at a public seam and then just enough code to pass it. After [`/tdd`](https://github.com/mattpocock/skills). | Tests at the **Seams:** it lists, and a **Slices:** list with each test's failure line |
+| neither | [`implement.md`](template/.github/factory/implement.md) on its own. | |
+
+An issue with both labels is treated as a bug. The reviewer gets the same method and checks each box on its closing **Done when** checklist, so a fix with no regression test or an enhancement tested through its internals goes back to the fixer. If the implementer can't make the reported bug go red, with the ticket's trigger and at its severity, it stops, and the failure comment on the issue says what it tried, what it needs, and any other bug it found on the way.
+
+The methods are written for an agent working alone: where the skills would ask you, such as which seams to test, the agent decides and lists the call under **Decisions:**.
+
 ## How it maps to the post
 
 | The post says | Where it is |
 |---|---|
 | 1. Free sandboxes for public repos | Every agent runs on a fresh `ubuntu-latest` runner with no permission prompts. The runner is the sandbox, and it's thrown away afterwards. |
 | 2. You already have a login | Permissions are GitHub's own: only people with triage access can add labels, so only they can start the factory. |
-| 3. Tickets as issues | The implementer's prompt is [`implement.md`](template/.github/factory/implement.md) plus the issue's title, body and maintainers' comments, rendered by [`ticket.jq`](template/.github/factory/ticket.jq). A triage brief posted as a comment reaches the implementer, the reviewer and the fixer. |
+| 3. Tickets as issues | The implementer's prompt is [`implement.md`](template/.github/factory/implement.md), the [method](#bugs-and-enhancements) for a `bug` or `enhancement`, and the issue's title, body and maintainers' comments, rendered by [`ticket.jq`](template/.github/factory/ticket.jq). A triage brief posted as a comment reaches the implementer, the reviewer and the fixer. |
 | 4. Labels trigger actions, which create PRs | Adding `ready-for-agent` runs [`factory-implement.yml`](template/.github/workflows/factory-implement.yml), which opens a PR. |
 | 5. Actions apply labels, which create loops | Review → fix → review, in [`factory-review.yml`](template/.github/workflows/factory-review.yml) and [`factory-fix.yml`](template/.github/workflows/factory-fix.yml). There's a round limit so it can't loop forever. |
 | 6. Cron jobs for daily work | [`factory-scout.yml`](template/.github/workflows/factory-scout.yml) files `TODO(factory):` comments as tickets and posts a queue report. |
@@ -75,10 +89,12 @@ The prompts in `.github/factory/` are yours to tune. Write your coding standards
 
 ## Labels
 
-The first five are the default triage labels used by [Matt Pocock's skills](https://github.com/mattpocock/skills), such as `/triage`. The `agent:*` labels show where a ticket is in the factory.
+The first seven are the default triage labels used by [Matt Pocock's skills](https://github.com/mattpocock/skills), such as `/triage`. The `agent:*` labels show where a ticket is in the factory.
 
 | Label | On | Meaning | Set by |
 |---|---|---|---|
+| `bug` | issue | Something is broken. The implementer [diagnoses it](#bugs-and-enhancements) before fixing it. | you, or `/triage` |
+| `enhancement` | issue | A new feature or improvement. The implementer [builds it test-first](#bugs-and-enhancements). | you, or `/triage` |
 | `needs-triage` | issue | Someone needs to check this ticket. | scout, or anyone filing an issue |
 | `needs-info` | issue | Waiting on the reporter for more information. | you, or `/triage` |
 | `ready-for-agent` | issue | Go. Starts **1 · Implement**. It stays on the issue: remove and re-add it to run the factory again. | you, or `/triage` |
