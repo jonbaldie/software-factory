@@ -122,8 +122,9 @@ jobs:
         run: |
           verdict=$(jq -r .verdict <<<"$REVIEW")
           if [ "$TESTS_PASSED" != true ]; then verdict=request_changes; fi
+          # Count only the factory's own reviews: anyone can post a comment with the marker.
           rounds=$(gh pr view "$PR" --json comments \
-            -q '[.comments[].body | select(contains("<!-- factory:review request_changes -->"))] | length')
+            -q '[.comments[] | select(.author.login == "github-actions" and (.body | contains("<!-- factory:review request_changes -->")))] | length')
           round=$((rounds + 1))
 
           {
