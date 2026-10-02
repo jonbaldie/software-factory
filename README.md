@@ -1,155 +1,183 @@
 # software-factory
 
-A software factory made of GitHub Actions, after [this post by Matt Pocock](https://x.com/mattpocockuk). Issues are tickets, labels move work between stages, and a coding agent does the work on throwaway Actions runners. You label an issue; the factory opens a pull request, reviews it, fixes it and merges it.
+Turn GitHub issues into tested, reviewed code using coding agents in GitHub Actions.
 
-The agent is [pi](https://github.com/earendil-works/pi) running `openai/gpt-6-luna` at `max` thinking through OpenRouter. Claude Code works too: see [Choosing the agent](#choosing-the-agent).
+You describe the work in an issue and add `ready-for-agent`. The factory writes the code, runs your tests, opens a pull request, and uses another agent to review it and request fixes.
 
-[software-factory-sandbox](https://github.com/jonbaldie/software-factory-sandbox) is a working example.
+**When tests and review pass, the factory squash-merges the PR automatically, if GitHub allows it.** After three rejected reviews, or if GitHub blocks the merge, it hands the PR to you.
+
+The default agent is pi, using OpenRouter. Claude Code is also supported. Each stage runs on a fresh GitHub Actions runner. You supply the issue, test command, and model credentials.
+
+See the [example repository](https://github.com/jonbaldie/software-factory-sandbox).
+
+## How it works
 
 ```mermaid
 flowchart LR
-  you(["🧑 You"]) -->|write a ticket| issue["Issue"]
-  scout["4 · Scout<br/>(daily cron)"] -->|files TODOs as| proposed["Issue<br/>needs-triage"]
-  proposed -->|you check it| issue
-  issue -->|add label| ready["ready-for-agent"]
-  ready --> implement["1 · Implement<br/>agent writes code, opens PR"]
-  implement --> review["2 · Review<br/>tests + agent reviewer"]
-  review -->|approve| merged["agent:approved<br/>squash-merged, issue closed"]
-  review -->|request changes| fix["3 · Fix<br/>agent addresses feedback"]
-  fix -->|agent:review| review
-  review -->|3rd rejection| human["ready-for-human"]
+  issue["You label an issue<br/>ready-for-agent"] --> implement["Agent writes code<br/>and runs tests"]
+  implement --> pr["Factory opens a PR"]
+  pr --> review["Tests run again<br/>and another agent reviews"]
+  review -->|Pass| merge["Factory merges the PR"]
+  review -->|Changes needed| fix["Agent fixes the PR"]
+  fix --> review
+  review -->|Third rejection| human["You take over<br/>ready-for-human"]
+  merge -->|GitHub blocks the merge| human
 ```
 
-## Install
+## Install in your repository
 
-You need the [GitHub CLI](https://cli.github.com), logged in, and admin access to the repo. From a clone of your repo:
+You need:
+
+- A local clone of the GitHub repository you want to automate, with admin access.
+- The [GitHub CLI](https://cli.github.com), signed in with `gh auth login`.
+- A test command that can run without interaction on an Ubuntu runner.
+- An OpenRouter API key, or [Claude Code credentials](#choose-an-agent).
+
+### 1. Run the installer
+
+From your repository's directory:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/jonbaldie/software-factory/v1/install.sh | bash
 ```
 
-The installer:
-
-- copies the workflows into `.github/workflows/factory-*.yml` and the agent prompts into `.github/factory/`
-- creates the [labels](#labels), leaving `bug` and `enhancement` as they are if the repo already has them
-- allows GitHub Actions to create and approve pull requests
-- sets the `FACTORY_TEST_COMMAND` and `FACTORY_SETUP_COMMAND` [variables](#configuration)
-- checks the agent's API key secret is set, and tells you how to add it if it isn't
-
-Then add the API key if asked, and commit `.github`. Push it to the default branch, or merge it in a pull request if the branch is protected: the workflows only run from the default branch. Give the factory a fully specified issue, add `ready-for-agent`, and watch the Actions tab.
-
-Pass options after `bash -s --`:
+The installer detects `npm test` when `package.json` has a test script, and `npm ci` when a `package-lock.json` exists. For other projects, provide your commands:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/jonbaldie/software-factory/v1/install.sh | bash -s -- --test-command 'make test' --setup-command 'make deps'
+curl -fsSL https://raw.githubusercontent.com/jonbaldie/software-factory/v1/install.sh \
+  | bash -s -- --test-command 'make test' --setup-command 'make deps'
 ```
 
-Run the installer with `--help` for the full list. It's safe to rerun.
+It copies workflows and prompts into `.github/`, creates labels, sets the test and setup commands, and tries to enable Actions to create and approve PRs. It preserves existing `bug` and `enhancement` labels.
+
+### 2. Add the model key
+
+For the default agent, run this and paste your OpenRouter key when prompted:
+
+```sh
+gh secret set OPENROUTER_API_KEY
+```
+
+Use a key with its own spending limit. To use Claude Code, follow [Choose an agent](#choose-an-agent) instead.
+
+If the installer reports a permissions problem, enable **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**. Your organisation may need to allow this first.
+
+### 3. Commit and merge the installed files
+
+Review the changes under `.github/`, commit them, and get them onto your default branch. If the branch is protected, use a pull request. Complete this before starting an issue.
+
+## Run your first issue
+
+1. Open an issue that describes the expected behaviour and how to check it. For a bug, include reproduction steps and the actual result.
+2. Add `bug` or `enhancement` if either applies.
+3. Read the issue, then add `ready-for-agent` to start the factory.
+4. Follow the run link posted on the issue, or open the repository's **Actions** tab.
+
+Agents work without asking follow-up questions. Put requirements and constraints in the issue or in comments from repository owners, members, or collaborators. The agents record their decisions in the PR description.
+
+| Issue label | What the agent does |
+|---|---|
+| `bug` | Reproduces the reported problem, investigates the cause, and adds a regression test before fixing it. If a test cannot reach the bug, the PR must explain why. |
+| `enhancement` | Builds one behaviour at a time: writes a failing test through a public interface, then implements enough code to pass it. |
+| Neither | Follows the general implementation instructions and runs your tests. |
+
+If both labels are present, `bug` takes precedence. If the agent cannot reproduce a reported bug, it stops and posts what it tried and what information it needs.
 
 ## Configuration
 
-The factory reads these repository variables (Settings → Secrets and variables → Actions → Variables):
+Set repository variables under **Settings → Secrets and variables → Actions → Variables**.
 
-| Variable | Meaning | Default |
+| Variable | Purpose | Default |
 |---|---|---|
-| `FACTORY_TEST_COMMAND` | Runs your tests. The agents are told to make it pass, the PR is only opened if it does, and the reviewer sees its output. | Required. The installer sets `npm test` when `package.json` has a test script. |
-| `FACTORY_SETUP_COMMAND` | Runs before the agent and the tests, such as `npm ci` or `pip install -e '.[test]'`. | None. The installer sets `npm ci` when `package-lock.json` exists. |
-| `FACTORY_HARNESS` | `pi` or `claude`. | `pi` |
-| `FACTORY_MODEL` | The model for every stage. | `openrouter/openai/gpt-6-luna:max` for pi, `sonnet` for claude |
+| `FACTORY_TEST_COMMAND` | Command that must pass before a PR opens or merges. | Required; installer detects `npm test` where available. |
+| `FACTORY_SETUP_COMMAND` | Installs dependencies before each agent stage. | None; installer detects `npm ci` when `package-lock.json` exists. |
+| `FACTORY_HARNESS` | Chooses the agent: `pi` or `claude`. | `pi` |
+| `FACTORY_MODEL` | Chooses the model for all agent stages. | See below. |
 
-The runner has Node 22, which the agent needs. Ubuntu runners also come with Python, Go and Rust. For anything else, add a setup step to the workflows.
+The workflows install Node 22 for the agent. Add setup steps to the workflows if your project needs other runtimes or services.
 
-The prompts in `.github/factory/` are yours to tune. Write your coding standards in `AGENTS.md` (or `CLAUDE.md`): the implementer follows them and the reviewer enforces them.
+### Choose an agent
 
-## Bugs and enhancements
-
-An issue's category label picks the method the implementer works by:
-
-| Label | Method | The PR shows |
-|---|---|---|
-| `bug` | [`bug.md`](template/.github/factory/bug.md): build a loop that goes red on the bug, minimise it, rank falsifiable hypotheses, probe them, then write a regression test that fails before fixing the root cause. After [`/diagnosing-bugs`](https://github.com/mattpocock/skills). | A regression test and a **Root cause:** paragraph |
-| `enhancement` | [`enhancement.md`](template/.github/factory/enhancement.md): test-first in vertical slices, one red test at a public seam and then just enough code to pass it. After [`/tdd`](https://github.com/mattpocock/skills). | Tests at the **Seams:** it lists, and a **Slices:** list with each test's failure line |
-| neither | [`implement.md`](template/.github/factory/implement.md) on its own. | |
-
-An issue with both labels is treated as a bug. The reviewer gets the same method and checks each box on its closing **Done when** checklist, so a fix with no regression test or an enhancement tested through its internals goes back to the fixer. If the implementer can't make the reported bug go red, with the ticket's trigger and at its severity, it stops, and the failure comment on the issue says what it tried, what it needs, and any other bug it found on the way.
-
-The methods are written for an agent working alone: where the skills would ask you, such as which seams to test, the agent decides and lists the call under **Decisions:**.
-
-## How it maps to the post
-
-| The post says | Where it is |
-|---|---|
-| 1. Free sandboxes for public repos | Every agent runs on a fresh `ubuntu-latest` runner with no permission prompts. The runner is the sandbox, and it's thrown away afterwards. |
-| 2. You already have a login | Permissions are GitHub's own: only people with triage access can add labels, so only they can start the factory. |
-| 3. Tickets as issues | The implementer's prompt is [`implement.md`](template/.github/factory/implement.md), the [method](#bugs-and-enhancements) for a `bug` or `enhancement`, and the issue's title, body and maintainers' comments, rendered by [`ticket.jq`](template/.github/factory/ticket.jq). A triage brief posted as a comment reaches the implementer, the reviewer and the fixer. |
-| 4. Labels trigger actions, which create PRs | Adding `ready-for-agent` runs [`factory-implement.yml`](template/.github/workflows/factory-implement.yml), which opens a PR. |
-| 5. Actions apply labels, which create loops | Review → fix → review, in [`factory-review.yml`](template/.github/workflows/factory-review.yml) and [`factory-fix.yml`](template/.github/workflows/factory-fix.yml). There's a round limit so it can't loop forever. |
-| 6. Cron jobs for daily work | [`factory-scout.yml`](template/.github/workflows/factory-scout.yml) files `TODO(factory):` comments as tickets and posts a queue report. |
-| 7. Simple observability | Each agent run streams a readable log, writes its model, turns and cost to the job summary, and uploads its full transcript as an artifact. Each issue and PR gets a comment linking to its run. |
-
-## Labels
-
-The first seven are the default triage labels used by [Matt Pocock's skills](https://github.com/mattpocock/skills), such as `/triage`. The `agent:*` labels show where a ticket is in the factory.
-
-| Label | On | Meaning | Set by |
+| Agent | `FACTORY_HARNESS` | Default `FACTORY_MODEL` | Repository secret |
 |---|---|---|---|
-| `bug` | issue | Something is broken. The implementer [diagnoses it](#bugs-and-enhancements) before fixing it. | you, or `/triage` |
-| `enhancement` | issue | A new feature or improvement. The implementer [builds it test-first](#bugs-and-enhancements). | you, or `/triage` |
-| `needs-triage` | issue | Someone needs to check this ticket. | scout, or anyone filing an issue |
-| `needs-info` | issue | Waiting on the reporter for more information. | you, or `/triage` |
-| `ready-for-agent` | issue | Go. Starts **1 · Implement**. It stays on the issue: remove and re-add it to run the factory again. | you, or `/triage` |
-| `ready-for-human` | issue or PR | A human has to do this one. The factory adds it to a PR after the reviewer's third rejection, or when GitHub blocks the merge. | you, `/triage`, or the factory |
-| `wontfix` | issue | Won't be done. | you, or `/triage` |
-| `agent:working` | issue | The implementer is on it. | factory |
-| `agent:review` | PR | Starts **2 · Review**. | factory, or you to re-review |
-| `agent:changes-requested` | PR | Starts **3 · Fix**. | factory, or you, with a comment saying what to change |
-| `agent:approved` | PR | The reviewer approved and the factory merged it. | factory |
-| `agent:failed` | either | A stage crashed. The comment links to the run. | factory |
+| pi via OpenRouter | `pi` | `openrouter/openai/gpt-6-luna:max` | `OPENROUTER_API_KEY` |
+| Claude Code | `claude` | `sonnet` | `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` |
 
-## The catch: `GITHUB_TOKEN` doesn't trigger workflows
+For example, to use Claude Code with an Anthropic API key:
 
-Events caused by the built-in `GITHUB_TOKEN` [don't start new workflow runs](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow), apart from `workflow_dispatch` and `repository_dispatch`. This stops accidental infinite loops, but it also means a label the factory adds won't trigger the next stage.
+```sh
+gh variable set FACTORY_HARNESS --body claude
+gh secret set ANTHROPIC_API_KEY
+```
 
-So the labels are the **state**, and each stage also runs `gh workflow run <next-stage>.yml` to start the next one. A label added by a human still triggers its stage, because that event comes from a real user.
+For the token option, generate a token with `claude setup-token` and save it as `CLAUDE_CODE_OAUTH_TOKEN`. If you previously set `FACTORY_MODEL`, update it for the new agent or delete it to use the default.
 
-If you'd rather have labels alone drive everything, use a GitHub App token or a fine-grained PAT instead of `GITHUB_TOKEN`. Events caused by those do trigger workflows.
+To choose a different model for one stage, set `model` on that workflow's `run-agent` step.
 
-## Guardrails
+### Set project instructions
 
-- **Cost**: each agent run has a cap: $1.50 to implement, $0.75 to review, $1.00 to fix. pi has no budget flag, so [`pi.mjs`](run-agent/pi.mjs) watches the cost pi reports and stops it once a run goes over. Claude Code enforces the cap itself with `--max-budget-usd`.
-- **A spend limit on the key**: the per-run cap is counted on the runner. Give the API key its own credit limit too, so the provider refuses requests once the limit is reached, whatever happens on the runner.
-- **Loops**: the reviewer can send a PR back twice. The third rejection hands it to a human.
-- **Credentials**: the checkout uses `persist-credentials: false`, and `GH_TOKEN` is only set on the steps that need it. The agent gets the model key and nothing else. The workflow, not the agent, commits and pushes.
-- **The factory owns `.github`**: a stage fails if the agent changed anything under `.github/`, so an agent can't rewrite its own workflows or prompts.
-- **The reviewer is read-only**: its only tools are read, glob and grep. pi has no permission system, so this allowlist is the only thing stopping it from writing.
-- **The reviewer must answer properly**: its verdict has to match a JSON schema. Claude Code enforces this with `--json-schema`. pi has no equivalent, so `pi.mjs` asks for a JSON block and checks it. A missing or malformed verdict fails the stage instead of being guessed.
-- **No project-local agent config**: pi runs with `--no-approve`, so a PR can't add `.pi/extensions` that run inside the agent.
-- **Script injection**: issue text reaches the agent through files and environment variables, never through `${{ }}` in shell scripts.
-- **Concurrency**: one run per issue or PR at a time.
-- **Prompt injection**: anyone can open an issue on a public repo, but only people with triage access can add `ready-for-agent`. Read a ticket before you label it. The agents see comments on issues and PRs only from the repo's owners, members and collaborators.
-- **Branch protection**: the reviewer merges with `GITHUB_TOKEN`, so a ruleset that requires pull requests with no approvals works as it is. If GitHub blocks the merge, for example because your default branch requires a human approval, the factory labels the PR `ready-for-human` and leaves the merge to you.
+Put coding standards in your repository's `AGENTS.md` or `CLAUDE.md`. The implementer is told to follow them and the reviewer is told to check them.
 
-## Choosing the agent
+Edit the prompts in `.github/factory/` to change how the agents work. The [bug](template/.github/factory/bug.md) and [enhancement](template/.github/factory/enhancement.md) prompts contain the full methods and review checklists.
 
-The workflows run every agent through [`run-agent`](run-agent/action.yml), a composite action in this repo, as `jonbaldie/software-factory/run-agent@v1`. It runs either harness:
+## Check progress and recover from failures
 
-| `FACTORY_HARNESS` | Default `FACTORY_MODEL` | Secret |
-|---|---|---|
-| `pi` (default) | `openrouter/openai/gpt-6-luna:max` | `OPENROUTER_API_KEY` |
-| `claude` | `sonnet` | `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, or `ANTHROPIC_API_KEY` |
+Issue and PR comments link to the relevant workflow runs. Agent runs provide live logs, a summary with model usage and cost, and a downloadable transcript.
 
-pi takes any model it lists with `pi --list-models`, written as `provider/id:thinking`. To use a different model for one stage, for example a stronger reviewer, set `model` on that stage's `run-agent` step.
+| Label | Meaning or next step |
+|---|---|
+| `agent:working` | The agent is implementing the issue. |
+| `agent:review` | The PR is queued for review or being reviewed. Add it to request another review. |
+| `agent:changes-requested` | The PR needs fixes. You can add it with a comment explaining what to change. |
+| `agent:approved` | The agent approved the PR. Check whether it merged; GitHub may still block it. |
+| `agent:failed` | A stage failed. Read the linked run, fix the cause, then retry as described below. |
+| `ready-for-human` | You need to take over after three rejected reviews or a blocked merge. Check the review comments and GitHub's merge status. |
 
-For pi, create an OpenRouter key just for this repo. Give it a credit limit and, if you like, a guardrail that allows only the model you use.
+To retry implementation, remove and re-add `ready-for-agent` on the issue. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.
 
-Use an API key or a Claude token, not a ChatGPT or Codex subscription login. OpenAI's [CI auth guide](https://developers.openai.com/codex/auth/ci-cd-auth) rules a subscription login out on public repos, and it would sit in a file the agent can read.
+The installer also creates `needs-triage`, `needs-info`, and `wontfix` for organising issues. These do not start agent work.
 
-## Upgrading
+## Costs and limits
 
-Rerun the installer, then check `git diff` before you commit. It overwrites the workflows and prompts, so re-apply any edits you want to keep.
+Each agent run has a model spending threshold:
 
-`run-agent@v1` follows the latest `v1.x` release, so fixes to the agent runner arrive without reinstalling. To pin one, change `@v1` to a tag such as `@v1.0.0` in the workflows.
+| Stage | Budget per run |
+|---|---|
+| Implement | $1.50 |
+| Review | $0.75 |
+| Fix | $1.00 |
+
+These are per-run budgets, not a total limit for an issue. pi is stopped after its reported cost exceeds the threshold; Claude Code receives a budget flag. Set a spending limit on the model key too. GitHub Actions usage is separate.
+
+The factory also applies these limits:
+
+- At most two automatic fix rounds; a third rejected review hands the PR to you.
+- The reviewer is configured with read and search tools only. An invalid review response fails the stage.
+- Implementation and fix stages reject edits under `.github/`.
+- Workflow steps handle commits and pushes. Checkouts for the agents do not retain GitHub credentials.
+- Issue comments and human feedback included in prompts are limited to repository owners, members, and collaborators.
+- Runs are serialised per issue or PR.
+
+The factory attempts to merge approved PRs with the built-in GitHub token. Branch rules still apply: if required approvals, conflicts, or other checks block a merge, you must resolve them.
+
+## Daily TODO scan
+
+The scout workflow runs daily and creates `needs-triage` issues from code comments such as:
+
+```js
+// TODO(factory): Add pagination to the search results
+```
+
+It skips Markdown and `.github/`, checks existing issue titles to avoid duplicates, and writes a queue report in the run summary. It uses no model. Review each proposed issue before adding `ready-for-agent`.
+
+## Update the factory
+
+Rerun the installer, review `git diff`, and commit the changes. It overwrites the installed workflows and prompts, so restore any custom edits you want to keep.
+
+The workflows use `jonbaldie/software-factory/run-agent@v1`. Changes to that version arrive without reinstalling. To pin the runner, replace `@v1` with a specific release tag or commit in each workflow.
 
 ## Licence
 
 [MIT](LICENSE)
+
+Inspired by [Matt Pocock](https://x.com/mattpocockuk)'s approach to software factories.
