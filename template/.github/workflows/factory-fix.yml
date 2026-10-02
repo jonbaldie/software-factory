@@ -69,8 +69,9 @@ jobs:
               gh issue view "$n" --json number,title,body,comments | jq -r -f "$prompts/ticket.jq"
             done
             echo "## Latest review"
+            # Only the factory's own reviews: anyone can post a comment with the marker.
             gh pr view "$PR" --json comments \
-              -q '[.comments[] | select(.body | contains("<!-- factory:review request_changes -->"))] | last | .body'
+              -q '[.comments[] | select(.author.login == "github-actions" and (.body | contains("<!-- factory:review request_changes -->")))] | last | .body'
             echo
             echo "## Comments from maintainers"
             gh pr view "$PR" --json comments \
