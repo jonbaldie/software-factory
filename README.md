@@ -67,7 +67,7 @@ The prompts in `.github/factory/` are yours to tune. Write your coding standards
 |---|---|
 | 1. Free sandboxes for public repos | Every agent runs on a fresh `ubuntu-latest` runner with no permission prompts. The runner is the sandbox, and it's thrown away afterwards. |
 | 2. You already have a login | Permissions are GitHub's own: only people with triage access can add labels, so only they can start the factory. |
-| 3. Tickets as issues | The implementer's prompt is [`implement.md`](template/.github/factory/implement.md) plus the issue title and body. |
+| 3. Tickets as issues | The implementer's prompt is [`implement.md`](template/.github/factory/implement.md) plus the issue's title, body and maintainers' comments, rendered by [`ticket.jq`](template/.github/factory/ticket.jq). A triage brief posted as a comment reaches the implementer, the reviewer and the fixer. |
 | 4. Labels trigger actions, which create PRs | Adding `ready-for-agent` runs [`factory-implement.yml`](template/.github/workflows/factory-implement.yml), which opens a PR. |
 | 5. Actions apply labels, which create loops | Review → fix → review, in [`factory-review.yml`](template/.github/workflows/factory-review.yml) and [`factory-fix.yml`](template/.github/workflows/factory-fix.yml). There's a round limit so it can't loop forever. |
 | 6. Cron jobs for daily work | [`factory-scout.yml`](template/.github/workflows/factory-scout.yml) files `TODO(factory):` comments as tickets and posts a queue report. |
@@ -110,7 +110,7 @@ If you'd rather have labels alone drive everything, use a GitHub App token or a 
 - **No project-local agent config**: pi runs with `--no-approve`, so a PR can't add `.pi/extensions` that run inside the agent.
 - **Script injection**: issue text reaches the agent through files and environment variables, never through `${{ }}` in shell scripts.
 - **Concurrency**: one run per issue or PR at a time.
-- **Prompt injection**: anyone can open an issue on a public repo, but only people with triage access can add `ready-for-agent`. Read a ticket before you label it.
+- **Prompt injection**: anyone can open an issue on a public repo, but only people with triage access can add `ready-for-agent`. Read a ticket before you label it. The agents see comments on issues and PRs only from the repo's owners, members and collaborators.
 - **Branch protection**: the reviewer merges with `GITHUB_TOKEN`, so a ruleset that requires pull requests with no approvals works as it is. If GitHub blocks the merge, for example because your default branch requires a human approval, the factory labels the PR `ready-for-human` and leaves the merge to you.
 
 ## Choosing the agent

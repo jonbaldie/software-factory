@@ -54,7 +54,7 @@ jobs:
           {
             cat .github/factory/implement.md
             printf '\n## Test command\n\n```sh\n%s\n```\n\n' "$TEST_COMMAND"
-            gh issue view "$ISSUE" --json number,title,body -q '"## Ticket #\(.number): \(.title)\n\n\(.body)"'
+            gh issue view "$ISSUE" --json number,title,body,comments | jq -r -f .github/factory/ticket.jq
           } > "$RUNNER_TEMP/prompt.md"
 
       - name: Set up the project

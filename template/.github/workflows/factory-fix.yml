@@ -59,17 +59,16 @@ jobs:
           {
             cat .github/factory/fix.md
             printf '\n## Test command\n\n```sh\n%s\n```\n\n' "$TEST_COMMAND"
-            echo "## The ticket"
             for n in $(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number'); do
-              gh issue view "$n" --json number,title,body -q '"### #\(.number): \(.title)\n\n\(.body)\n"'
+              gh issue view "$n" --json number,title,body,comments | jq -r -f .github/factory/ticket.jq
             done
             echo "## Latest review"
             gh pr view "$PR" --json comments \
               -q '[.comments[] | select(.body | contains("<!-- factory:review request_changes -->"))] | last | .body'
             echo
-            echo "## Comments from humans"
+            echo "## Comments from maintainers"
             gh pr view "$PR" --json comments \
-              -q '.comments[] | select(.author.login != "github-actions") | "- @\(.author.login): \(.body)"'
+              -q '.comments[] | select(.authorAssociation | IN("OWNER", "MEMBER", "COLLABORATOR")) | "- @\(.author.login): \(.body)"'
           } > "$RUNNER_TEMP/prompt.md"
 
       - name: Set up the project

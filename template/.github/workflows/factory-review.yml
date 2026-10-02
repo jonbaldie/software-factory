@@ -68,9 +68,8 @@ jobs:
           {
             cat .github/factory/review.md
             echo
-            echo "## The ticket"
             for n in $(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number'); do
-              gh issue view "$n" --json number,title,body -q '"### #\(.number): \(.title)\n\n\(.body)\n"'
+              gh issue view "$n" --json number,title,body,comments | jq -r -f .github/factory/ticket.jq
             done
             echo "## The diff"
             echo '````diff'
