@@ -36,7 +36,7 @@ The installer:
 - sets the `FACTORY_TEST_COMMAND` and `FACTORY_SETUP_COMMAND` [variables](#configuration)
 - checks the agent's API key secret is set, and tells you how to add it if it isn't
 
-Then add the API key if asked, commit `.github`, and push it to the default branch. The workflows only run from there. Give the factory a fully specified issue, add `ready-for-agent`, and watch the Actions tab.
+Then add the API key if asked, and commit `.github`. Push it to the default branch, or merge it in a pull request if the branch is protected: the workflows only run from the default branch. Give the factory a fully specified issue, add `ready-for-agent`, and watch the Actions tab.
 
 Pass options after `bash -s --`:
 

@@ -186,8 +186,8 @@ EOF
     echo "  $step. Ask an admin to tick Settings → Actions → General → Allow GitHub Actions to create and approve pull requests."
     step=$((step + 1))
   fi
-  echo "  $step. Review the changes, then commit and push them to the default branch. The workflows only run from there."
-  echo "       git add .github && git commit -m 'Install the software factory' && git push"
+  echo "  $step. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request"
+  echo "     if the branch is protected. The workflows only run from the default branch."
   step=$((step + 1))
   echo "  $step. Add the ready-for-agent label to a fully specified issue."
 }
