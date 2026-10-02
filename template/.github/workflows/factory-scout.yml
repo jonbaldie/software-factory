@@ -1,0 +1,61 @@
+# From https://github.com/jonbaldie/software-factory. Rerun its installer to upgrade.
+name: "Factory 4 · Scout"
+
+# Daily: turn `TODO(factory):` comments into proposed tickets, and post a factory report.
+# No LLM involved, so this one is free to run.
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # 06:17 UTC. GitHub often starts scheduled runs late.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: File tickets for new TODOs
+        run: |
+          echo "## 🔭 Scouted TODOs" >> "$GITHUB_STEP_SUMMARY"
+          existing=$(gh issue list --state all --limit 1000 --json title -q '.[].title')
+          # Markdown and .github are skipped because docs and the factory itself mention the marker.
+          { git grep -n -F 'TODO(factory):' -- ':!*.md' ':!.github' || true; } | while IFS= read -r hit; do
+            file=${hit%%:*}
+            line=$(cut -d: -f2 <<<"$hit")
+            title=${hit#*TODO(factory): }
+            if grep -Fxq -- "$title" <<<"$existing"; then
+              echo "- Already filed: $title" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            printf 'Found by the scout at %s/%s/blob/%s/%s#L%s. Delete that `TODO(factory):` comment as part of the change.\n\nA human should check this ticket, then add `ready-for-agent` to have the factory build it.\n' \
+              "$GITHUB_SERVER_URL" "$GH_REPO" "$GITHUB_SHA" "$file" "$line" > "$RUNNER_TEMP/body.md"
+            url=$(gh issue create --title "$title" --body-file "$RUNNER_TEMP/body.md" --label needs-triage)
+            echo "- Filed $url: $title" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Factory report
+        run: |
+          {
+            echo
+            echo "## 🏭 Factory report"
+            echo
+            echo "| Queue | Open |"
+            echo "|---|---|"
+            for label in needs-triage ready-for-agent agent:working agent:failed; do
+              echo "| Issues labelled \`$label\` | $(gh issue list --label "$label" --json number -q length) |"
+            done
+            for label in agent:review agent:changes-requested ready-for-human agent:failed; do
+              echo "| PRs labelled \`$label\` | $(gh pr list --label "$label" --json number -q length) |"
+            done
+            since=$(date -u -d '7 days ago' +%F)
+            echo "| PRs merged by the factory since $since | $(gh pr list --state merged --label agent:approved --search "merged:>=$since" --json number -q length) |"
+          } >> "$GITHUB_STEP_SUMMARY"
