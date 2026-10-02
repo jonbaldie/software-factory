@@ -7,4 +7,6 @@ Implement the ticket below in this repository.
 3. Run the test command below and get it passing.
 4. Leave your work as uncommitted changes in the working tree, outside `.github/`. The factory workflows own git and that folder.
 
+When a **Previous attempt** section follows the ticket, build on that run's work and use its notes to get past what stopped it.
+
 End with the pull request description: what you changed in a paragraph or two, then a **Decisions:** list. Write it as markdown with no heading.
