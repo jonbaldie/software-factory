@@ -81,7 +81,7 @@ The first five are the default triage labels used by [Matt Pocock's skills](http
 |---|---|---|---|
 | `needs-triage` | issue | Someone needs to check this ticket. | scout, or anyone filing an issue |
 | `needs-info` | issue | Waiting on the reporter for more information. | you, or `/triage` |
-| `ready-for-agent` | issue | Go. Starts **1 · Implement**. | you, or `/triage` |
+| `ready-for-agent` | issue | Go. Starts **1 · Implement**. It stays on the issue: remove and re-add it to run the factory again. | you, or `/triage` |
 | `ready-for-human` | issue or PR | A human has to do this one. The factory adds it to a PR after the reviewer's third rejection, or when GitHub blocks the merge. | you, `/triage`, or the factory |
 | `wontfix` | issue | Won't be done. | you, or `/triage` |
 | `agent:working` | issue | The implementer is on it. | factory |

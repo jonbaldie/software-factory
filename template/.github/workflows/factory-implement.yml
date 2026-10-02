@@ -49,7 +49,8 @@ jobs:
             echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
             exit 1
           fi
-          gh issue edit "$ISSUE" --remove-label ready-for-agent --remove-label agent:failed --add-label agent:working
+          # ready-for-agent stays on. Adding a label an issue already has starts nothing, so a re-triage can't start a second run.
+          gh issue edit "$ISSUE" --remove-label agent:failed --add-label agent:working
           gh issue comment "$ISSUE" --body "🏭 The factory picked this up. [Watch the run]($RUN_URL)"
           {
             cat .github/factory/implement.md
@@ -116,4 +117,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh issue edit "$ISSUE" --remove-label agent:working --add-label agent:failed
-          gh issue comment "$ISSUE" --body "💥 The factory failed on this ticket. [See the run]($RUN_URL). Re-add \`ready-for-agent\` to retry."
+          gh issue comment "$ISSUE" --body "💥 The factory failed on this ticket. [See the run]($RUN_URL). Remove and re-add \`ready-for-agent\` to retry."
