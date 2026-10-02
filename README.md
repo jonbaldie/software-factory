@@ -82,7 +82,7 @@ The first five are the default triage labels used by [Matt Pocock's skills](http
 | `needs-triage` | issue | Someone needs to check this ticket. | scout, or anyone filing an issue |
 | `needs-info` | issue | Waiting on the reporter for more information. | you, or `/triage` |
 | `ready-for-agent` | issue | Go. Starts **1 · Implement**. | you, or `/triage` |
-| `ready-for-human` | issue or PR | A human has to do this one. The factory adds it to a PR after the reviewer's third rejection. | you, `/triage`, or the factory |
+| `ready-for-human` | issue or PR | A human has to do this one. The factory adds it to a PR after the reviewer's third rejection, or when GitHub blocks the merge. | you, `/triage`, or the factory |
 | `wontfix` | issue | Won't be done. | you, or `/triage` |
 | `agent:working` | issue | The implementer is on it. | factory |
 | `agent:review` | PR | Starts **2 · Review**. | factory, or you to re-review |
@@ -111,7 +111,7 @@ If you'd rather have labels alone drive everything, use a GitHub App token or a 
 - **Script injection**: issue text reaches the agent through files and environment variables, never through `${{ }}` in shell scripts.
 - **Concurrency**: one run per issue or PR at a time.
 - **Prompt injection**: anyone can open an issue on a public repo, but only people with triage access can add `ready-for-agent`. Read a ticket before you label it.
-- **Branch protection**: the reviewer merges with `GITHUB_TOKEN`. If your default branch requires a human approval, approved PRs wait for one.
+- **Branch protection**: the reviewer merges with `GITHUB_TOKEN`, so a ruleset that requires pull requests with no approvals works as it is. If GitHub blocks the merge, for example because your default branch requires a human approval, the factory labels the PR `ready-for-human` and leaves the merge to you.
 
 ## Choosing the agent
 

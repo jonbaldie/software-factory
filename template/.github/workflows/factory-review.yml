@@ -137,7 +137,10 @@ jobs:
           if [ "$verdict" = approve ]; then
             gh pr edit "$PR" --add-label agent:approved
             # Run outside the checkout so gh doesn't try to switch local branches.
-            (cd "$RUNNER_TEMP" && gh pr merge "$PR" --squash --delete-branch)
+            if ! (cd "$RUNNER_TEMP" && gh pr merge "$PR" --squash --delete-branch); then
+              gh pr edit "$PR" --add-label ready-for-human
+              gh pr comment "$PR" --body "GitHub blocked the merge, usually because the branch needs a human approval or has a conflict. The PR box says which. Merge it yourself."
+            fi
           elif [ "$round" -ge "$MAX_ROUNDS" ]; then
             gh pr edit "$PR" --add-label ready-for-human
           else
