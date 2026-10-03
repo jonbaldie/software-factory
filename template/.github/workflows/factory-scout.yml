@@ -59,9 +59,9 @@ jobs:
             for label in needs-triage ready-for-agent agent:working agent:failed; do
               echo "| Issues labelled \`$label\` | $(gh issue list --label "$label" --json number -q length) |"
             done
-            for label in agent:review agent:changes-requested ready-for-human agent:failed; do
+            for label in agent:review agent:changes-requested agent:approved ready-for-human agent:failed; do
               echo "| PRs labelled \`$label\` | $(gh pr list --label "$label" --json number -q length) |"
             done
             since=$(date -u -d '7 days ago' +%F)
-            echo "| PRs merged by the factory since $since | $(gh pr list --state merged --label agent:approved --search "merged:>=$since" --json number -q length) |"
+            echo "| Approved PRs merged since $since | $(gh pr list --state merged --label agent:approved --search "merged:>=$since" --json number -q length) |"
           } >> "$GITHUB_STEP_SUMMARY"
