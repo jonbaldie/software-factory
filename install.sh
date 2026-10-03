@@ -121,7 +121,7 @@ wontfix|ffffff|Will not be actioned
 agent:working|fbca04|The implementer agent is on it
 agent:review|1d76db|Reviewer agent is checking this PR
 agent:changes-requested|d93f0b|Fixer agent is addressing review feedback
-agent:approved|0e8a16|Reviewer approved; factory merged it
+agent:approved|0e8a16|Reviewer approved. Ready to merge, or merged if FACTORY_MERGE is true
 agent:failed|000000|A factory stage failed, timed out, or was cancelled. See the linked run
 agent:wip|fef2c0|Unfinished work is saved on agent/issue-N. A retry continues from it
 EOF
@@ -170,6 +170,13 @@ EOF
       gh variable delete FACTORY_SETUP_COMMAND --repo "$repo" </dev/null
     fi
     echo "  FACTORY_SETUP_COMMAND (none)"
+  fi
+  local merge
+  merge=$(gh variable get FACTORY_MERGE --repo "$repo" 2>/dev/null || true)
+  if [ "$merge" = true ]; then
+    echo "  FACTORY_MERGE = true"
+  else
+    echo "  FACTORY_MERGE (off, so you merge approved PRs)"
   fi
 
   echo

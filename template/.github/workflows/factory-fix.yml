@@ -48,11 +48,12 @@ jobs:
             gh pr comment "$PR" --body "⏸️ This pull request or its issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`agent:changes-requested\`."
           fi
 
-      - name: Clear an earlier failure
+      - name: Clear an earlier verdict
         if: steps.assigned.outputs.owners == ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr edit "$PR" --remove-label agent:failed # Report failure adds it back if this run fails too
+        # Report failure adds agent:failed back if this run fails too. An approval no longer holds once more work is asked for.
+        run: gh pr edit "$PR" --remove-label agent:failed,agent:approved
 
       - name: Find the PR branches
         id: pr

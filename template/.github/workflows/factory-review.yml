@@ -2,7 +2,8 @@
 name: "Factory 2 · Review"
 
 # A reviewer agent checks a factory PR against its ticket and AGENTS.md.
-# Approve: merge. Request changes, or a merge conflict: hand to the fixer, up to MAX_ROUNDS, then escalate to a human.
+# Approve: leave the PR for a human to merge, or merge it when FACTORY_MERGE is true.
+# Request changes, or a merge conflict: hand to the fixer, up to MAX_ROUNDS, then escalate to a human.
 
 on:
   pull_request:
@@ -34,6 +35,7 @@ jobs:
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       SETUP_COMMAND: ${{ vars.FACTORY_SETUP_COMMAND }}
       TEST_COMMAND: ${{ vars.FACTORY_TEST_COMMAND }}
+      MERGE: ${{ vars.FACTORY_MERGE }}
     steps:
       - name: Leave assigned work to its assignee
         id: assigned
@@ -49,11 +51,12 @@ jobs:
             gh pr comment "$PR" --body "⏸️ This pull request or its issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`agent:review\`."
           fi
 
-      - name: Clear an earlier failure
+      - name: Clear an earlier verdict
         if: steps.assigned.outputs.owners == ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr edit "$PR" --remove-label agent:failed # Report failure adds it back if this run fails too
+        # Report failure adds agent:failed back if this run fails too. An approval no longer holds once more work is asked for.
+        run: gh pr edit "$PR" --remove-label agent:failed,agent:approved
 
       - uses: actions/checkout@v7
         if: steps.assigned.outputs.owners == ''
@@ -155,8 +158,10 @@ jobs:
 
           {
             echo "<!-- factory:review $verdict -->"
-            if [ "$verdict" = approve ]; then
+            if [ "$verdict" = approve ] && [ "$MERGE" = true ]; then
               echo "### ✅ Approved by the reviewer agent"
+            elif [ "$verdict" = approve ]; then
+              echo "### ✅ Approved by the reviewer agent, ready for you to merge"
             else
               echo "### 🔁 Changes requested (round $round of $MAX_ROUNDS)"
             fi
@@ -175,38 +180,41 @@ jobs:
 
           if [ "$verdict" = approve ]; then
             gh pr edit "$PR" --add-label agent:approved
-            # Someone may have taken the work over while the reviewer ran, and a merge can't be taken back.
-            issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
-            owners=$( { gh pr view "$PR" --json assignees -q '.assignees[].login'
-              for n in $issues; do gh issue view "$n" --json assignees -q '.assignees[].login'; done; } | sort -u | sed 's/^/@/' | paste -sd' ' -)
-            if [ -n "$owners" ]; then
-              gh pr comment "$PR" --body "⏸️ This pull request or its issue is now assigned to $owners, so the factory left it open for them to merge."
-            # Run outside the checkout so gh doesn't try to switch local branches.
-            elif ! (cd "$RUNNER_TEMP" && gh pr merge "$PR" --squash --delete-branch); then
-              # GitHub works out mergeability in the background, so give it a moment.
-              for _ in 1 2 3 4 5 6; do
-                mergeable=$(gh pr view "$PR" --json mergeable -q .mergeable)
-                if [ "$mergeable" != UNKNOWN ]; then break; fi
-                sleep 5
-              done
-              if [ "$mergeable" = CONFLICTING ] && [ "$round" -lt "$MAX_ROUNDS" ]; then
-                # The fixer merges the base branch in, so a conflict costs a round instead of a human.
-                {
-                  echo "<!-- factory:review request_changes -->"
-                  echo "### 🔁 Merge conflicts (round $round of $MAX_ROUNDS)"
-                  echo
-                  echo "The change is approved, but the branch conflicts with its base, so GitHub can't merge it."
-                  echo
-                  echo "- Resolve the merge conflicts, keeping the intent of both sides"
-                  echo
-                  echo "_[Review run]($RUN_URL)_"
-                } > "$RUNNER_TEMP/conflicts.md"
-                gh pr comment "$PR" --body-file "$RUNNER_TEMP/conflicts.md"
-                gh pr edit "$PR" --remove-label agent:approved --add-label agent:changes-requested
-                gh workflow run factory-fix.yml -f pr="$PR"
-              else
-                gh pr edit "$PR" --add-label ready-for-human
-                gh pr comment "$PR" --body "GitHub blocked the merge, usually because the branch needs a human approval or has a conflict. The PR box says which. Merge it yourself."
+            # Many teams keep the merge for a person, so the factory merges only when asked to.
+            if [ "$MERGE" = true ]; then
+              # Someone may have taken the work over while the reviewer ran, and a merge can't be taken back.
+              issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
+              owners=$( { gh pr view "$PR" --json assignees -q '.assignees[].login'
+                for n in $issues; do gh issue view "$n" --json assignees -q '.assignees[].login'; done; } | sort -u | sed 's/^/@/' | paste -sd' ' -)
+              if [ -n "$owners" ]; then
+                gh pr comment "$PR" --body "⏸️ This pull request or its issue is now assigned to $owners, so the factory left it open for them to merge."
+              # Run outside the checkout so gh doesn't try to switch local branches.
+              elif ! (cd "$RUNNER_TEMP" && gh pr merge "$PR" --squash --delete-branch); then
+                # GitHub works out mergeability in the background, so give it a moment.
+                for _ in 1 2 3 4 5 6; do
+                  mergeable=$(gh pr view "$PR" --json mergeable -q .mergeable)
+                  if [ "$mergeable" != UNKNOWN ]; then break; fi
+                  sleep 5
+                done
+                if [ "$mergeable" = CONFLICTING ] && [ "$round" -lt "$MAX_ROUNDS" ]; then
+                  # The fixer merges the base branch in, so a conflict costs a round instead of a human.
+                  {
+                    echo "<!-- factory:review request_changes -->"
+                    echo "### 🔁 Merge conflicts (round $round of $MAX_ROUNDS)"
+                    echo
+                    echo "The change is approved, but the branch conflicts with its base, so GitHub can't merge it."
+                    echo
+                    echo "- Resolve the merge conflicts, keeping the intent of both sides"
+                    echo
+                    echo "_[Review run]($RUN_URL)_"
+                  } > "$RUNNER_TEMP/conflicts.md"
+                  gh pr comment "$PR" --body-file "$RUNNER_TEMP/conflicts.md"
+                  gh pr edit "$PR" --remove-label agent:approved --add-label agent:changes-requested
+                  gh workflow run factory-fix.yml -f pr="$PR"
+                else
+                  gh pr edit "$PR" --add-label ready-for-human
+                  gh pr comment "$PR" --body "GitHub blocked the merge, usually because the branch needs a human approval or has a conflict. The PR box says which. Merge it yourself."
+                fi
               fi
             fi
           elif [ "$round" -ge "$MAX_ROUNDS" ]; then

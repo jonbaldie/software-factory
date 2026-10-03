@@ -4,7 +4,7 @@ Turn GitHub issues into tested, reviewed code using coding agents in GitHub Acti
 
 You describe the work in an issue and add `ready-for-agent`, or add `needs-triage` to have an agent check the issue and write the brief first. The factory writes the code, runs your tests, opens a pull request, and uses another agent to review it and request fixes.
 
-**When tests and review pass, the factory squash-merges the PR automatically, if GitHub allows it.** If the PR conflicts with its base branch, the fixer merges the base in and resolves the conflicts. After three rounds of changes, or if GitHub blocks the merge for another reason, it hands the PR to you.
+**When tests and review pass, the PR waits for you to merge it.** Set [`FACTORY_MERGE`](#configuration) to `true` to have the factory squash-merge it instead, if GitHub allows it. When it merges, a conflict with the base branch goes to the fixer, which merges the base in and resolves it. After three rounds of changes, or if GitHub blocks the merge for another reason, the factory hands the PR to you.
 
 The default agent is pi, using OpenRouter. Claude Code is also supported. Each stage runs on a fresh GitHub Actions runner. You supply the issue, test command, and model credentials.
 
@@ -20,7 +20,8 @@ flowchart LR
   issue["You label an issue<br/>ready-for-agent"] --> implement["Agent writes code<br/>and runs tests"]
   implement --> pr["Factory opens a PR"]
   pr --> review["Tests run again<br/>and another agent reviews"]
-  review -->|Pass| merge["Factory merges the PR"]
+  review -->|Pass, FACTORY_MERGE off| you["You merge the PR"]
+  review -->|Pass, FACTORY_MERGE on| merge["Factory merges the PR"]
   review -->|Changes needed| fix["Agent fixes the PR"]
   fix --> review
   review -->|Third rejection| human["You take over<br/>ready-for-human"]
@@ -97,7 +98,7 @@ Add `needs-triage` to an issue to have an agent triage it. The triager reads the
 | `needs-info` | What is settled, and questions for the reporter. | A reply from the reporter or a maintainer triages it again. |
 | `wontfix` | Where it is already built, or the open issue that covers it. | The issue is closed. |
 
-**A `ready-for-agent` triage starts implementation straight away, so an issue can go from triage to a merged PR with no human reading it.** Triage sets `ready-for-agent` only on issues opened by repository owners, members and collaborators, or by the [scout](#daily-todo-scan). Anyone else's issue gets `ready-for-human`, with a note asking a maintainer to add `ready-for-agent`, which starts implementation and stays through a repeat triage. Only people with triage access or above can add labels, so outside reporters cannot start triage themselves. The factory ships no issue template for this reason: a template that adds `needs-triage` would let anyone who opens an issue start a triage run.
+**A `ready-for-agent` triage starts implementation straight away, so an issue can go from triage to an approved PR with no human reading it, or to a merged one with `FACTORY_MERGE` on.** Triage sets `ready-for-agent` only on issues opened by repository owners, members and collaborators, or by the [scout](#daily-todo-scan). Anyone else's issue gets `ready-for-human`, with a note asking a maintainer to add `ready-for-agent`, which starts implementation and stays through a repeat triage. Only people with triage access or above can add labels, so outside reporters cannot start triage themselves. The factory ships no issue template for this reason: a template that adds `needs-triage` would let anyone who opens an issue start a triage run.
 
 The triager also reads comments from the issue's author, so it sees their answers to its questions. Implementation, review and fix read only comments from repository owners, members and collaborators, plus triage's own comments. A repeat triage replaces the earlier category and state labels.
 
@@ -111,6 +112,7 @@ Set repository variables under **Settings → Secrets and variables → Actions 
 | `FACTORY_SETUP_COMMAND` | Installs dependencies before each agent stage. | None; installer detects `npm ci` when `package-lock.json` exists. |
 | `FACTORY_HARNESS` | Chooses the agent: `pi` or `claude`. | `pi` |
 | `FACTORY_MODEL` | Chooses the model for all agent stages. | See below. |
+| `FACTORY_MERGE` | Set to `true` to have the factory merge approved PRs. | Off, so you merge them. |
 
 The workflows install Node 22 for the agent. Add setup steps to the workflows if your project needs other runtimes or services.
 
@@ -148,7 +150,7 @@ Issue and PR comments link to the relevant workflow runs. Agent runs provide liv
 | `agent:working` | The agent is implementing the issue. |
 | `agent:review` | The PR is queued for review or being reviewed. Add it to request another review. |
 | `agent:changes-requested` | The PR needs fixes. You can add it with a comment explaining what to change. |
-| `agent:approved` | The agent approved the PR. Check whether it merged; GitHub may still block it. |
+| `agent:approved` | The agent approved the PR. Merge it. With `FACTORY_MERGE` on, check whether the factory merged it; GitHub may still block it. |
 | `agent:failed` | A stage failed, timed out, or was cancelled. Read the linked run, fix the cause, then retry as described below. |
 | `agent:wip` | Implementation failed after the agent changed files. The unfinished work and the reason it stopped are saved on the `agent/issue-N` branch. |
 | `ready-for-human` | You need to take over. On an issue, triage's comment names the decision, or asks a maintainer to approve an outsider's issue. On a PR, three reviews were rejected or GitHub blocked the merge; check the review comments and GitHub's merge status. |
@@ -157,7 +159,7 @@ To retry a failed triage, re-add `needs-triage`. To retry implementation, remove
 
 ## Take over from the factory
 
-Assign an issue or PR to someone to take it over. Each stage checks first: if the issue, the PR or the PR's issue has an assignee, the stage posts a ⏸️ comment and leaves the labels as they are. The reviewer checks again just before merging and leaves an approved PR open for the assignee. To hand the work back, unassign everyone, then remove and re-add the stage's label.
+Assign an issue or PR to someone to take it over. Each stage checks first: if the issue, the PR or the PR's issue has an assignee, the stage posts a ⏸️ comment and leaves the labels as they are. With `FACTORY_MERGE` on, the reviewer checks again just before merging and leaves an approved PR open for the assignee. To hand the work back, unassign everyone, then remove and re-add the stage's label.
 
 ## Costs and limits
 
@@ -181,7 +183,7 @@ The factory also applies these limits:
 - Issue comments and human feedback included in prompts are limited to repository owners, members, collaborators, and the factory's triage comments. Triage also reads the issue author's comments, and the titles of all open issues, whoever opened them, to spot duplicates.
 - Runs are serialised per issue or PR.
 
-The factory attempts to merge approved PRs with the built-in GitHub token. A merge conflict goes back to the fixer, which merges the base branch in and resolves it. Branch rules still apply: if required approvals or other checks block a merge, you must resolve them.
+With `FACTORY_MERGE` on, the factory attempts to merge approved PRs with the built-in GitHub token. A merge conflict goes back to the fixer, which merges the base branch in and resolves it. Branch rules still apply: if required approvals or other checks block a merge, you must resolve them.
 
 ## Daily TODO scan
 
@@ -191,11 +193,13 @@ The scout workflow runs daily and creates `needs-triage` issues from code commen
 // TODO(factory): Add pagination to the search results
 ```
 
-It skips Markdown and `.github/`, checks existing issue titles to avoid duplicates, and writes a queue report in the run summary. The scout itself uses no model, but it starts a [triage](#triage-issues) run for each issue it creates. A TODO that triage marks `ready-for-agent` is then built and can merge with no human step.
+It skips Markdown and `.github/`, checks existing issue titles to avoid duplicates, and writes a queue report in the run summary. The scout itself uses no model, but it starts a [triage](#triage-issues) run for each issue it creates. A TODO that triage marks `ready-for-agent` is then built, and with `FACTORY_MERGE` on it can merge with no human step.
 
 ## Update the factory
 
 Rerun the installer, review `git diff`, and commit the changes. It overwrites the installed workflows and prompts, so restore any custom edits you want to keep.
+
+Earlier versions merged approved PRs without `FACTORY_MERGE`. To keep that, run `gh variable set FACTORY_MERGE --body true`.
 
 The workflows use `jonbaldie/software-factory/run-agent@v1`. Changes to that version arrive without reinstalling. To pin the runner, replace `@v1` with a specific release tag or commit in each workflow.
 
