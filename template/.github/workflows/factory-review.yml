@@ -2,7 +2,7 @@
 name: "Factory 2 · Review"
 
 # A reviewer agent checks a factory PR against its ticket and AGENTS.md.
-# Approve: merge. Request changes: hand to the fixer, up to MAX_ROUNDS, then escalate to a human.
+# Approve: merge. Request changes, or a merge conflict: hand to the fixer, up to MAX_ROUNDS, then escalate to a human.
 
 on:
   pull_request:
@@ -156,8 +156,31 @@ jobs:
             gh pr edit "$PR" --add-label agent:approved
             # Run outside the checkout so gh doesn't try to switch local branches.
             if ! (cd "$RUNNER_TEMP" && gh pr merge "$PR" --squash --delete-branch); then
-              gh pr edit "$PR" --add-label ready-for-human
-              gh pr comment "$PR" --body "GitHub blocked the merge, usually because the branch needs a human approval or has a conflict. The PR box says which. Merge it yourself."
+              # GitHub works out mergeability in the background, so give it a moment.
+              for _ in 1 2 3 4 5 6; do
+                mergeable=$(gh pr view "$PR" --json mergeable -q .mergeable)
+                if [ "$mergeable" != UNKNOWN ]; then break; fi
+                sleep 5
+              done
+              if [ "$mergeable" = CONFLICTING ] && [ "$round" -lt "$MAX_ROUNDS" ]; then
+                # The fixer merges the base branch in, so a conflict costs a round instead of a human.
+                {
+                  echo "<!-- factory:review request_changes -->"
+                  echo "### 🔁 Merge conflicts (round $round of $MAX_ROUNDS)"
+                  echo
+                  echo "The change is approved, but the branch conflicts with its base, so GitHub can't merge it."
+                  echo
+                  echo "- Resolve the merge conflicts, keeping the intent of both sides"
+                  echo
+                  echo "_[Review run]($RUN_URL)_"
+                } > "$RUNNER_TEMP/conflicts.md"
+                gh pr comment "$PR" --body-file "$RUNNER_TEMP/conflicts.md"
+                gh pr edit "$PR" --remove-label agent:approved --add-label agent:changes-requested
+                gh workflow run factory-fix.yml -f pr="$PR"
+              else
+                gh pr edit "$PR" --add-label ready-for-human
+                gh pr comment "$PR" --body "GitHub blocked the merge, usually because the branch needs a human approval or has a conflict. The PR box says which. Merge it yourself."
+              fi
             fi
           elif [ "$round" -ge "$MAX_ROUNDS" ]; then
             gh pr edit "$PR" --add-label ready-for-human

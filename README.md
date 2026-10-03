@@ -4,7 +4,7 @@ Turn GitHub issues into tested, reviewed code using coding agents in GitHub Acti
 
 You describe the work in an issue and add `ready-for-agent`, or add `needs-triage` to have an agent check the issue and write the brief first. The factory writes the code, runs your tests, opens a pull request, and uses another agent to review it and request fixes.
 
-**When tests and review pass, the factory squash-merges the PR automatically, if GitHub allows it.** After three rejected reviews, or if GitHub blocks the merge, it hands the PR to you.
+**When tests and review pass, the factory squash-merges the PR automatically, if GitHub allows it.** If the PR conflicts with its base branch, the fixer merges the base in and resolves the conflicts. After three rounds of changes, or if GitHub blocks the merge for another reason, it hands the PR to you.
 
 The default agent is pi, using OpenRouter. Claude Code is also supported. Each stage runs on a fresh GitHub Actions runner. You supply the issue, test command, and model credentials.
 
@@ -24,6 +24,7 @@ flowchart LR
   review -->|Changes needed| fix["Agent fixes the PR"]
   fix --> review
   review -->|Third rejection| human["You take over<br/>ready-for-human"]
+  merge -->|Conflicts with the base| fix
   merge -->|GitHub blocks the merge| human
 ```
 
@@ -169,14 +170,14 @@ These are per-run budgets, not a total limit for an issue. pi is stopped after i
 
 The factory also applies these limits:
 
-- At most two automatic fix rounds; a third rejected review hands the PR to you.
+- At most two automatic fix rounds, counting merge conflicts; a third rejected review hands the PR to you.
 - The triager and reviewer are configured with read and search tools only. An invalid triage or review response fails the stage.
 - Implementation and fix stages reject edits under `.github/`.
 - Workflow steps handle commits and pushes. Checkouts for the agents do not retain GitHub credentials.
 - Issue comments and human feedback included in prompts are limited to repository owners, members, collaborators, and the factory's triage comments. Triage also reads the issue author's comments, and the titles of all open issues, whoever opened them, to spot duplicates.
 - Runs are serialised per issue or PR.
 
-The factory attempts to merge approved PRs with the built-in GitHub token. Branch rules still apply: if required approvals, conflicts, or other checks block a merge, you must resolve them.
+The factory attempts to merge approved PRs with the built-in GitHub token. A merge conflict goes back to the fixer, which merges the base branch in and resolves it. Branch rules still apply: if required approvals or other checks block a merge, you must resolve them.
 
 ## Daily TODO scan
 

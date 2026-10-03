@@ -21,5 +21,5 @@ jobs:
 
       - uses: astral-sh/setup-uv@v10.2.0 # it publishes no major-version tag
 
-      - name: Review and fix labels
+      - name: Factory labels
         run: uv run tests/labels.py

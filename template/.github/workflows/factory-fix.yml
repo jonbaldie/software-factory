@@ -2,6 +2,7 @@
 name: "Factory 3 · Fix"
 
 # An agent addresses review feedback on a factory PR, then hands back to the reviewer.
+# The base branch is merged in first, so the agent also resolves any conflicts that would block the merge.
 
 on:
   pull_request:
@@ -38,11 +39,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh pr edit "$PR" --remove-label agent:failed # Report failure adds it back if this run fails too
 
-      - name: Find the PR branch
+      - name: Find the PR branches
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
-        run: echo "branch=$(gh pr view "$PR" --json headRefName -q .headRefName)" >> "$GITHUB_OUTPUT"
+        run: gh pr view "$PR" --json headRefName,baseRefName -q '"branch=\(.headRefName)\nbase=\(.baseRefName)"' >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v7
         with:
@@ -54,19 +55,35 @@ jobs:
         with:
           node-version: 22
 
+      - name: Merge the base branch in
+        env:
+          BASE: ${{ steps.pr.outputs.base }}
+        run: |
+          # Left uncommitted: conflicts stay marked for the agent, and the push step commits the merge with its work.
+          if git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            merge --no-ff --no-commit "origin/$BASE"; then
+            : > "$RUNNER_TEMP/conflicts.txt"
+          else
+            git diff --name-only --diff-filter=U > "$RUNNER_TEMP/conflicts.txt"
+            if [ ! -s "$RUNNER_TEMP/conflicts.txt" ]; then
+              echo "::error::Git couldn't merge $BASE into the branch"
+              exit 1
+            fi
+          fi
+
       - name: Build the fix prompt
         env:
           GH_TOKEN: ${{ github.token }}
+          BASE: ${{ steps.pr.outputs.base }}
         run: |
           if [ -z "$TEST_COMMAND" ]; then
             echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
             exit 1
           fi
-          base=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
           # The prompts come from the base branch, so a PR opened before a prompt change still gets the new one.
           # They're unpacked outside the checkout, where the agent's commit can't pick them up.
           prompts="$RUNNER_TEMP/factory"
-          mkdir "$prompts" && git archive "origin/$base:.github/factory" | tar -x -C "$prompts"
+          mkdir "$prompts" && git archive "origin/$BASE:.github/factory" | tar -x -C "$prompts"
           {
             cat "$prompts/fix.md"
             printf '\n## Test command\n\n```sh\n%s\n```\n\n' "$TEST_COMMAND"
@@ -78,6 +95,11 @@ jobs:
             gh pr view "$PR" --json comments \
               -q '[.comments[] | select(.author.login == "github-actions" and (.body | contains("<!-- factory:review request_changes -->")))] | last | .body'
             echo
+            if [ -s "$RUNNER_TEMP/conflicts.txt" ]; then
+              printf '## Merge conflicts\n\n`%s` is merged into the working tree. These files have conflict markers:\n\n' "$BASE"
+              sed 's/^/- /' "$RUNNER_TEMP/conflicts.txt"
+              echo
+            fi
             echo "## Comments from maintainers"
             gh pr view "$PR" --json comments \
               -q '.comments[] | select(.authorAssociation | IN("OWNER", "MEMBER", "COLLABORATOR")) | "- @\(.author.login): \(.body)"'
@@ -104,15 +126,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.pr.outputs.branch }}
+          BASE: ${{ steps.pr.outputs.base }}
           AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
         run: |
-          if [ -n "$(git status --porcelain -- .github)" ]; then
-            echo "::error::The agent changed files under .github/, which the factory owns"
+          git add -A
+          # The merge brings in the base branch's .github/, so any other difference there came from the agent.
+          if ! git diff --cached --quiet "origin/$BASE" -- .github; then
+            echo "::error::Files under .github/ differ from $BASE's. The factory owns that folder."
             exit 1
           fi
-          git add -A
+          while IFS= read -r file; do
+            if grep -qsE '^(<<<<<<<|>>>>>>>)( |$)' -- "$file"; then
+              echo "::error::The agent left conflict markers in $file"
+              exit 1
+            fi
+          done < "$RUNNER_TEMP/conflicts.txt"
           # Feedback about the description alone, such as evidence the reviewer asked for, is answered in the summary with no commit.
-          if ! git diff --cached --quiet; then
+          if git rev-parse -q --verify MERGE_HEAD > /dev/null || ! git diff --cached --quiet; then
             git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
               commit -q -m "Address review feedback"
             git push "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "HEAD:$BRANCH"
