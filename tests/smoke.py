@@ -506,8 +506,9 @@ class Smoke:
     def s4a(self):
         self.report.stage("s4a", "A push that introduces a merge conflict clears the approval and starts a new review")
         self.require_approved()
-        # A resumed run reuses the base change it already merged.
-        if self.clone.read(SMOKE_FILE, f"origin/{self.base}") == self.clone.read(SMOKE_FILE, self.merge_base()):
+        # A resumed run reuses the base change it already merged. merge_base() fetches the base first.
+        merge_base = self.merge_base()
+        if self.clone.read(SMOKE_FILE, f"origin/{self.base}") == self.clone.read(SMOKE_FILE, merge_base):
             self.change_base()
         else:
             self.report.note(f"`{self.base}` has changed `{SMOKE_FILE}` since #{self.pr} branched")
