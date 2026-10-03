@@ -112,6 +112,9 @@ jobs:
             for n in $(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number'); do
               gh issue view "$n" --json number,title,body,comments | jq -r -f "$prompts/ticket.jq"
             done
+            printf '\n## Current PR description\n\n'
+            gh pr view "$PR" --json body -q .body
+            echo
             echo "## Latest review"
             # Only the factory's own reviews: anyone can post a comment with the marker.
             gh pr view "$PR" --json comments \
@@ -189,4 +192,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh pr edit "$PR" --remove-label agent:changes-requested --add-label agent:failed
-          gh pr comment "$PR" --body "💥 The fix stage failed. [See the run]($RUN_URL). Re-add \`agent:changes-requested\` to retry."
+          gh pr comment "$PR" --body "💥 The fix stage failed. [See the run]($RUN_URL). Run Factory 3 · Fix from Actions with PR #$PR to retry, including when it has merge conflicts."

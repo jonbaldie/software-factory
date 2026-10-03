@@ -33,31 +33,38 @@ jobs:
       SETUP_COMMAND: ${{ vars.FACTORY_SETUP_COMMAND }}
       TEST_COMMAND: ${{ vars.FACTORY_TEST_COMMAND }}
     steps:
-      - name: Leave assigned work to its assignee
-        id: assigned
+      - name: Check whether implementation is needed
+        id: eligible
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           # An assignee owns the issue, so every later step is skipped and the labels stay as they are.
           owners=$(gh issue view "$ISSUE" --json assignees -q '.assignees[] | "@" + .login' | paste -sd' ' -)
           if [ -n "$owners" ]; then
-            echo "owners=$owners" >> "$GITHUB_OUTPUT"
             gh issue comment "$ISSUE" --body "⏸️ This issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`ready-for-agent\`."
+            exit 0
           fi
+          # A duplicate label event or manual retry must not force-push over an open PR.
+          existing=$(gh pr list --head "agent/issue-$ISSUE" --state open --json number -q 'length')
+          if [ "$existing" -gt 0 ]; then
+            echo "An open PR already exists for issue #$ISSUE; leaving it alone."
+            exit 0
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v7
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         with:
           fetch-depth: 0 # a retry can continue from work saved on agent/issue-N
           persist-credentials: false # keep the GitHub token out of the agent's sandbox
 
       - uses: actions/setup-node@v7 # the agent runs on Node
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         with:
           node-version: 22
 
       - name: Claim the ticket
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -92,12 +99,12 @@ jobs:
           if [ -n "$wip_base" ]; then git switch -q -c "$branch" "origin/$branch"; fi
 
       - name: Set up the project
-        if: steps.assigned.outputs.owners == '' && env.SETUP_COMMAND != ''
+        if: steps.eligible.outputs.run == 'true' && env.SETUP_COMMAND != ''
         run: eval "$SETUP_COMMAND"
 
       - name: Agent writes the code
         id: agent
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         uses: jonbaldie/software-factory/run-agent@v1
         with:
           name: implement-issue-${{ env.ISSUE }}
@@ -115,7 +122,7 @@ jobs:
 
       - name: Read the implementation result
         id: implementation
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         env:
           IMPLEMENTATION: ${{ steps.agent.outputs.structured-output }}
         run: |

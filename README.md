@@ -163,6 +163,10 @@ Each review names the commit it tested and checked. New commits on an approved P
 
 To retry a failed triage, re-add `needs-triage`. To retry implementation, remove and re-add `ready-for-agent` on the issue. If the issue has `agent:wip`, the retry continues from the saved work; remove `agent:wip` first to start over. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.
 
+An implementation retry leaves an already-open `agent/issue-N` PR alone. Continue that PR through review or fix; close it first if you want a fresh implementation.
+
+For a PR with merge conflicts, use **Actions → Factory 2 · Review** or **Factory 3 · Fix → Run workflow**, select the default branch and enter the PR number. Re-adding labels cannot start these jobs while the PR conflicts: [GitHub skips `pull_request` workflows in that state](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request). Manual dispatch works for both conflicting and clean PRs.
+
 ## Take over from the factory
 
 Assign an issue or PR to someone to take it over. Each stage checks first: if the issue, the PR or the PR's issue has an assignee, the stage posts a ⏸️ comment and leaves the labels as they are. With `FACTORY_MERGE` on, the reviewer checks again just before merging and leaves an approved PR open for the assignee. To hand the work back, unassign everyone, then remove and re-add the stage's label.
