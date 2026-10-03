@@ -1,0 +1,25 @@
+name: Test
+
+# Tests for software-factory itself. The installer copies only template/, so this stays out of installed repos.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.2.0 # it publishes no major-version tag
+
+      - name: Review and fix labels
+        run: uv run tests/labels.py
