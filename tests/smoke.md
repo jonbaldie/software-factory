@@ -9,7 +9,8 @@ Run it after changing how review, fix or the push handler are triggered, queued 
 1. Install the version under test in the sandbox and merge it to the sandbox's default branch. The workflows only run from there.
 2. Leave `FACTORY_MERGE` unset in the sandbox. The script stops if it can read the variable and it is `true`.
 3. Sign in with `gh` as someone with write access to the sandbox, and let git push to it over HTTPS (`gh auth setup-git`).
-4. From this repository:
+4. Reserve the sandbox for this run: close other factory PRs and wait for active factory jobs to finish. Don't start other factory work until it ends. GitHub's API doesn't associate dispatched review/fix runs with their PR, so those observations require exclusive use of the sandbox. The script rejects existing competing work at startup.
+5. From this repository:
 
    ```sh
    uv run tests/smoke.py --report smoke-report.md
@@ -18,6 +19,8 @@ Run it after changing how review, fix or the push handler are triggered, queued 
 It takes about 15 minutes, longer if the reviewer requests changes. Each check prints `PASS` or `FAIL` as it completes. At the end the script prints a Markdown report with the commit, run and comment links, and exits non-zero if any check failed. Add the report to [Runs](#runs).
 
 To continue after a stop, pass the approved PR and the remaining stages, for example `--pr N --stages s3,s4a,s4b`. s4b continues from s4a's conflict. The PR and its issue stay open for inspection; close them afterwards, or pass `--close`.
+
+By default the script uses a temporary clone. `--clone` must point to a clean, disposable sandbox clone: the script resets its local test branches to the remote before each push.
 
 ## Expected outcomes
 
@@ -38,6 +41,30 @@ Every stage also checks that no review, fix or push-handler run failed or was ca
 Not covered: pushes with `FACTORY_MERGE` on, where `--match-head-commit` must stop a merge of an unreviewed head; pushes during a fix run; and pushes to an assigned PR.
 
 ## Runs
+
+### 2026-10-03 20:21 UTC, run 20261003-201804
+
+jonbaldie/software-factory-sandbox at [`1348f4c`](https://github.com/jonbaldie/software-factory-sandbox/commit/1348f4cb053eb714cf27eec1118ab933ed8a0d37), `run-agent@v1` at [`c17f716`](https://github.com/jonbaldie/software-factory/commit/c17f7168d7a5402a5eb2f27c880135a52daae9f6). PR [#78](https://github.com/jonbaldie/software-factory-sandbox/pull/78). All checks passed.
+
+#### s4b · A push during a review that introduces a merge conflict discards the verdict
+
+- Pushed [`d53f6ae`](https://github.com/jonbaldie/software-factory-sandbox/commit/d53f6aeb7fdaa6caebe7118dac35e1fb787a531d): Restore smoke.txt, resolving the conflict (tests pass locally)
+- [Factory 2 · Review #62](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151062844) (in_progress) is running its agent on d53f6ae
+- Pushed [`146e364`](https://github.com/jonbaldie/software-factory-sandbox/commit/146e364460211290df0ea8f43365caf3ea4dcf33): Edit smoke.txt so it conflicts with main again (tests pass locally)
+- Factory runs: [Factory · Review new commits #8](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151054750) (success), [Factory · Review new commits #9](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151119270) (success), [Factory 2 · Review #62](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151062844) (success), [Factory 2 · Review #63](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151181646) (success), [Factory 2 · Review #64](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151191702) (success)
+- ✅ The push handler ran for d53f6ae: [Factory · Review new commits #8](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151054750) (success)
+- ✅ #78 ends approved and open at [`146e364`](https://github.com/jonbaldie/software-factory-sandbox/commit/146e364460211290df0ea8f43365caf3ea4dcf33) (labels: agent:approved)
+- ✅ GitHub reports #78 conflicting (`dirty`)
+- ✅ The stale and replacement reviews ran their agents; the duplicate request skipped its agent
+- ✅ Review [Factory 2 · Review #62](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151062844) (success) checked d53f6ae, then discarded its result ([comment](https://github.com/jonbaldie/software-factory-sandbox/pull/78#issuecomment-5973121072))
+- ✅ No fix round for d53f6ae: no request-changes verdict, no `agent:changes-requested`, no fix run
+- ✅ The push handler ran for 146e364 despite the conflict: [Factory · Review new commits #9](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151119270) (success)
+- ✅ The second push's handler waited in the PR queue until [Factory 2 · Review #62](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151062844) (success) finished (67s)
+- ✅ One review verdict names 146e364: [approve](https://github.com/jonbaldie/software-factory-sandbox/pull/78#issuecomment-5973130990)
+- ✅ No fix round for 146e364: no request-changes verdict, no `agent:changes-requested`, no fix run
+- ✅ No factory run failed or was cancelled (2 reviews ran the agent, 1 review requests stood down)
+
+Resumed with `--pr 78 --stages s4b --close` after tightening the driver’s assertions. All 11 checks passed; cleanup closed both PR #78 and issue #77.
 
 ### 2026-10-03, `v1.8.1`: all checks passed
 

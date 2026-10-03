@@ -172,6 +172,11 @@ class Clone:
         self.path, self.trailers = path, trailers
         if not os.path.isdir(os.path.join(path, ".git")):
             run("git", "clone", "--quiet", f"https://github.com/{repo}.git", path)
+        origin = self.git("remote", "get-url", "origin").stdout.strip().removesuffix(".git")
+        if origin not in (f"https://github.com/{repo}", f"git@github.com:{repo}"):
+            raise StageFailed(f"{path} must be a dedicated clone of {repo}")
+        if self.git("status", "--porcelain").stdout:
+            raise StageFailed(f"{path} has uncommitted changes; use a clean, disposable clone")
 
     def git(self, *args, check=True):
         return run("git", *args, cwd=self.path, check=check)
@@ -345,7 +350,7 @@ class Smoke:
         def merged():
             p = run("gh", "api", "-X", "PUT", f"repos/{self.gh.repo}/pulls/{pr['number']}/merge",
                     "-f", "merge_method=squash", "-f", f"sha={sha}", check=False)
-            return p.returncode == 0
+            return p.returncode == 0 and json.loads(p.stdout).get("merged") is True
         wait(f"#{pr['number']} to merge into {self.base}", merged, 15 * 60, every=15)
         self.report.note(f"Merged [#{pr['number']}]({pr['html_url']}) into `{self.base}`, changing `{SMOKE_FILE}`")
         try:
@@ -360,9 +365,10 @@ class Smoke:
         return self.clone.git("merge-base", "HEAD", f"origin/{self.base}").stdout.strip()
 
     # ---- waiting on the factory ----
-    def handler(self, since):
+    def handler(self, since, sha):
         def probe():
-            done = [r for r in self.gh.runs(PUSH, since) if r["event"] == "pull_request_target"]
+            done = [r for r in self.gh.runs(PUSH, since) if r["event"] == "pull_request_target"
+                    and r["head_sha"] == sha and any(p["number"] == self.pr for p in r["pull_requests"])]
             return done[0] if done and done[0]["status"] == "completed" else None
         return wait("the push handler", probe, 30 * 60, every=5)
 
@@ -381,7 +387,8 @@ class Smoke:
     # ---- checks shared by the stages ----
     def check_handler(self, h, sha, note=""):
         job = self.gh.job(h["id"])
-        ok = h["conclusion"] == "success" and job and job["conclusion"] == "success" and \
+        ok = h["head_sha"] == sha and any(p["number"] == self.pr for p in h["pull_requests"]) and \
+            h["conclusion"] == "success" and job and job["conclusion"] == "success" and \
             (step(job, "Invalidate approval and request a review") or {}).get("conclusion") == "success"
         self.report.check(ok, f"The push handler ran for {sha[:7]}{note}: {self.run_link(h)}")
 
@@ -430,6 +437,15 @@ class Smoke:
         self.report.note("Factory runs: " + ", ".join(self.run_link(r) for r in runs))
         self.report.check(not bad, f"No factory run failed or was cancelled ({len(reviewed)} reviews ran the agent, "
                           f"{len(skipped)} review requests stood down)")
+
+    def check_duplicate_stood_down(self, since):
+        def finished():
+            reviews = self.gh.runs(REVIEW, since)
+            return reviews if len(reviews) >= 3 and all(r["status"] == "completed" for r in reviews) else None
+        reviews = wait("the stale, replacement and duplicate review requests to finish", finished, 300, every=10)
+        agents = [(step(self.gh.job(r["id"]), AGENT_STEP) or {}).get("conclusion") for r in reviews]
+        self.report.check(agents.count("success") == 2 and agents.count("skipped") == 1 and len(agents) == 3,
+                          "The stale and replacement reviews ran their agents; the duplicate request skipped its agent")
 
     def check_settled(self, since, sha, conflicting=False):
         labels = self.settle(since)
@@ -485,10 +501,11 @@ class Smoke:
         text = self.tests_with("uncapitalize leaves a leading digit unchanged",
                                "assert.equal(uncapitalize('1st Place'), '1st Place');")
         sha, since = self.push("Test uncapitalize with a leading digit", {TESTS: text})
-        self.check_handler(self.handler(since), sha)
+        self.check_handler(self.handler(since, sha), sha)
         self.check_settled(since, sha)
         self.check_approval_cleared(since, sha)
         self.check_reviewed(since, sha)
+        self.check_no_round(since, sha, now())
         self.check_runs_clean(since)
 
     def s3(self):
@@ -497,7 +514,7 @@ class Smoke:
         text = self.tests_with("uncapitalize lowercases only the first code point", WRONG)
         stale, since = self.push("Test uncapitalize on all-caps input, with the wrong expectation", {TESTS: text},
                                  passing=False)
-        self.check_handler(self.handler(since), stale)
+        self.check_handler(self.handler(since, stale), stale)
         review = self.running_review(since)
         self.report.note(f"{self.run_link(review)} is running its agent on {stale[:7]}")
         sha, pushed = self.push("Correct the all-caps uncapitalize test", {TESTS: self.clone.read(TESTS).replace(WRONG, RIGHT)})
@@ -516,13 +533,14 @@ class Smoke:
         self.report.check(mergeable is True, f"#{self.pr} still merges cleanly after the base change (`{state}`)")
         sha, since = self.push(f"Edit {SMOKE_FILE} so it conflicts with {self.base}", {SMOKE_FILE: self.smoke_text(f"PR #{self.pr}, s4a")},
                                conflict=True)
-        self.check_handler(self.handler(since), sha, " despite the conflict")
+        self.check_handler(self.handler(since, sha), sha, " despite the conflict")
         self.check_settled(since, sha, conflicting=True)
         self.check_approval_cleared(since, sha)
         self.check_reviewed(since, sha)
+        self.check_no_round(since, sha, now())
         self.check_runs_clean(since)
         others = self.gh.items(f"actions/runs?per_page=100&event=pull_request&head_sha={sha}", ".workflow_runs")
-        self.report.note(f"`pull_request` workflow runs for {sha[:7]}: {len(others)}. GitHub skips them while a PR conflicts.")
+        self.report.check(not others, f"No `pull_request` workflow ran for conflicting commit {sha[:7]} (found {len(others)})")
 
     def s4b(self):
         self.report.stage("s4b", "A push during a review that introduces a merge conflict discards the verdict")
@@ -532,7 +550,7 @@ class Smoke:
             raise StageFailed(f"s4b continues from s4a: #{self.pr} must conflict on {SMOKE_FILE}")
         stale, since = self.push(f"Restore {SMOKE_FILE}, resolving the conflict",
                                  {SMOKE_FILE: self.clone.read(SMOKE_FILE, rev=merge_base)})
-        self.check_handler(self.handler(since), stale)
+        self.check_handler(self.handler(since, stale), stale)
         review = self.running_review(since)
         self.report.note(f"{self.run_link(review)} is running its agent on {stale[:7]}")
         sha, pushed = self.push(f"Edit {SMOKE_FILE} so it conflicts with {self.base} again",
@@ -540,8 +558,9 @@ class Smoke:
         self.mid_review_checks(since, stale, review, sha, pushed, conflicting=True)
 
     def mid_review_checks(self, since, stale, review, sha, pushed, conflicting=False):
-        h = self.handler(pushed)
+        h = self.handler(pushed, sha)
         self.check_settled(since, sha, conflicting)
+        self.check_duplicate_stood_down(since)
         review = self.gh.get(f"actions/runs/{review['id']}")
         self.check_discarded(since, review, stale)
         first = min((v["at"] for v in self.verdicts(since) if v["sha"] == sha), default=now())
@@ -549,6 +568,7 @@ class Smoke:
         self.check_handler(h, sha, " despite the conflict" if conflicting else "")
         self.check_queued(h, review)
         self.check_reviewed(since, sha)
+        self.check_no_round(since, sha, now())
         self.check_runs_clean(since)
 
 
@@ -557,7 +577,7 @@ def main():
     parser.add_argument("--repo", default="jonbaldie/software-factory-sandbox")
     parser.add_argument("--pr", type=int, help="continue with this approved factory PR instead of running s1")
     parser.add_argument("--stages", default=",".join(STAGES), help="comma-separated stages to run, in order")
-    parser.add_argument("--clone", help="a clone of the sandbox to push from; defaults to a temporary clone")
+    parser.add_argument("--clone", help="a clean, disposable sandbox clone (local branches are reset); defaults to a temporary clone")
     parser.add_argument("--report", help="also write the Markdown report to this file")
     parser.add_argument("--close", action="store_true", help="close the PR and its issue afterwards")
     parser.add_argument("--trailer", action="append", default=[], help="a trailer to add to each commit")
@@ -569,6 +589,8 @@ def main():
         stages = [s for s in stages if s != "s1"]
     elif "s1" not in stages:
         parser.error("pass --pr to skip s1")
+    if not stages:
+        parser.error("select at least one stage other than s1 when resuming")
 
     gh = GitHub(args.repo)
     if PUSH not in {f["name"] for f in gh.items("contents/.github/workflows")}:
@@ -579,6 +601,15 @@ def main():
     if p.returncode and "404" not in p.stderr:
         log("couldn't read FACTORY_MERGE; s1 checks the approval's wording instead")
 
+    # Dispatch runs have no PR association in GitHub's API. Review/fix observations therefore
+    # require exclusive use of this sandbox. Reject known competing work before making changes.
+    others = [p for p in gh.items("pulls?state=open&per_page=100")
+              if p["head"]["ref"].startswith("agent/") and p["number"] != args.pr]
+    active = [r for r in gh.items("actions/runs?per_page=100", ".workflow_runs")
+              if r["path"].rsplit("/", 1)[-1] in (PUSH, REVIEW, FIX, IMPLEMENT) and r["status"] != "completed"]
+    if others or active:
+        sys.exit("The smoke test needs exclusive use of the sandbox: close other factory PRs and wait for active factory runs")
+
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     workdir = args.clone or tempfile.mkdtemp(prefix="factory-smoke-")
     report = Report()
@@ -588,13 +619,17 @@ def main():
     if args.pr:
         pr = gh.pr(args.pr)
         smoke.pr, smoke.branch = pr["number"], pr["head"]["ref"]
+        issue = re.fullmatch(r"agent/issue-(\d+)", smoke.branch)
+        if not issue or "tests/smoke.py" not in gh.get(f"issues/{issue[1]}")["body"]:
+            sys.exit("--pr must name a PR created for tests/smoke.py")
+        smoke.issue = int(issue[1])
     try:
         for stage in stages:
             getattr(smoke, stage)()
-    except (StageFailed, RuntimeError) as e:
+    except (Exception, KeyboardInterrupt) as e:
         if not report.stages:
             report.stage(stage, "setup")
-        report.check(False, f"Stopped: {e}")
+        report.check(False, f"Stopped: {type(e).__name__}: {e}")
     finally:
         pr_link = f"[#{smoke.pr}](https://github.com/{args.repo}/pull/{smoke.pr})" if smoke.pr else "no PR"
         header = (f"### {now():%Y-%m-%d %H:%M} UTC, run {stamp}\n\n"
