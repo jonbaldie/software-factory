@@ -1,3 +1,17 @@
+## Definition of Done
+
+For implementation work, finish the job. Unless the user explicitly asks for a draft or an earlier stopping point, all of these must be true before you say "done":
+
+- The requested behaviour works. The diff contains only changes needed for the task.
+- The tests required below pass. Required live checks have run, and their results are recorded with evidence links.
+- The final diff has been reviewed and the findings resolved.
+- The PR is merged into the target branch. Required checks passed on the exact PR head that was merged. Verify the merge on GitHub.
+- Any requested release or sandbox upgrade is complete and verified.
+- Temporary test issues, PRs and branches are cleaned up. Fixtures needed for future tests are preserved.
+- Local `main` is synced with `origin/main`. The task's changes are committed, and unrelated local work is preserved.
+
+A pushed branch, an open PR or a handoff is unfinished work. If a required step is blocked, say what remains and why. The final reply must state what changed, what passed and the merged PR link.
+
 ## Tests
 
 `uv run tests/labels.py` runs the triage, scout, implement, review and fix jobs against a fake `gh` and checks the labels they leave. Run it after changing any of those workflows or `ticket.jq`, and add a scenario for each new label change. CI runs it on every PR.
