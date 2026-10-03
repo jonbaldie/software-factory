@@ -1,0 +1,49 @@
+# From https://github.com/jonbaldie/software-factory. Rerun its installer to upgrade.
+name: "Factory · Review new commits"
+
+# Metadata only: pull_request_target also runs when new commits introduce a merge conflict.
+# Never check out the PR or execute its code here. The dispatched reviewer owns that work.
+on:
+  pull_request_target:
+    types: [synchronize]
+
+permissions:
+  issues: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  invalidate:
+    if: >-
+      contains(github.event.pull_request.labels.*.name, 'agent:approved') ||
+      contains(github.event.pull_request.labels.*.name, 'agent:review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: factory-pr-${{ github.event.pull_request.number }}
+      queue: max # A delayed push must not replace a pending fix or review.
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Invalidate approval and request a review
+        run: |
+          pr=$(gh pr view "$PR" --json headRefOid,comments,labels,state)
+          # The live PR may already have moved on to a fix, a human, or a merge.
+          if ! jq -e '.state == "OPEN" and any(.labels[]; .name == "agent:approved" or .name == "agent:review")' <<<"$pr" > /dev/null; then
+            exit 0
+          fi
+          # A reviewer may have checked the new head while this event waited in the PR queue.
+          if jq -e '
+            select(any(.labels[]; .name == "agent:approved")) |
+            .headRefOid as $head |
+            [.comments[] | select(.author.login == "github-actions" and
+              (.body | startswith("<!-- factory:review approve -->")))] | last |
+            (.body // "" | contains("Reviewed commit: `" + $head + "`"))
+          ' <<<"$pr" > /dev/null; then
+            exit 0
+          fi
+          gh pr edit "$PR" --remove-label agent:approved --add-label agent:review
+          # GITHUB_TOKEN label changes do not start the reviewer; dispatch it explicitly.
+          gh workflow run factory-review.yml -f pr="$PR" -f automatic=true

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Fake gh for tests/labels.py. Keeps one PR, its issues and their labels in $FAKE_GH_STATE.
-# `gh api` serves only the REST issue, which has the author's association that `gh issue view` lacks.
+# `gh api` serves REST issues and creates/updates review comments by ID.
 import json, os, subprocess, sys
 
 state_path = os.environ["FAKE_GH_STATE"]
@@ -11,7 +11,7 @@ args = sys.argv[1:]
 st["calls"].append(args)
 
 VALUE_FLAGS = {"--json", "-q", "--jq", "--body", "--body-file", "--add-label", "--remove-label", "-f", "-R", "--repo", "--reason",
-               "--state", "--limit", "--label", "--title", "--search", "--head"}
+               "--state", "--limit", "--label", "--title", "--search", "--head", "--match-head-commit", "--method", "-F"}
 pos, flags = [], {}
 i = 0
 while i < len(args):
@@ -67,16 +67,39 @@ def fail(msg):
     sys.exit(1)
 
 
+def add_comment(target, body):
+    c = {"id": len(target["comments"]) + 1, "author": {"login": "github-actions"}, "authorAssociation": "NONE", "body": body}
+    target["comments"].append(c)
+    if st.get("push_on_verdict") and body.startswith("<!-- factory:review "):
+        st["pr"]["headRefOid"] = "a" * 40
+        st["push_on_verdict"] = False
+    return c
+
+
 kind, verb = pos[0], pos[1]
 pr = st["pr"]
 
-if kind == "api":
+if kind == "api" and flags.get("--method") == ["POST"] and verb.endswith(f"/issues/{pr['number']}/comments"):
+    field = flags["-F"][0]
+    if not field.startswith("body=@"):
+        fail("fake gh: expected a comment body file")
+    c = add_comment(pr, open(field.removeprefix("body=@")).read())
+    save()
+    emit(c)
+elif kind == "api" and flags.get("--method") == ["PATCH"] and "/issues/comments/" in verb:
+    c = next(c for c in pr["comments"] if c.get("id") == int(verb.rsplit("/", 1)[1]))
+    c["body"] = flags["-f"][0].removeprefix("body=")
+    save()
+    emit(c)
+elif kind == "api":
     issue = st["issues"][pos[1].rsplit("/", 1)[1]]
     author = issue["author"]
     emit({"number": issue["number"], "labels": issue["labels"], "assignees": issue["assignees"],
           "author_association": issue.get("author_association", "NONE"),
           "user": {"login": author["login"].removeprefix("app/") + ("[bot]" if author.get("is_bot") else "")}})
 elif (kind, verb) == ("pr", "view"):
+    if st.get("head_lookup_failed") and "headRefOid" in flags.get("--json", [""])[0].split(","):
+        fail("GitHub could not return the PR head")
     emit(pr)
 elif (kind, verb) == ("issue", "view"):
     emit(st["issues"][pos[2]])
@@ -97,7 +120,7 @@ elif (kind, verb) == ("pr", "create"):
 elif verb == "comment":
     body = flags["--body"][0] if "--body" in flags else open(flags["--body-file"][0]).read()
     target = pr if kind == "pr" else st["issues"][pos[2]]
-    target["comments"].append({"author": {"login": "github-actions"}, "authorAssociation": "NONE", "body": body})
+    add_comment(target, body)
 elif verb == "edit":
     labels = labels_of(pos[2])
     names = [l["name"] for l in labels]
@@ -111,6 +134,14 @@ elif verb == "edit":
         if name not in names:
             names.append(name)
     labels[:] = [{"name": x} for x in names]
+    if kind == "pr" and st.get("push_on_approval") and "agent:approved" in split(flags.get("--add-label", [])):
+        pr["headRefOid"] = "a" * 40
+        st["push_on_approval"] = False
+    if kind == "pr" and st.get("push_on_handoff") and set(split(flags.get("--add-label", []))) & {"agent:changes-requested", "ready-for-human"}:
+        pr["headRefOid"] = "a" * 40
+        st["push_on_handoff"] = False
+    if kind == "pr" and st.get("fail_head_after_approval") and "agent:approved" in split(flags.get("--add-label", [])):
+        st["head_lookup_failed"] = True
     if "--body-file" in flags:
         pr["body"] = open(flags["--body-file"][0]).read()
     st["label_history"].append(sorted(names))
@@ -119,6 +150,11 @@ elif (kind, verb) == ("issue", "close"):
         fail(f"invalid reason {flags['--reason'][0]!r}")
     st["issues"][pos[2]]["state"] = "CLOSED"
 elif (kind, verb) == ("pr", "merge"):
+    if st.get("push_on_merge"):
+        pr["headRefOid"] = "a" * 40
+        st["push_on_merge"] = False
+    if "--match-head-commit" in flags and flags["--match-head-commit"][0] != pr["headRefOid"]:
+        fail("Pull request head does not match the expected commit")
     if not st["merge_ok"]:
         fail("Pull request is not mergeable")
     pr["state"] = "MERGED"

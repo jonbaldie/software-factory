@@ -19,14 +19,15 @@ permissions:
   pull-requests: write
   actions: write
 
-concurrency:
-  group: factory-pr-${{ github.event.pull_request.number || inputs.pr }}
-
 jobs:
   fix:
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent:changes-requested'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # An unrelated label must not replace a pending review or fix in the shared PR queue.
+    concurrency:
+      group: factory-pr-${{ github.event.pull_request.number || inputs.pr }}
+      queue: max # Keep the handoff when a push handler is queued at the same time.
     env:
       PR: ${{ github.event.pull_request.number || inputs.pr }}
       GH_REPO: ${{ github.repository }}

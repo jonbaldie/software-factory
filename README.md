@@ -147,6 +147,8 @@ Edit the prompts in `.github/factory/` to change how the agents work. Review and
 
 Issue and PR comments link to the relevant workflow runs. Agent runs provide live logs, a summary with model usage and cost, and a downloadable transcript.
 
+Each review names the commit it tested and checked. New commits on an approved PR clear its approval and queue another review, including when the push introduces merge conflicts. If the PR changes during review, the factory discards the old result and reviews the current code without using a fix round. Automatic merging requires the PR to still have the reviewed commit at its head.
+
 | Label | Meaning or next step |
 |---|---|
 | `needs-triage` | The agent is triaging the issue. Add it to request a triage. |
@@ -164,6 +166,8 @@ To retry a failed triage, re-add `needs-triage`. To retry implementation, remove
 ## Take over from the factory
 
 Assign an issue or PR to someone to take it over. Each stage checks first: if the issue, the PR or the PR's issue has an assignee, the stage posts a ⏸️ comment and leaves the labels as they are. With `FACTORY_MERGE` on, the reviewer checks again just before merging and leaves an approved PR open for the assignee. To hand the work back, unassign everyone, then remove and re-add the stage's label.
+
+A push still clears an assigned PR's old approval and marks it `agent:review`; the reviewer then pauses for the assignee without running an agent.
 
 ## Costs and limits
 
