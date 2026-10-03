@@ -463,8 +463,8 @@ class Smoke:
         since = now() - MARGIN
         # Labels given at creation are announced late, along with any added since, so a second
         # ready-for-agent event would queue a second implement run. Add the label in a later call.
-        # No category label: the enhancement method's review wants every test in the description's
-        # Slices list, which the person's pushed tests aren't, and a fix round can't add them there.
+        # No category label: these pushes exercise event handling without supplying the
+        # enhancement method's Seams/Slices evidence for each added test.
         issue = self.gh.post("issues", title=ISSUE_TITLE, body=ISSUE_BODY)
         self.issue = issue["number"]
         self.gh.post(f"issues/{self.issue}/labels", labels=["ready-for-agent"])

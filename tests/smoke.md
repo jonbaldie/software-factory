@@ -26,7 +26,7 @@ By default the script uses a temporary clone. `--clone` must point to a clean, d
 
 Every stage uses the same factory PR. Each stage after s1 starts from a PR approved at its head, and ends that way. Fix rounds caused by the reviewer's judgement are allowed in s1 and are reported. Elsewhere they fail the run.
 
-The issue has no `bug` or `enhancement` label. The enhancement method's reviewer wants every test listed in the PR description's **Slices**, with its evidence. The tests the script pushes aren't listed there, and a fix round can only append to the description, so they would spend every round. [Run 1](#runs) shows this.
+The issue has no `bug` or `enhancement` label, keeping the test focused on event handling. Enhancement issues also require test evidence in the PR description. The first attempt exposed a loop where the reviewer rejected evidence appended by the fixer; the follow-up below records its fix.
 
 | Stage | The script | Expected |
 |---|---|---|
@@ -41,6 +41,16 @@ Every stage also checks that no review, fix or push-handler run failed or was ca
 Not covered: pushes with `FACTORY_MERGE` on, where `--match-head-commit` must stop a merge of an unreviewed head; pushes during a fix run; and pushes to an assigned PR.
 
 ## Runs
+
+### 2026-10-03, factory follow-ups: both regressions verified live
+
+[Sandbox #81](https://github.com/jonbaldie/software-factory-sandbox/pull/81) installed the templates from [software-factory #20](https://github.com/jonbaldie/software-factory/pull/20), with merging still off. Reopened the original enhancement PR [#76](https://github.com/jonbaldie/software-factory-sandbox/pull/76) to replay the failures:
+
+- [Duplicate implementation](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151493174) succeeded and skipped checkout, the agent and all later work. PR head `b5c71f42a443b11df2f89138701417c552b35816`, description, labels and issue state were unchanged.
+- [Fix](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151543531) appended the missing **Slices** evidence and corrected test count. It merged the current base; source, tests and README were unchanged.
+- [Review](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37151617910) accepted the appended evidence and [approved](https://github.com/jonbaldie/software-factory-sandbox/pull/76#issuecomment-5973193577) commit [`0fc3650`](https://github.com/jonbaldie/software-factory-sandbox/commit/0fc365055e28bb72d62dc49a239bcc3305edcff2). All 133 sandbox tests passed.
+
+The local suite passes 75 scenarios, including regressions for duplicate implementation and description-only fixes without a commit. PR #76 was closed again after verification. Smoke PR #78 and issue #77 are closed, the temporary branches are deleted, and `smoke.txt` remains on the sandbox's main branch.
 
 ### 2026-10-03 20:21 UTC, run 20261003-201804
 
@@ -140,9 +150,9 @@ The sandbox ran the `v1` templates at [`c17f716`](https://github.com/jonbaldie/s
 
 ### 2026-10-03, `v1.8.1`: stopped at s2 on review judgement
 
-The first attempt, on PR [#76](https://github.com/jonbaldie/software-factory-sandbox/pull/76) from [#75](https://github.com/jonbaldie/software-factory-sandbox/issues/75), had the issue labelled `enhancement`. It found two problems in the smoke test, fixed for the run above, and one in the factory:
+The first attempt, on PR [#76](https://github.com/jonbaldie/software-factory-sandbox/pull/76) from [#75](https://github.com/jonbaldie/software-factory-sandbox/issues/75), had the issue labelled `enhancement`. It found a duplicate implementation risk and a description-review loop in the factory; the test driver worked around both for the next run:
 
 - ✅ s1: [Implement #61](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37147718521) opened the PR, and [Review #49](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37147882051) [approved it](https://github.com/jonbaldie/software-factory-sandbox/pull/76#issuecomment-5972706485), leaving it for a person to merge.
 - ❌ s1: the issue was created with `enhancement`, and `ready-for-agent` was added a second later. GitHub announced `ready-for-agent` twice, which queued [Implement #62](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37147720001). It was cancelled before it started. A second run would have started over from the base branch and force-pushed over the open PR with `GITHUB_TOKEN`, which starts no push handler. The script now adds the label after creating the issue.
 - ✅ s2: the push of [`b5c71f4`](https://github.com/jonbaldie/software-factory-sandbox/commit/b5c71f42a443b11df2f89138701417c552b35816) started [Review new commits #1](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37147976725). It cleared the approval, and [Review #50](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37147985500) checked the new head.
-- ❌ s2: the enhancement method's reviewer [requested changes](https://github.com/jonbaldie/software-factory-sandbox/pull/76#issuecomment-5972719660) because the pushed test wasn't in the description's **Slices** list. Fix runs [#20](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37148066790) and [#21](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37148257435) changed no files and could only append notes to the description. The reviewer rejected the same commit [twice more](https://github.com/jonbaldie/software-factory-sandbox/pull/76#issuecomment-5972763650), and the PR went to `ready-for-human`. The smoke test now uses an uncategorised issue. The factory gap remains: a fix round can't satisfy a request to change the description itself.
+- ❌ s2: the enhancement method's reviewer [requested changes](https://github.com/jonbaldie/software-factory-sandbox/pull/76#issuecomment-5972719660) because the pushed test wasn't in the description's **Slices** list. Fix runs [#20](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37148066790) and [#21](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37148257435) changed no files and could only append notes to the description. The reviewer rejected the same commit [twice more](https://github.com/jonbaldie/software-factory-sandbox/pull/76#issuecomment-5972763650), and the PR went to `ready-for-human`. The smoke test now uses an uncategorised issue. At that point a fix round could not satisfy a request to change the description itself; the follow-up above resolves this.
