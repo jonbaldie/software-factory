@@ -347,8 +347,17 @@ class Smoke:
                     "-f", "merge_method=squash", "-f", f"sha={sha}", check=False)
             return p.returncode == 0
         wait(f"#{pr['number']} to merge into {self.base}", merged, 15 * 60, every=15)
-        self.gh.call("DELETE", f"git/refs/heads/{branch}")
         self.report.note(f"Merged [#{pr['number']}]({pr['html_url']}) into `{self.base}`, changing `{SMOKE_FILE}`")
+        try:
+            self.gh.call("DELETE", f"git/refs/heads/{branch}")
+        except RuntimeError:
+            if self.clone.git("push", "--quiet", "origin", "--delete", branch, check=False).returncode:
+                self.report.note(f"Couldn't delete `{branch}`, so delete it by hand")
+
+    def merge_base(self):
+        self.clone.checkout(self.branch)
+        self.clone.fetch(self.base)
+        return self.clone.git("merge-base", "HEAD", f"origin/{self.base}").stdout.strip()
 
     # ---- waiting on the factory ----
     def handler(self, since):
@@ -497,7 +506,11 @@ class Smoke:
     def s4a(self):
         self.report.stage("s4a", "A push that introduces a merge conflict clears the approval and starts a new review")
         self.require_approved()
-        self.change_base()
+        # A resumed run reuses the base change it already merged.
+        if self.clone.read(SMOKE_FILE, f"origin/{self.base}") == self.clone.read(SMOKE_FILE, self.merge_base()):
+            self.change_base()
+        else:
+            self.report.note(f"`{self.base}` has changed `{SMOKE_FILE}` since #{self.pr} branched")
         mergeable, state = self.gh.mergeable(self.pr)
         self.report.check(mergeable is True, f"#{self.pr} still merges cleanly after the base change (`{state}`)")
         sha, since = self.push(f"Edit {SMOKE_FILE} so it conflicts with {self.base}", {SMOKE_FILE: self.smoke_text(f"PR #{self.pr}, s4a")},
@@ -512,10 +525,8 @@ class Smoke:
 
     def s4b(self):
         self.report.stage("s4b", "A push during a review that introduces a merge conflict discards the verdict")
-        pr = self.require_approved()
-        self.clone.checkout(self.branch)
-        self.clone.fetch(self.base)
-        merge_base = self.clone.git("merge-base", "HEAD", f"origin/{self.base}").stdout.strip()
+        self.require_approved()
+        merge_base = self.merge_base()
         if not self.clone.conflicts("HEAD", f"origin/{self.base}"):
             raise StageFailed(f"s4b continues from s4a: #{self.pr} must conflict on {SMOKE_FILE}")
         stale, since = self.push(f"Restore {SMOKE_FILE}, resolving the conflict",
