@@ -236,6 +236,16 @@ AUTO_REVIEW = "factory-review.yml pr=40 automatic=true"
 # follow_up: another job on the same issue or PR, inheriting its final labels, comments and author.
 # The retries are issue #9: a retried review or fix clears agent:failed, and a failed retry puts it back.
 SCENARIOS = [
+    dict(name="fix, description feedback appends evidence without a commit", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], comments=[REVIEW_ROUND_1],
+         agent=lambda repo: (True, {"result": "**Slices:**\n- Tabs are blank: green on arrival, covered by the whitespace slice."}),
+         final=["agent:review"], dispatch=["factory-review.yml pr=40"], failed=False, head_unchanged=True,
+         prompt_has=["Adds isBlank.\n\nCloses #39"],
+         pr_body_has=["Adds isBlank.\n\nCloses #39", "**Slices:**\n- Tabs are blank: green on arrival, covered by the whitespace slice."]),
+    dict(name="implement, duplicate ready label leaves an open PR alone", wf="factory-implement.yml",
+         target="issue", event="ready-for-agent", pr_state="OPEN", start=["enhancement", "ready-for-agent"],
+         comments=[], agent=implements, during=None, final=["enhancement", "ready-for-agent"], dispatch=[],
+         failed=False, pr_created=False, last_comment=None, pr_body_has=["Adds isBlank.\n\nCloses #39"]),
     dict(name="review, duplicate automatic review keeps the completed approval", wf="factory-review.yml", event=None,
          inputs={"automatic": True}, start=["agent:approved"], comments=[APPROVED_FOR_HUMAN], agent=approve,
          during=None, final=["agent:approved"], dispatch=[], failed=False, last_comment=None),
@@ -657,6 +667,7 @@ def run_scenario(sc, trace):
     with open(state_path) as f:
         st = json.load(f)
     merged_main = subprocess.run(["git", "merge-base", "--is-ancestor", "main", "HEAD"], cwd=repo).returncode == 0
+    head_unchanged = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip() == head
     shutil.rmtree(root)
     result = {
         "failed": failed,
@@ -672,6 +683,7 @@ def run_scenario(sc, trace):
         "head": head,
         "prompt": prompt,
         "merged_main": merged_main,
+        "head_unchanged": head_unchanged,
         "log": log,
     }
     if "follow_up" in sc:
@@ -684,7 +696,7 @@ def run_scenario(sc, trace):
 
 def check(sc, r):
     problems = []
-    for key in ("failed", "pr_created"):
+    for key in ("failed", "pr_created", "head_unchanged"):
         if key in sc and r[key] != sc[key]:
             problems.append(f"{key} is {r[key]}, want {sc[key]}")
     if r["during"] is not None and "agent:failed" in r["during"]:
