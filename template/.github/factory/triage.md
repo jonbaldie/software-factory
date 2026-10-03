@@ -10,4 +10,4 @@ Triage the ticket below. A list of the other open tickets follows it.
    - `needs-info` when only the reporter can supply what's missing. Write what's settled so far, then your questions for them.
    - `wontfix` when it's already built or another open ticket covers it. Write where it's built, or that ticket's number.
 
-If the comments include an earlier triage, build on it: keep what it settled and ask only what's still open.
+If the comments include an earlier triage or an implementer's diagnostic report, build on it: keep what it settled, use the reporter's answers, and ask only what's still open.
