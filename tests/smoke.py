@@ -6,7 +6,7 @@
 
 tests/labels.py simulates GitHub. This drives the installed workflows instead, so it also checks GitHub's
 event delivery and the per-PR job queue. It spends model credit on one implement run and about seven
-reviews, and takes 30 to 45 minutes.
+reviews, and takes about 15 minutes.
 
 Every stage runs on the same factory PR:
   s1   A ready-for-agent issue becomes a PR, which the reviewer approves and leaves open: FACTORY_MERGE is off.
