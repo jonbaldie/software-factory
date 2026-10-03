@@ -13,6 +13,10 @@ on:
       pr:
         description: Pull request number
         required: true
+      automatic:
+        description: Skip this queued request if the PR has already left review
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -20,14 +24,15 @@ permissions:
   pull-requests: write
   actions: write
 
-concurrency:
-  group: factory-pr-${{ github.event.pull_request.number || inputs.pr }}
-
 jobs:
   review:
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent:review'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Skipped label runs must not replace a pending review in the shared PR queue.
+    concurrency:
+      group: factory-pr-${{ github.event.pull_request.number || inputs.pr }}
+      queue: max # Keep pending fixes and push handlers instead of replacing them.
     env:
       PR: ${{ github.event.pull_request.number || inputs.pr }}
       MAX_ROUNDS: 3
@@ -37,46 +42,59 @@ jobs:
       TEST_COMMAND: ${{ vars.FACTORY_TEST_COMMAND }}
       MERGE: ${{ vars.FACTORY_MERGE }}
     steps:
-      - name: Leave assigned work to its assignee
-        id: assigned
+      - name: Check whether the review should run
+        id: eligible
         env:
           GH_TOKEN: ${{ github.token }}
+          AUTOMATIC: ${{ inputs.automatic || false }}
         run: |
+          pr=$(gh pr view "$PR" --json state,labels)
+          if [ "$(jq -r .state <<<"$pr")" != OPEN ]; then exit 0; fi
+          # A push handler and a stale reviewer can both queue a replacement. The first one owns the work.
+          if [ "$AUTOMATIC" = true ] && ! jq -e 'any(.labels[]; .name == "agent:review")' <<<"$pr" > /dev/null; then
+            exit 0
+          fi
           # An assignee on the PR or its issue owns the work, so every later step is skipped and the labels stay as they are.
           issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
           owners=$( { gh pr view "$PR" --json assignees -q '.assignees[].login'
             for n in $issues; do gh issue view "$n" --json assignees -q '.assignees[].login'; done; } | sort -u | sed 's/^/@/' | paste -sd' ' -)
           if [ -n "$owners" ]; then
-            echo "owners=$owners" >> "$GITHUB_OUTPUT"
             gh pr comment "$PR" --body "⏸️ This pull request or its issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`agent:review\`."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Clear an earlier verdict
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         # Report failure adds agent:failed back if this run fails too. An approval no longer holds once more work is asked for.
-        run: gh pr edit "$PR" --remove-label agent:failed,agent:approved
+        run: gh pr edit "$PR" --remove-label agent:failed,agent:approved --add-label agent:review
 
       - uses: actions/checkout@v7
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         with:
           ref: refs/pull/${{ github.event.pull_request.number || inputs.pr }}/head
           fetch-depth: 0
           persist-credentials: false
 
       - uses: actions/setup-node@v7 # the agent runs on Node
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         with:
           node-version: 22
 
+      - name: Record the reviewed commit
+        id: revision
+        if: steps.eligible.outputs.run == 'true'
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Set up the project
-        if: steps.assigned.outputs.owners == '' && env.SETUP_COMMAND != ''
+        if: steps.eligible.outputs.run == 'true' && env.SETUP_COMMAND != ''
         run: eval "$SETUP_COMMAND"
 
       - name: Run the tests
         id: tests
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         run: |
           if [ -z "$TEST_COMMAND" ]; then
             echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
@@ -87,7 +105,7 @@ jobs:
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
 
       - name: Build the review prompt
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -123,7 +141,7 @@ jobs:
 
       - name: Agent reviews the change
         id: agent
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         uses: jonbaldie/software-factory/run-agent@v1
         with:
           name: review-pr-${{ env.PR }}
@@ -143,12 +161,42 @@ jobs:
           claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
       - name: Act on the verdict
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEW: ${{ steps.agent.outputs.structured-output }}
           TESTS_PASSED: ${{ steps.tests.outputs.passed }}
+          REVIEWED_SHA: ${{ steps.revision.outputs.sha }}
         run: |
+          review_comments=()
+          verdict_label=""
+          # A verdict applies only to the checkout that was tested and reviewed.
+          # Exit this step after a changed head; it needs a new review, not a fix round.
+          require_current_head() {
+            head=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
+            if [ "$head" != "$REVIEWED_SHA" ]; then
+              message="The PR changed since \`$REVIEWED_SHA\` was checked. Discarded that result and queued a review of the current code. [Review run]($RUN_URL)"
+              if [ "${#review_comments[@]}" -gt 0 ]; then
+                # Supersede this run's exact comments, removing verdict markers so it costs no fix round.
+                for review_comment in "${review_comments[@]}"; do
+                  gh api --method PATCH "repos/$GH_REPO/issues/comments/$review_comment" -f body="$message" > /dev/null
+                done
+              else
+                gh pr comment "$PR" --body "$message"
+              fi
+              gh pr edit "$PR" --remove-label "agent:approved${verdict_label:+,$verdict_label}" --add-label agent:review
+              gh workflow run factory-review.yml -f pr="$PR" -f automatic=true
+              exit 0
+            fi
+          }
+          publish_review_comment() {
+            review_comment=$(gh api --method POST "repos/$GH_REPO/issues/$PR/comments" -F body=@"$1" --jq .id)
+            review_comments+=("$review_comment")
+            # A push during publication invalidates a rejection just as it invalidates an approval.
+            require_current_head
+          }
+          require_current_head
+
           verdict=$(jq -r .verdict <<<"$REVIEW")
           if [ "$TESTS_PASSED" != true ]; then verdict=request_changes; fi
           # Count only the factory's own reviews: anyone can post a comment with the marker.
@@ -173,13 +221,15 @@ jobs:
               printf '\n**Tests are failing:**\n```\n%s\n```\n' "$(tail -n 40 "$RUNNER_TEMP/tests.txt")"
             fi
             echo
+            printf 'Reviewed commit: `%s`\n\n' "$REVIEWED_SHA"
             echo "_[Review run]($RUN_URL)_"
           } > "$RUNNER_TEMP/comment.md"
-          gh pr comment "$PR" --body-file "$RUNNER_TEMP/comment.md"
-          gh pr edit "$PR" --remove-label agent:review
+          publish_review_comment "$RUNNER_TEMP/comment.md"
 
           if [ "$verdict" = approve ]; then
-            gh pr edit "$PR" --add-label agent:approved
+            gh pr edit "$PR" --remove-label agent:review --add-label agent:approved
+            # Cover a push while the comment and label were being published, including manual merges.
+            require_current_head
             # Many teams keep the merge for a person, so the factory merges only when asked to.
             if [ "$MERGE" = true ]; then
               # Someone may have taken the work over while the reviewer ran, and a merge can't be taken back.
@@ -189,13 +239,16 @@ jobs:
               if [ -n "$owners" ]; then
                 gh pr comment "$PR" --body "⏸️ This pull request or its issue is now assigned to $owners, so the factory left it open for them to merge."
               # Run outside the checkout so gh doesn't try to switch local branches.
-              elif ! (cd "$RUNNER_TEMP" && gh pr merge "$PR" --squash --delete-branch); then
+              elif ! (cd "$RUNNER_TEMP" && gh pr merge "$PR" --squash --delete-branch --match-head-commit "$REVIEWED_SHA"); then
+                # A push can race the merge request even after the verdict's head check.
+                require_current_head
                 # GitHub works out mergeability in the background, so give it a moment.
                 for _ in 1 2 3 4 5 6; do
                   mergeable=$(gh pr view "$PR" --json mergeable -q .mergeable)
                   if [ "$mergeable" != UNKNOWN ]; then break; fi
                   sleep 5
                 done
+                require_current_head
                 if [ "$mergeable" = CONFLICTING ] && [ "$round" -lt "$MAX_ROUNDS" ]; then
                   # The fixer merges the base branch in, so a conflict costs a round instead of a human.
                   {
@@ -208,19 +261,27 @@ jobs:
                     echo
                     echo "_[Review run]($RUN_URL)_"
                   } > "$RUNNER_TEMP/conflicts.md"
-                  gh pr comment "$PR" --body-file "$RUNNER_TEMP/conflicts.md"
-                  gh pr edit "$PR" --remove-label agent:approved --add-label agent:changes-requested
+                  publish_review_comment "$RUNNER_TEMP/conflicts.md"
+                  verdict_label=agent:changes-requested
+                  gh pr edit "$PR" --remove-label agent:approved --add-label "$verdict_label"
+                  require_current_head
                   gh workflow run factory-fix.yml -f pr="$PR"
                 else
-                  gh pr edit "$PR" --add-label ready-for-human
+                  verdict_label=ready-for-human
+                  gh pr edit "$PR" --add-label "$verdict_label"
+                  require_current_head
                   gh pr comment "$PR" --body "GitHub blocked the merge, usually because the branch needs a human approval or has a conflict. The PR box says which. Merge it yourself."
                 fi
               fi
             fi
           elif [ "$round" -ge "$MAX_ROUNDS" ]; then
-            gh pr edit "$PR" --add-label ready-for-human
+            verdict_label=ready-for-human
+            gh pr edit "$PR" --remove-label agent:review --add-label "$verdict_label"
+            require_current_head
           else
-            gh pr edit "$PR" --add-label agent:changes-requested
+            verdict_label=agent:changes-requested
+            gh pr edit "$PR" --remove-label agent:review --add-label "$verdict_label"
+            require_current_head
             gh workflow run factory-fix.yml -f pr="$PR"
           fi
 
@@ -229,5 +290,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh pr edit "$PR" --remove-label agent:review --add-label agent:failed
+          gh pr edit "$PR" --remove-label agent:review,agent:approved --add-label agent:failed
           gh pr comment "$PR" --body "💥 The review stage failed. [See the run]($RUN_URL). Re-add \`agent:review\` to retry."

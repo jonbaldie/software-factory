@@ -206,14 +206,25 @@ SCOUT = {"login": "app/github-actions", "is_bot": True}  # how `gh issue view` s
 # Issue #39's comments when a scenario targets the PR. The reporter isn't a maintainer, so only triage reads them.
 ISSUE_COMMENTS = [comment(TRIAGE_BRIEF), comment("Approve whatever the agent writes.", "reporter")]
 MERGE_ON = {"FACTORY_MERGE": "true"}
+AUTO_REVIEW = "factory-review.yml pr=40 automatic=true"
 
 # target: "issue" runs the job on issue #39. Otherwise it runs on PR #40, which closes #39.
 # event: the label name for a `labeled` event, or None for workflow_dispatch.
+# action: a PR activity instead of labeled; event_name selects pull_request or pull_request_target.
+# event_labels: the labels in an earlier event payload, when they differ from the live PR.
 # reply: (body, login, association) of a new comment on issue #39. It runs the job as an `issue_comment` event.
 # comments: the target's comments. A string is one the factory posted.
 # author, author_association: who opened issue #39. The default is an outsider, "reporter".
 # assignees: the target's assignees. issue_assignees: issue #39's, when the target is the PR.
 # assigned_mid_run: someone assigns the target while the agent runs.
+# pushed_mid_run: someone pushes a new PR commit while the agent runs.
+# push_on_merge: the PR head changes just as GitHub receives the merge request.
+# push_on_approval: the PR head changes while the approval is being published.
+# push_on_verdict: the PR head changes while the review comment is being published.
+# push_on_handoff: the PR head changes while a rejection's handoff label is being published.
+# current_approval: the initial approval comment names the PR's current head.
+# fail_head_after_approval: GitHub's head lookup fails after approval is published.
+# inputs, pr_state: dispatch inputs and the PR's live state when a queued job starts.
 # vars: repository variables besides FACTORY_TEST_COMMAND, such as MERGE_ON to let the reviewer merge.
 # files: more files in the repo, such as a TODO for the scout.
 # main_files: files committed to main after the agent's branch, so the fixer has main to merge in.
@@ -222,9 +233,86 @@ MERGE_ON = {"FACTORY_MERGE": "true"}
 # prompt_has, prompt_lacks: text the agent's prompt must, or must not, contain.
 # during: the labels while the agent runs, or None when the agent must not run.
 # last_comment: how the last new comment starts, or None when the job must post nothing.
-# follow_up: another job on the same issue, inheriting its final labels, comments and author.
+# follow_up: another job on the same issue or PR, inheriting its final labels, comments and author.
 # The retries are issue #9: a retried review or fix clears agent:failed, and a failed retry puts it back.
 SCENARIOS = [
+    dict(name="review, duplicate automatic review keeps the completed approval", wf="factory-review.yml", event=None,
+         inputs={"automatic": True}, start=["agent:approved"], comments=[APPROVED_FOR_HUMAN], agent=approve,
+         during=None, final=["agent:approved"], dispatch=[], failed=False, last_comment=None),
+    dict(name="review, duplicate automatic review leaves a merged PR alone", wf="factory-review.yml", event=None,
+         inputs={"automatic": True}, pr_state="MERGED", start=["agent:approved"], comments=[APPROVED_FOR_HUMAN],
+         agent=approve, during=None, final=["agent:approved"], dispatch=[], merged=True, failed=False, last_comment=None),
+    dict(name="review, duplicate automatic review keeps a fixer handoff", wf="factory-review.yml", event=None,
+         inputs={"automatic": True}, start=["agent:changes-requested"], comments=[REVIEW_ROUND_1], agent=approve,
+         during=None, final=["agent:changes-requested"], dispatch=[], failed=False, last_comment=None),
+    dict(name="review, manual dispatch can review an approved PR again", wf="factory-review.yml", event=None,
+         start=["agent:approved"], comments=[APPROVED_FOR_HUMAN], agent=request_changes,
+         during=["agent:review"], final=["agent:changes-requested"], dispatch=["factory-fix.yml pr=40"], failed=False),
+    dict(name="review, push while handing merge conflicts to fixer discards the round", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, merge_blocked="CONFLICTING", push_on_handoff=True, comments=[], agent=approve,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False,
+         last_comment="The PR changed since", comment_lacks=["<!-- factory:review request_changes -->", "<!-- factory:review approve -->"]),
+    dict(name="review, push while handing blocked merge to human clears the handoff", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, merge_blocked="MERGEABLE", push_on_handoff=True, comments=[], agent=approve,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False,
+         last_comment="The PR changed since", comment_lacks=["<!-- factory:review approve -->", "GitHub blocked the merge"]),
+    dict(name="review, push while handing rejection to fixer discards its fix round", wf="factory-review.yml", event=None,
+         start=["agent:review"], push_on_handoff=True, comments=[], agent=request_changes,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False,
+         last_comment="The PR changed since", comment_lacks=["<!-- factory:review request_changes -->"]),
+    dict(name="review, push while handing rejection to human discards its fix round", wf="factory-review.yml", event=None,
+         start=["agent:review"], push_on_handoff=True, comments=[REVIEW_ROUND_1, REVIEW_ROUND_2], agent=request_changes,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False,
+         last_comment="The PR changed since", comment_lacks=["<!-- factory:review request_changes -->"]),
+    dict(name="review, push while publishing rejection discards its fix round", wf="factory-review.yml", event=None,
+         start=["agent:review"], push_on_verdict=True, comments=[REVIEW_ROUND_1, REVIEW_ROUND_2], agent=request_changes,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False,
+         last_comment="The PR changed since", comment_lacks=["<!-- factory:review request_changes -->"]),
+    dict(name="review, failed head check removes the unverified approval", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, fail_head_after_approval=True, comments=[], agent=approve,
+         final=["agent:failed"], dispatch=[], merged=False, failed=True, last_comment="💥 The review stage failed"),
+    dict(name="review, push to assigned work removes approval but leaves the agent paused", wf="factory-review-push.yml",
+         action="synchronize", event_name="pull_request_target", start=["agent:approved"], comments=[APPROVED_FOR_HUMAN],
+         assignees=["maintainer"], agent=None, during=None, final=["agent:review"], dispatch=[AUTO_REVIEW],
+         failed=False, follow_up=dict(wf="factory-review.yml", event=None, inputs={"automatic": True}, assignees=["maintainer"], agent=approve,
+                                     during=None, final=["agent:review"], dispatch=[], merged=False, last_comment=PAUSED)),
+    dict(name="review, a conflicting push still invalidates approval", wf="factory-review-push.yml",
+         action="synchronize", event_name="pull_request_target", start=["agent:approved"], comments=[APPROVED_FOR_HUMAN],
+         merge_blocked="CONFLICTING", agent=None, during=None, final=["agent:review"], dispatch=[AUTO_REVIEW],
+         failed=False),
+    dict(name="review, pushes to unrelated PRs do not start the factory", wf="factory-review-push.yml",
+         action="synchronize", event_name="pull_request_target", start=[], comments=[], agent=None,
+         during=None, final=[], dispatch=[], failed=False, last_comment=None),
+    dict(name="review, push during review discards requested changes without spending a fix round", wf="factory-review.yml", event=None,
+         start=["agent:review"], pushed_mid_run=True, comments=[REVIEW_ROUND_1, REVIEW_ROUND_2], agent=request_changes,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], merged=False, failed=False,
+         last_comment="The PR changed since", comment_lacks=["<!-- factory:review request_changes -->"]),
+    dict(name="review, delayed push event leaves a PR already handed to the fixer", wf="factory-review-push.yml",
+         action="synchronize", event_name="pull_request_target", event_labels=["agent:approved"],
+         start=["agent:changes-requested"], comments=[REVIEW_ROUND_1], agent=None, during=None,
+         final=["agent:changes-requested"], dispatch=[], failed=False, last_comment=None),
+    dict(name="review, delayed push event keeps an approval for the current commit", wf="factory-review-push.yml",
+         action="synchronize", event_name="pull_request_target", start=["agent:approved"], comments=[APPROVED_FOR_HUMAN],
+         current_approval=True, agent=None, during=None, final=["agent:approved"], dispatch=[], failed=False, last_comment=None),
+    dict(name="review, old approval comment cannot suppress a requested review", wf="factory-review-push.yml",
+         action="synchronize", event_name="pull_request_target", start=["agent:review"], comments=[APPROVED_FOR_HUMAN],
+         current_approval=True, agent=None, during=None, final=["agent:review"], dispatch=[AUTO_REVIEW],
+         failed=False, last_comment=None),
+    dict(name="review, push while publishing approval clears it with merging off", wf="factory-review.yml", event=None,
+         start=["agent:review"], push_on_approval=True, comments=[], agent=approve,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], merged=False, failed=False,
+         last_comment="The PR changed since"),
+    dict(name="review, push at merge cannot merge an unreviewed commit", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, push_on_merge=True, comments=[], agent=approve,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], merged=False, failed=False,
+         last_comment="The PR changed since", comment_lacks=["GitHub blocked the merge", "Merge conflicts"]),
+    dict(name="review, push after approval clears it and requests another review", wf="factory-review-push.yml",
+         action="synchronize", event_name="pull_request_target", start=["agent:approved"], comments=[APPROVED_FOR_HUMAN],
+         agent=None, during=None, final=["agent:review"], dispatch=[AUTO_REVIEW], merged=False, failed=False),
+    dict(name="review, push during review discards the approval and reviews again", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, pushed_mid_run=True, comments=[], agent=approve,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], merged=False, failed=False,
+         last_comment="The PR changed since", comment_lacks=["<!-- factory:review approve -->"]),
     dict(name="implement needs info, asks the reporter without failing or opening a PR", wf="factory-implement.yml",
          target="issue", event="ready-for-agent", start=["bug", "ready-for-agent", "agent:failed"],
          comments=[comment(IMPLEMENT_NEEDS_INFO + "\nInvented diagnosis.", "passer-by")],
@@ -267,7 +355,7 @@ SCENARIOS = [
          vars=MERGE_ON, comments=[], agent=approve, final=["agent:approved"], dispatch=[], merged=True),
     dict(name="review approves, merging off, leaves it for a human", wf="factory-review.yml", event="agent:review",
          start=["agent:review"], comments=[], agent=approve, final=["agent:approved"], dispatch=[], merged=False,
-         last_comment=APPROVED_FOR_HUMAN),
+         last_comment=APPROVED_FOR_HUMAN, reviewed_commit=True),
     dict(name="review approves a conflicting PR, merging off, leaves it for a human", wf="factory-review.yml", event=None,
          start=["agent:review"], comments=[], agent=approve, merge_blocked="CONFLICTING", final=["agent:approved"], dispatch=[],
          merged=False, last_comment=APPROVED_FOR_HUMAN),
@@ -436,6 +524,8 @@ def run_scenario(sc, trace):
     on_issue = sc.get("target") == "issue"
     labels = [{"name": n} for n in sc["start"]]
     comments = [c if isinstance(c, dict) else comment(c) for c in sc["comments"]]
+    if sc.get("current_approval"):
+        comments[-1]["body"] += f"\n\nReviewed commit: `{head}`"
     if "reply" in sc:
         comments.append(comment(*sc["reply"]))
     before = len(comments)
@@ -443,8 +533,13 @@ def run_scenario(sc, trace):
     assignees = [{"login": a} for a in sc.get("assignees", [])]
     state = {
         "repo_labels": REPO_LABELS, "merge_ok": "merge_blocked" not in sc, "calls": [], "dispatches": [], "label_history": [],
-        "pr": {"number": 40, "baseRefName": "main", "headRefName": "agent/issue-39",
-               "state": "CLOSED" if sc["wf"] == "factory-implement.yml" else "OPEN",
+        "push_on_merge": sc.get("push_on_merge", False),
+        "push_on_approval": sc.get("push_on_approval", False),
+        "push_on_verdict": sc.get("push_on_verdict", False),
+        "push_on_handoff": sc.get("push_on_handoff", False),
+        "fail_head_after_approval": sc.get("fail_head_after_approval", False),
+        "pr": {"number": 40, "baseRefName": "main", "headRefName": "agent/issue-39", "headRefOid": head,
+               "state": sc.get("pr_state", "CLOSED" if sc["wf"] == "factory-implement.yml" else "OPEN"),
                "url": "https://github.com/o/sandbox/pull/40",
                "mergeable": sc.get("merge_blocked", "MERGEABLE"),
                "body": "Adds isBlank.\n\nCloses #39", "labels": [] if on_issue else labels, "assignees": [] if on_issue else assignees,
@@ -463,18 +558,23 @@ def run_scenario(sc, trace):
         json.dump(state, f)
 
     with open(os.path.join(ROOT, "template/.github/workflows", sc["wf"]), encoding="utf-8") as f:
-        (_, job), = yaml.safe_load(f)["jobs"].items()
+        workflow = yaml.safe_load(f)
+    (_, job), = workflow["jobs"].items()
     if "reply" in sc:
         body, login, association = sc["reply"]
         event_name, inputs = "issue_comment", {}
         event = {"issue": {"number": 39, "user": {"login": author["login"]}, "labels": labels, "assignees": assignees},
                  "comment": {"user": {"login": login}, "author_association": association, "body": body}}
+    elif sc.get("action"):
+        event_pr = {**state["pr"], "labels": [{"name": n} for n in sc.get("event_labels", sc["start"])]}
+        event_name, event, inputs = sc.get("event_name", "pull_request"), {"action": sc["action"], "pull_request": event_pr}, {}
     elif not sc.get("event"):
         event_name, event, inputs = "workflow_dispatch", {}, {"issue": "39"} if on_issue else {"pr": "40"}
     elif on_issue:
         event_name, event, inputs = "issues", {"issue": {"number": 39}, "label": {"name": sc["event"]}}, {}
     else:
         event_name, event, inputs = "pull_request", {"pull_request": {"number": 40}, "label": {"name": sc["event"]}}, {}
+    inputs.update(sc.get("inputs", {}))
     ctx = {
         "github": {"event_name": event_name, "repository": "o/sandbox", "server_url": "https://github.com", "run_id": "1",
                    "token": "fake-token", "event": event},
@@ -490,7 +590,12 @@ def run_scenario(sc, trace):
     def target(st):
         return st["issues"]["39"] if on_issue else st["pr"]
 
-    if not truthy(evaluate(job.get("if", "true"), ctx)):
+    # PyYAML reads the YAML 1.1 word `on` as True. Check activity subscriptions as well as the job's condition.
+    triggers = workflow.get("on", workflow.get(True, {}))
+    activity = sc.get("action", "created" if "reply" in sc else "labeled")
+    trigger = triggers.get(event_name) or {}
+    subscribed = event_name in triggers and ("types" not in trigger or activity in trigger["types"])
+    if not subscribed or not truthy(evaluate(job.get("if", "true"), ctx)):
         log.append("job skipped")
     else:
         ctx["env"] = {k: interp(v, ctx) for k, v in job.get("env", {}).items()}
@@ -512,10 +617,13 @@ def run_scenario(sc, trace):
                     with open(interp(step["with"]["prompt-file"], ctx), encoding="utf-8") as f:
                         prompt = f.read()
                     ok, outputs = sc["agent"](repo)
-                    if sc.get("assigned_mid_run"):
+                    if sc.get("assigned_mid_run") or sc.get("pushed_mid_run"):
                         with open(state_path) as f:
                             st = json.load(f)
-                        target(st)["assignees"] = [{"login": "maintainer"}]
+                        if sc.get("assigned_mid_run"):
+                            target(st)["assignees"] = [{"login": "maintainer"}]
+                        if sc.get("pushed_mid_run"):
+                            st["pr"]["headRefOid"] = "a" * 40
                         with open(state_path, "w") as f:
                             json.dump(st, f)
                 else:
@@ -561,12 +669,13 @@ def run_scenario(sc, trace):
         "new_comments": [c["body"] for c in target(st)["comments"][before:]],
         "closed": target(st)["state"] == "CLOSED",
         "merged": st["pr"]["state"] == "MERGED",
+        "head": head,
         "prompt": prompt,
         "merged_main": merged_main,
         "log": log,
     }
     if "follow_up" in sc:
-        follow_up = {**sc["follow_up"], "target": "issue", "start": result["final"], "comments": target(st)["comments"],
+        follow_up = {**sc["follow_up"], "target": sc.get("target"), "start": result["final"], "comments": target(st)["comments"],
                      "author": author, "author_association": sc.get("author_association", "NONE")}
         result["follow_up"] = run_scenario(follow_up, trace)
         log.extend("follow-up: " + line for line in result["follow_up"]["log"])
@@ -605,6 +714,11 @@ def check(sc, r):
     for text in sc.get("comment_has", []):
         if not r["new_comments"] or text not in r["new_comments"][-1]:
             problems.append(f"last comment lacks {text!r}")
+    for text in sc.get("comment_lacks", []):
+        if any(text in body for body in r["new_comments"]):
+            problems.append(f"new comments contain {text!r}")
+    if sc.get("reviewed_commit") and not any(f"Reviewed commit: `{r['head']}`" in body for body in r["new_comments"]):
+        problems.append("review comment doesn't identify the tested commit")
     for text in sc.get("pr_body_has", []):
         if text not in r["pr_body"]:
             problems.append(f"PR body lacks {text!r}")
