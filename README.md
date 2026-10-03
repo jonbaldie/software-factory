@@ -2,7 +2,7 @@
 
 Turn GitHub issues into tested, reviewed code using coding agents in GitHub Actions.
 
-You describe the work in an issue and add `ready-for-agent`. The factory writes the code, runs your tests, opens a pull request, and uses another agent to review it and request fixes.
+You describe the work in an issue and add `ready-for-agent`, or add `needs-triage` to have an agent check the issue and write the brief first. The factory writes the code, runs your tests, opens a pull request, and uses another agent to review it and request fixes.
 
 **When tests and review pass, the factory squash-merges the PR automatically, if GitHub allows it.** After three rejected reviews, or if GitHub blocks the merge, it hands the PR to you.
 
@@ -14,6 +14,9 @@ See the [example repository](https://github.com/jonbaldie/software-factory-sandb
 
 ```mermaid
 flowchart LR
+  triage["You label an issue<br/>needs-triage"] --> triager["Agent triages it"]
+  triager -->|Fully specified| implement
+  triager -->|Needs a decision| human
   issue["You label an issue<br/>ready-for-agent"] --> implement["Agent writes code<br/>and runs tests"]
   implement --> pr["Factory opens a PR"]
   pr --> review["Tests run again<br/>and another agent reviews"]
@@ -69,9 +72,8 @@ Review the changes under `.github/`, commit them, and get them onto your default
 ## Run your first issue
 
 1. Open an issue that describes the expected behaviour and how to check it. For a bug, include reproduction steps and the actual result.
-2. Add `bug` or `enhancement` if either applies.
-3. Read the issue, then add `ready-for-agent` to start the factory.
-4. Follow the run link posted on the issue, or open the repository's **Actions** tab.
+2. Add `needs-triage` to have an agent [triage it](#triage-issues). Or read it yourself, add `bug` or `enhancement` if either applies, then add `ready-for-agent` to start the factory.
+3. Follow the run link posted on the issue, or open the repository's **Actions** tab.
 
 Agents work without asking follow-up questions. Put requirements and constraints in the issue or in comments from repository owners, members, or collaborators. The agents record their decisions in the PR description.
 
@@ -82,6 +84,21 @@ Agents work without asking follow-up questions. Put requirements and constraints
 | Neither | Follows the general implementation instructions and runs your tests. |
 
 If both labels are present, `bug` takes precedence. If the agent cannot reproduce a reported bug, it stops and posts what it tried and what information it needs.
+
+## Triage issues
+
+Add `needs-triage` to an issue to have an agent triage it. The triager reads the issue, its comments, your code and the titles of the other open issues. It posts a comment, and sets one category, `bug` or `enhancement`, and one state:
+
+| State | Triage comment | Next |
+|---|---|---|
+| `ready-for-agent` | A brief for the implementer: summary, current and desired behaviour, interfaces to change, acceptance criteria, and what is out of scope. | Implementation starts. |
+| `ready-for-human` | The same brief, plus the decision you need to make. | You decide, then add `ready-for-agent` or build it yourself. |
+| `needs-info` | What is settled, and questions for the reporter. | Re-add `needs-triage` once they answer. |
+| `wontfix` | Where it is already built, or the open issue that covers it. | The issue is closed. |
+
+**A `ready-for-agent` triage starts implementation straight away, so an issue can go from triage to a merged PR with no human reading it.** Only people with triage access or above can add labels, so outside reporters cannot start triage themselves. The factory ships no issue template for this reason: a template that adds `needs-triage` would let anyone who opens an issue start the chain.
+
+The triager also reads comments from the issue's author, so it sees their answers to its questions. Implementation, review and fix read only comments from repository owners, members and collaborators, plus triage's own comments. A repeat triage replaces the earlier category and state labels.
 
 ## Configuration
 
@@ -126,17 +143,16 @@ Issue and PR comments link to the relevant workflow runs. Agent runs provide liv
 
 | Label | Meaning or next step |
 |---|---|
+| `needs-triage` | The agent is triaging the issue. Add it to request a triage. |
 | `agent:working` | The agent is implementing the issue. |
 | `agent:review` | The PR is queued for review or being reviewed. Add it to request another review. |
 | `agent:changes-requested` | The PR needs fixes. You can add it with a comment explaining what to change. |
 | `agent:approved` | The agent approved the PR. Check whether it merged; GitHub may still block it. |
 | `agent:failed` | A stage failed, timed out, or was cancelled. Read the linked run, fix the cause, then retry as described below. |
 | `agent:wip` | Implementation failed after the agent changed files. The unfinished work and the reason it stopped are saved on the `agent/issue-N` branch. |
-| `ready-for-human` | You need to take over after three rejected reviews or a blocked merge. Check the review comments and GitHub's merge status. |
+| `ready-for-human` | You need to take over. On an issue, triage's comment names the decision. On a PR, three reviews were rejected or GitHub blocked the merge; check the review comments and GitHub's merge status. |
 
-To retry implementation, remove and re-add `ready-for-agent` on the issue. If the issue has `agent:wip`, the retry continues from the saved work; remove `agent:wip` first to start over. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.
-
-The installer also creates `needs-triage`, `needs-info`, and `wontfix` for organising issues. These do not start agent work.
+To retry a failed triage, re-add `needs-triage`. To retry implementation, remove and re-add `ready-for-agent` on the issue. If the issue has `agent:wip`, the retry continues from the saved work; remove `agent:wip` first to start over. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.
 
 ## Costs and limits
 
@@ -144,6 +160,7 @@ Each agent run has a model spending threshold:
 
 | Stage | Budget per run |
 |---|---|
+| Triage | $0.50 |
 | Implement | $1.50 |
 | Review | $0.75 |
 | Fix | $1.00 |
@@ -153,10 +170,10 @@ These are per-run budgets, not a total limit for an issue. pi is stopped after i
 The factory also applies these limits:
 
 - At most two automatic fix rounds; a third rejected review hands the PR to you.
-- The reviewer is configured with read and search tools only. An invalid review response fails the stage.
+- The triager and reviewer are configured with read and search tools only. An invalid triage or review response fails the stage.
 - Implementation and fix stages reject edits under `.github/`.
 - Workflow steps handle commits and pushes. Checkouts for the agents do not retain GitHub credentials.
-- Issue comments and human feedback included in prompts are limited to repository owners, members, and collaborators.
+- Issue comments and human feedback included in prompts are limited to repository owners, members, collaborators, and the factory's triage comments. Triage also reads the issue author's comments, and the titles of all open issues, whoever opened them, to spot duplicates.
 - Runs are serialised per issue or PR.
 
 The factory attempts to merge approved PRs with the built-in GitHub token. Branch rules still apply: if required approvals, conflicts, or other checks block a merge, you must resolve them.
@@ -169,7 +186,7 @@ The scout workflow runs daily and creates `needs-triage` issues from code commen
 // TODO(factory): Add pagination to the search results
 ```
 
-It skips Markdown and `.github/`, checks existing issue titles to avoid duplicates, and writes a queue report in the run summary. It uses no model. Review each proposed issue before adding `ready-for-agent`.
+It skips Markdown and `.github/`, checks existing issue titles to avoid duplicates, and writes a queue report in the run summary. The scout itself uses no model, but it starts a [triage](#triage-issues) run for each issue it creates. A TODO that triage marks `ready-for-agent` is then built and can merge with no human step.
 
 ## Update the factory
 

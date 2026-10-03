@@ -1,6 +1,6 @@
 ## Tests
 
-`uv run tests/labels.py` runs the review and fix jobs against a fake `gh` and checks the PR's labels. Run it after changing either workflow, and add a scenario for each new label change. CI runs it on every PR.
+`uv run tests/labels.py` runs the triage, scout, review and fix jobs against a fake `gh` and checks the labels they leave. Run it after changing any of those workflows or `ticket.jq`, and add a scenario for each new label change. CI runs it on every PR.
 
 ## Agent skills
 
