@@ -19,6 +19,9 @@ flowchart LR
   triager -->|Needs a decision| human
   issue["You label an issue<br/>ready-for-agent"] --> implement["Agent writes code<br/>and runs tests"]
   implement --> pr["Factory opens a PR"]
+  implement -->|Cannot reproduce the bug| info["needs-info<br/>Reporter supplies evidence"]
+  triager -->|Missing information| info
+  info -->|Reporter replies| triager
   pr --> review["Tests run again<br/>and another agent reviews"]
   review -->|Pass, FACTORY_MERGE off| you["You merge the PR"]
   review -->|Pass, FACTORY_MERGE on| merge["Factory merges the PR"]
@@ -77,7 +80,7 @@ Review the changes under `.github/`, commit them, and get them onto your default
 2. Add `needs-triage` to have an agent [triage it](#triage-issues). Or read it yourself, add `bug` or `enhancement` if either applies, then add `ready-for-agent` to start the factory.
 3. Follow the run link posted on the issue, or open the repository's **Actions** tab.
 
-Agents work without asking follow-up questions. Put requirements and constraints in the issue or in comments from repository owners, members, or collaborators. The agents record their decisions in the PR description.
+Agents make routine implementation decisions themselves and record them in the PR description. Put requirements and constraints in the issue or in comments from repository owners, members, or collaborators.
 
 | Issue label | What the agent does |
 |---|---|
@@ -85,7 +88,7 @@ Agents work without asking follow-up questions. Put requirements and constraints
 | `enhancement` | Builds one behaviour at a time: writes a failing test through a public interface, then implements enough code to pass it. |
 | Neither | Follows the general implementation instructions and runs your tests. |
 
-If both labels are present, `bug` takes precedence. If the agent cannot reproduce a reported bug, it stops and posts what it tried and what information it needs.
+If both labels are present, `bug` takes precedence. If the agent cannot reproduce a reported bug, it posts what it tried and the evidence it needs, replaces `ready-for-agent` with `needs-info`, and finishes successfully without opening a PR. A reply from the reporter or a maintainer sends the issue back to triage with the diagnostic report and the new information. Triage then decides whether implementation can resume. Any work saved by an earlier failed attempt stays available through `agent:wip`.
 
 ## Triage issues
 
@@ -100,7 +103,7 @@ Add `needs-triage` to an issue to have an agent triage it. The triager reads the
 
 **A `ready-for-agent` triage starts implementation straight away, so an issue can go from triage to an approved PR with no human reading it, or to a merged one with `FACTORY_MERGE` on.** Triage sets `ready-for-agent` only on issues opened by repository owners, members and collaborators, or by the [scout](#daily-todo-scan). Anyone else's issue gets `ready-for-human`, with a note asking a maintainer to add `ready-for-agent`, which starts implementation and stays through a repeat triage. Only people with triage access or above can add labels, so outside reporters cannot start triage themselves. The factory ships no issue template for this reason: a template that adds `needs-triage` would let anyone who opens an issue start a triage run.
 
-The triager also reads comments from the issue's author, so it sees their answers to its questions. Implementation, review and fix read only comments from repository owners, members and collaborators, plus triage's own comments. A repeat triage replaces the earlier category and state labels.
+The triager also reads comments from the issue's author, so it sees their answers to its questions. Implementation, review and fix read only comments from repository owners, members and collaborators, plus the factory's triage comments and implementation requests for information. A repeat triage replaces the earlier category and state labels.
 
 ## Configuration
 
@@ -147,6 +150,7 @@ Issue and PR comments link to the relevant workflow runs. Agent runs provide liv
 | Label | Meaning or next step |
 |---|---|
 | `needs-triage` | The agent is triaging the issue. Add it to request a triage. |
+| `needs-info` | Triage or implementation needs information from the reporter. Reply with the requested evidence to trigger triage again. |
 | `agent:working` | The agent is implementing the issue. |
 | `agent:review` | The PR is queued for review or being reviewed. Add it to request another review. |
 | `agent:changes-requested` | The PR needs fixes. You can add it with a comment explaining what to change. |
@@ -177,10 +181,10 @@ These are per-run budgets, not a total limit for an issue. pi is stopped after i
 The factory also applies these limits:
 
 - At most two automatic fix rounds, counting merge conflicts; a third rejected review hands the PR to you.
-- The triager and reviewer are configured with read and search tools only. An invalid triage or review response fails the stage.
+- The triager and reviewer are configured with read and search tools only. An invalid triage, implementation or review response fails the stage.
 - Implementation and fix stages reject edits under `.github/`.
 - Workflow steps handle commits and pushes. Checkouts for the agents do not retain GitHub credentials.
-- Issue comments and human feedback included in prompts are limited to repository owners, members, collaborators, and the factory's triage comments. Triage also reads the issue author's comments, and the titles of all open issues, whoever opened them, to spot duplicates.
+- Issue comments and human feedback included in prompts are limited to repository owners, members, collaborators, and the factory's triage comments and implementation requests for information. Triage also reads the issue author's comments, and the titles of all open issues, whoever opened them, to spot duplicates.
 - Runs are serialised per issue or PR.
 
 With `FACTORY_MERGE` on, the factory attempts to merge approved PRs with the built-in GitHub token. A merge conflict goes back to the fixer, which merges the base branch in and resolves it. Branch rules still apply: if required approvals or other checks block a merge, you must resolve them.

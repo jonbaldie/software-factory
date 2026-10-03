@@ -15,7 +15,7 @@ Then make it **tight**: seconds to run, the same verdict every run (pin the time
 
 Done when you have run the command and watched it go red on the reported symptom. The red has to match the ticket: the trigger it describes, and the symptom at the severity it reports. A loop built on a trigger you made up, or showing a milder symptom, such as a slowdown for a reported hang, has found a different bug. Theories wait until the loop matches.
 
-If you can't build a matching red loop, stop here. Undo your changes, then end with what you tried, any different bug you found, and what would let the factory reproduce this one, such as access to an environment, a captured log or a failing input. The factory posts that on the ticket. That report is the finished result of this run.
+If you can't build a matching red loop, stop here and return `needs-info` as described in the implementer instructions. Ask for what would let the factory reproduce this bug, such as access to an environment, a captured log or a failing input. That report is the finished result of this run.
 
 ### 2. Minimise
 

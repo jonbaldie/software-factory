@@ -11,7 +11,7 @@ args = sys.argv[1:]
 st["calls"].append(args)
 
 VALUE_FLAGS = {"--json", "-q", "--jq", "--body", "--body-file", "--add-label", "--remove-label", "-f", "-R", "--repo", "--reason",
-               "--state", "--limit", "--label", "--title", "--search"}
+               "--state", "--limit", "--label", "--title", "--search", "--head"}
 pos, flags = [], {}
 i = 0
 while i < len(args):
@@ -90,6 +90,10 @@ elif (kind, verb) == ("issue", "create"):
     print(f"https://github.com/o/sandbox/issues/{n}")
 elif (kind, verb) == ("pr", "list"):
     listed([pr])
+elif (kind, verb) == ("pr", "create"):
+    pr.update(state="OPEN", title=flags["--title"][0], headRefName=flags["--head"][0],
+              body=open(flags["--body-file"][0]).read(), labels=[{"name": x} for x in split(flags.get("--label", []))])
+    print(pr["url"])
 elif verb == "comment":
     body = flags["--body"][0] if "--body" in flags else open(flags["--body-file"][0]).read()
     target = pr if kind == "pr" else st["issues"][pos[2]]
