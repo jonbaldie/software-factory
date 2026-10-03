@@ -113,7 +113,7 @@ main() {
     gh label create "$name" --repo "$repo" --color "$color" --description "$description" --force </dev/null >/dev/null
     echo "  $name"
   done <<'EOF'
-needs-triage|c5def5|Maintainer needs to evaluate this issue
+needs-triage|c5def5|Adding this starts the triage agent
 needs-info|d876e3|Waiting on reporter for more information
 ready-for-agent|0e8a16|Fully specified. Adding this starts the factory
 ready-for-human|b60205|Requires human implementation
@@ -204,7 +204,7 @@ EOF
   echo "  $step. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request"
   echo "     if the branch is protected. The workflows only run from the default branch."
   step=$((step + 1))
-  echo "  $step. Add the ready-for-agent label to a fully specified issue."
+  echo "  $step. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one."
 }
 
 main "$@"

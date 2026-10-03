@@ -1,8 +1,8 @@
 # From https://github.com/jonbaldie/software-factory. Rerun its installer to upgrade.
 name: "Factory 4 · Scout"
 
-# Daily: turn `TODO(factory):` comments into proposed tickets, and post a factory report.
-# No LLM involved, so this one is free to run.
+# Daily: turn `TODO(factory):` comments into tickets for triage, and post a factory report.
+# The scout uses no model itself. Each ticket it files starts a triage run.
 
 on:
   schedule:
@@ -13,6 +13,7 @@ permissions:
   contents: read
   issues: write
   pull-requests: read
+  actions: write
 
 jobs:
   scout:
@@ -36,10 +37,15 @@ jobs:
               echo "- Already filed: $title" >> "$GITHUB_STEP_SUMMARY"
               continue
             fi
-            printf 'Found by the scout at %s/%s/blob/%s/%s#L%s. Delete that `TODO(factory):` comment as part of the change.\n\nA human should check this ticket, then add `ready-for-agent` to have the factory build it.\n' \
+            printf 'Found by the scout at %s/%s/blob/%s/%s#L%s. Delete that `TODO(factory):` comment as part of the change.\n' \
               "$GITHUB_SERVER_URL" "$GH_REPO" "$GITHUB_SHA" "$file" "$line" > "$RUNNER_TEMP/body.md"
             url=$(gh issue create --title "$title" --body-file "$RUNNER_TEMP/body.md" --label needs-triage)
             echo "- Filed $url: $title" >> "$GITHUB_STEP_SUMMARY"
+            # Labels added with GITHUB_TOKEN don't trigger workflows, so start triage explicitly.
+            if ! gh workflow run factory-triage.yml -f issue="${url##*/}"; then
+              echo "- Couldn't start triage for $url. Remove and re-add \`needs-triage\` there to start it." >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
           done
 
       - name: Factory report

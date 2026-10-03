@@ -18,14 +18,14 @@ permissions:
   pull-requests: write
   actions: write
 
-concurrency:
-  group: factory-issue-${{ github.event.issue.number || inputs.issue }}
-
 jobs:
   implement:
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'ready-for-agent'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # On the job, not the workflow: every label added to an issue starts both issue workflows, and a skipped run would cancel a queued one.
+    concurrency:
+      group: factory-issue-${{ github.event.issue.number || inputs.issue }}
     env:
       ISSUE: ${{ github.event.issue.number || inputs.issue }}
       GH_REPO: ${{ github.repository }}

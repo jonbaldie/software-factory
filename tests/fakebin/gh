@@ -9,7 +9,8 @@ with open(state_path) as f:
 args = sys.argv[1:]
 st["calls"].append(args)
 
-VALUE_FLAGS = {"--json", "-q", "--jq", "--body", "--body-file", "--add-label", "--remove-label", "-f", "-R", "--repo"}
+VALUE_FLAGS = {"--json", "-q", "--jq", "--body", "--body-file", "--add-label", "--remove-label", "-f", "-R", "--repo", "--reason",
+               "--state", "--limit", "--label", "--title", "--search"}
 pos, flags = [], {}
 i = 0
 while i < len(args):
@@ -33,7 +34,8 @@ def save():
 def emit(obj):
     fields = flags.get("--json", [None])[0]
     if fields:
-        obj = {k: obj[k] for k in fields.split(",")}
+        pick = lambda o: {k: o[k] for k in fields.split(",")}
+        obj = [pick(o) for o in obj] if isinstance(obj, list) else pick(obj)
     q = (flags.get("-q") or flags.get("--jq") or [None])[0]
     if q:
         out = subprocess.run(["jq", "-r", q], input=json.dumps(obj), capture_output=True, text=True)
@@ -51,6 +53,13 @@ def split(values):
     return [x for v in values for x in v.split(",") if x]
 
 
+def listed(items):
+    """The items `gh issue list` or `gh pr list` would show for --state and --label."""
+    state = flags.get("--state", ["open"])[0]
+    emit([i for i in items if state in ("all", i["state"].lower())
+          and all(name in [l["name"] for l in i["labels"]] for name in flags.get("--label", []))])
+
+
 def fail(msg):
     sys.stderr.write(msg + "\n")
     save()
@@ -64,6 +73,16 @@ if (kind, verb) == ("pr", "view"):
     emit(pr)
 elif (kind, verb) == ("issue", "view"):
     emit(st["issues"][pos[2]])
+elif (kind, verb) == ("issue", "list"):
+    listed(st["issues"].values())
+elif (kind, verb) == ("issue", "create"):
+    n = max([pr["number"], *map(int, st["issues"])]) + 1
+    st["issues"][str(n)] = {"number": n, "title": flags["--title"][0], "body": open(flags["--body-file"][0]).read(),
+                            "author": {"login": "github-actions"}, "state": "OPEN", "comments": [],
+                            "labels": [{"name": x} for x in split(flags.get("--label", []))]}
+    print(f"https://github.com/o/sandbox/issues/{n}")
+elif (kind, verb) == ("pr", "list"):
+    listed([pr])
 elif verb == "comment":
     body = flags["--body"][0] if "--body" in flags else open(flags["--body-file"][0]).read()
     target = pr if kind == "pr" else st["issues"][pos[2]]
@@ -84,6 +103,10 @@ elif verb == "edit":
     if "--body-file" in flags:
         pr["body"] = open(flags["--body-file"][0]).read()
     st["label_history"].append(sorted(names))
+elif (kind, verb) == ("issue", "close"):
+    if flags["--reason"][0] not in ("completed", "not planned"):
+        fail(f"invalid reason {flags['--reason'][0]!r}")
+    st["issues"][pos[2]]["state"] = "CLOSED"
 elif (kind, verb) == ("pr", "merge"):
     if not st["merge_ok"]:
         fail("Pull request is not mergeable")
