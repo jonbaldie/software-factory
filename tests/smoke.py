@@ -387,8 +387,8 @@ class Smoke:
 
     def check_reviewed(self, since, sha):
         named = [v for v in self.verdicts(since) if v["sha"] == sha and v["kind"] != "discarded"]
-        self.report.check(len(named) == 1, f"One review verdict names {sha[:7]}"
-                          + "".join(f": [{v['kind']}]({v['url']})" for v in named))
+        self.report.check(len(named) == 1, f"One review verdict names {sha[:7]}: "
+                          + ", ".join(f"[{v['kind']}]({v['url']})" for v in named))
 
     def check_discarded(self, since, review, sha):
         found = [v for v in self.verdicts(since) if v["run"] == review["id"]]
@@ -437,11 +437,13 @@ class Smoke:
         self.report.stage("s1", "A factory PR is approved with FACTORY_MERGE off")
         since = now() - MARGIN
         # Labels given at creation are announced late, along with any added since, so a second
-        # ready-for-agent event would queue a second implement run. Add them all in one later call.
+        # ready-for-agent event would queue a second implement run. Add the label in a later call.
+        # No category label: the enhancement method's review wants every test in the description's
+        # Slices list, which the person's pushed tests aren't, and a fix round can't add them there.
         issue = self.gh.post("issues", title=ISSUE_TITLE, body=ISSUE_BODY)
         self.issue = issue["number"]
-        self.gh.post(f"issues/{self.issue}/labels", labels=["enhancement", "ready-for-agent"])
-        self.report.note(f"Opened [#{self.issue}]({issue['html_url']}) with `enhancement` and `ready-for-agent`")
+        self.gh.post(f"issues/{self.issue}/labels", labels=["ready-for-agent"])
+        self.report.note(f"Opened [#{self.issue}]({issue['html_url']}) with `ready-for-agent`")
 
         def opened():
             if self.gh.labels(self.issue) & {"agent:failed", "needs-info", "ready-for-human"}:
