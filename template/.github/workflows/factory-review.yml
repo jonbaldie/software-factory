@@ -35,27 +35,45 @@ jobs:
       SETUP_COMMAND: ${{ vars.FACTORY_SETUP_COMMAND }}
       TEST_COMMAND: ${{ vars.FACTORY_TEST_COMMAND }}
     steps:
+      - name: Leave assigned work to its assignee
+        id: assigned
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # An assignee on the PR or its issue owns the work, so every later step is skipped and the labels stay as they are.
+          issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
+          owners=$( { gh pr view "$PR" --json assignees -q '.assignees[].login'
+            for n in $issues; do gh issue view "$n" --json assignees -q '.assignees[].login'; done; } | sort -u | sed 's/^/@/' | paste -sd' ' -)
+          if [ -n "$owners" ]; then
+            echo "owners=$owners" >> "$GITHUB_OUTPUT"
+            gh pr comment "$PR" --body "⏸️ This pull request or its issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`agent:review\`."
+          fi
+
       - name: Clear an earlier failure
+        if: steps.assigned.outputs.owners == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh pr edit "$PR" --remove-label agent:failed # Report failure adds it back if this run fails too
 
       - uses: actions/checkout@v7
+        if: steps.assigned.outputs.owners == ''
         with:
           ref: refs/pull/${{ github.event.pull_request.number || inputs.pr }}/head
           fetch-depth: 0
           persist-credentials: false
 
       - uses: actions/setup-node@v7 # the agent runs on Node
+        if: steps.assigned.outputs.owners == ''
         with:
           node-version: 22
 
       - name: Set up the project
-        if: env.SETUP_COMMAND != ''
+        if: steps.assigned.outputs.owners == '' && env.SETUP_COMMAND != ''
         run: eval "$SETUP_COMMAND"
 
       - name: Run the tests
         id: tests
+        if: steps.assigned.outputs.owners == ''
         run: |
           if [ -z "$TEST_COMMAND" ]; then
             echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
@@ -66,6 +84,7 @@ jobs:
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
 
       - name: Build the review prompt
+        if: steps.assigned.outputs.owners == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -101,6 +120,7 @@ jobs:
 
       - name: Agent reviews the change
         id: agent
+        if: steps.assigned.outputs.owners == ''
         uses: jonbaldie/software-factory/run-agent@v1
         with:
           name: review-pr-${{ env.PR }}
@@ -120,6 +140,7 @@ jobs:
           claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
       - name: Act on the verdict
+        if: steps.assigned.outputs.owners == ''
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEW: ${{ steps.agent.outputs.structured-output }}
@@ -154,8 +175,14 @@ jobs:
 
           if [ "$verdict" = approve ]; then
             gh pr edit "$PR" --add-label agent:approved
+            # Someone may have taken the work over while the reviewer ran, and a merge can't be taken back.
+            issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
+            owners=$( { gh pr view "$PR" --json assignees -q '.assignees[].login'
+              for n in $issues; do gh issue view "$n" --json assignees -q '.assignees[].login'; done; } | sort -u | sed 's/^/@/' | paste -sd' ' -)
+            if [ -n "$owners" ]; then
+              gh pr comment "$PR" --body "⏸️ This pull request or its issue is now assigned to $owners, so the factory left it open for them to merge."
             # Run outside the checkout so gh doesn't try to switch local branches.
-            if ! (cd "$RUNNER_TEMP" && gh pr merge "$PR" --squash --delete-branch); then
+            elif ! (cd "$RUNNER_TEMP" && gh pr merge "$PR" --squash --delete-branch); then
               # GitHub works out mergeability in the background, so give it a moment.
               for _ in 1 2 3 4 5 6; do
                 mergeable=$(gh pr view "$PR" --json mergeable -q .mergeable)
