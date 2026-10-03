@@ -94,10 +94,10 @@ Add `needs-triage` to an issue to have an agent triage it. The triager reads the
 |---|---|---|
 | `ready-for-agent` | A brief for the implementer: summary, current and desired behaviour, interfaces to change, acceptance criteria, and what is out of scope. | Implementation starts. |
 | `ready-for-human` | The same brief, plus the decision you need to make. | You decide, then add `ready-for-agent` or build it yourself. |
-| `needs-info` | What is settled, and questions for the reporter. | Re-add `needs-triage` once they answer. |
+| `needs-info` | What is settled, and questions for the reporter. | A reply from the reporter or a maintainer triages it again. |
 | `wontfix` | Where it is already built, or the open issue that covers it. | The issue is closed. |
 
-**A `ready-for-agent` triage starts implementation straight away, so an issue can go from triage to a merged PR with no human reading it.** Only people with triage access or above can add labels, so outside reporters cannot start triage themselves. The factory ships no issue template for this reason: a template that adds `needs-triage` would let anyone who opens an issue start the chain.
+**A `ready-for-agent` triage starts implementation straight away, so an issue can go from triage to a merged PR with no human reading it.** Triage sets `ready-for-agent` only on issues opened by repository owners, members and collaborators, or by the [scout](#daily-todo-scan). Anyone else's issue gets `ready-for-human`, with a note asking a maintainer to add `ready-for-agent`, which starts implementation and stays through a repeat triage. Only people with triage access or above can add labels, so outside reporters cannot start triage themselves. The factory ships no issue template for this reason: a template that adds `needs-triage` would let anyone who opens an issue start a triage run.
 
 The triager also reads comments from the issue's author, so it sees their answers to its questions. Implementation, review and fix read only comments from repository owners, members and collaborators, plus triage's own comments. A repeat triage replaces the earlier category and state labels.
 
@@ -151,9 +151,13 @@ Issue and PR comments link to the relevant workflow runs. Agent runs provide liv
 | `agent:approved` | The agent approved the PR. Check whether it merged; GitHub may still block it. |
 | `agent:failed` | A stage failed, timed out, or was cancelled. Read the linked run, fix the cause, then retry as described below. |
 | `agent:wip` | Implementation failed after the agent changed files. The unfinished work and the reason it stopped are saved on the `agent/issue-N` branch. |
-| `ready-for-human` | You need to take over. On an issue, triage's comment names the decision. On a PR, three reviews were rejected or GitHub blocked the merge; check the review comments and GitHub's merge status. |
+| `ready-for-human` | You need to take over. On an issue, triage's comment names the decision, or asks a maintainer to approve an outsider's issue. On a PR, three reviews were rejected or GitHub blocked the merge; check the review comments and GitHub's merge status. |
 
 To retry a failed triage, re-add `needs-triage`. To retry implementation, remove and re-add `ready-for-agent` on the issue. If the issue has `agent:wip`, the retry continues from the saved work; remove `agent:wip` first to start over. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.
+
+## Take over from the factory
+
+Assign an issue or PR to someone to take it over. Each stage checks first: if the issue, the PR or the PR's issue has an assignee, the stage posts a ⏸️ comment and leaves the labels as they are. The reviewer checks again just before merging and leaves an approved PR open for the assignee. To hand the work back, unassign everyone, then remove and re-add the stage's label.
 
 ## Costs and limits
 

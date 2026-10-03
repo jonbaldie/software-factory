@@ -33,16 +33,31 @@ jobs:
       SETUP_COMMAND: ${{ vars.FACTORY_SETUP_COMMAND }}
       TEST_COMMAND: ${{ vars.FACTORY_TEST_COMMAND }}
     steps:
+      - name: Leave assigned work to its assignee
+        id: assigned
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # An assignee owns the issue, so every later step is skipped and the labels stay as they are.
+          owners=$(gh issue view "$ISSUE" --json assignees -q '.assignees[] | "@" + .login' | paste -sd' ' -)
+          if [ -n "$owners" ]; then
+            echo "owners=$owners" >> "$GITHUB_OUTPUT"
+            gh issue comment "$ISSUE" --body "⏸️ This issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`ready-for-agent\`."
+          fi
+
       - uses: actions/checkout@v7
+        if: steps.assigned.outputs.owners == ''
         with:
           fetch-depth: 0 # a retry can continue from work saved on agent/issue-N
           persist-credentials: false # keep the GitHub token out of the agent's sandbox
 
       - uses: actions/setup-node@v7 # the agent runs on Node
+        if: steps.assigned.outputs.owners == ''
         with:
           node-version: 22
 
       - name: Claim the ticket
+        if: steps.assigned.outputs.owners == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -77,11 +92,12 @@ jobs:
           if [ -n "$wip_base" ]; then git switch -q -c "$branch" "origin/$branch"; fi
 
       - name: Set up the project
-        if: env.SETUP_COMMAND != ''
+        if: steps.assigned.outputs.owners == '' && env.SETUP_COMMAND != ''
         run: eval "$SETUP_COMMAND"
 
       - name: Agent writes the code
         id: agent
+        if: steps.assigned.outputs.owners == ''
         uses: jonbaldie/software-factory/run-agent@v1
         with:
           name: implement-issue-${{ env.ISSUE }}
@@ -95,11 +111,13 @@ jobs:
 
       - name: Tests must pass before a PR is opened
         id: tests
+        if: steps.assigned.outputs.owners == ''
         run: |
           set -o pipefail
           eval "$TEST_COMMAND" 2>&1 | tee "$RUNNER_TEMP/tests.txt" # a failure is saved with the agent's work
 
       - name: Open the pull request
+        if: steps.assigned.outputs.owners == ''
         env:
           GH_TOKEN: ${{ github.token }}
           AGENT_SUMMARY: ${{ steps.agent.outputs.result }}

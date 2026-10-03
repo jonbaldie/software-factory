@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Fake gh for tests/labels.py. Keeps one PR, its issues and their labels in $FAKE_GH_STATE.
+# `gh api` serves only the REST issue, which has the author's association that `gh issue view` lacks.
 import json, os, subprocess, sys
 
 state_path = os.environ["FAKE_GH_STATE"]
@@ -69,7 +70,13 @@ def fail(msg):
 kind, verb = pos[0], pos[1]
 pr = st["pr"]
 
-if (kind, verb) == ("pr", "view"):
+if kind == "api":
+    issue = st["issues"][pos[1].rsplit("/", 1)[1]]
+    author = issue["author"]
+    emit({"number": issue["number"], "labels": issue["labels"], "assignees": issue["assignees"],
+          "author_association": issue.get("author_association", "NONE"),
+          "user": {"login": author["login"].removeprefix("app/") + ("[bot]" if author.get("is_bot") else "")}})
+elif (kind, verb) == ("pr", "view"):
     emit(pr)
 elif (kind, verb) == ("issue", "view"):
     emit(st["issues"][pos[2]])
@@ -78,7 +85,7 @@ elif (kind, verb) == ("issue", "list"):
 elif (kind, verb) == ("issue", "create"):
     n = max([pr["number"], *map(int, st["issues"])]) + 1
     st["issues"][str(n)] = {"number": n, "title": flags["--title"][0], "body": open(flags["--body-file"][0]).read(),
-                            "author": {"login": "github-actions"}, "state": "OPEN", "comments": [],
+                            "author": {"login": "app/github-actions", "is_bot": True}, "state": "OPEN", "comments": [], "assignees": [],
                             "labels": [{"name": x} for x in split(flags.get("--label", []))]}
     print(f"https://github.com/o/sandbox/issues/{n}")
 elif (kind, verb) == ("pr", "list"):
