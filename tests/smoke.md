@@ -1,13 +1,15 @@
-# Push smoke test
+# Live smoke tests
 
 `tests/labels.py` checks each job's label changes against a fake `gh`. It can't check what GitHub does around those jobs: which events start a workflow, how the per-PR queue orders the review, fix and push-handler jobs, and whether `pull_request_target` still fires when a push makes the PR conflict with its base. `tests/smoke.py` checks those on the [sandbox](https://github.com/jonbaldie/software-factory-sandbox) with real GitHub Actions runs.
 
 Run it after changing how review, fix or the push handler are triggered, queued or invalidated. It spends model credit on one implement run and about seven reviews, so CI doesn't run it.
 
+The separate merge suite checks automatic merging, a passing push during review, and conflict recovery through the fixer. It uses three small fixture PRs and spends about five reviews and one fix, with no implementation run.
+
 ## Run it
 
 1. Install the version under test in the sandbox and merge it to the sandbox's default branch. The workflows only run from there.
-2. Leave `FACTORY_MERGE` unset in the sandbox. The script stops if it can read the variable and it is `true`.
+2. For the default push suite, leave `FACTORY_MERGE` unset in the sandbox. The script stops if it is `true`. Both suites require permission to read Actions variables; the merge suite also requires permission to change them.
 3. Sign in with `gh` as someone with write access to the sandbox, and let git push to it over HTTPS (`gh auth setup-git`).
 4. Reserve the sandbox for this run: close other factory PRs and wait for active factory jobs to finish. Don't start other factory work until it ends. GitHub's API doesn't associate dispatched review/fix runs with their PR, so those observations require exclusive use of the sandbox. The script rejects existing competing work at startup.
 5. From this repository:
@@ -21,6 +23,28 @@ It takes about 15 minutes, longer if the reviewer requests changes. Each check p
 To continue after a stop, pass the approved PR and the remaining stages, for example `--pr N --stages s3,s4a,s4b`. s4b continues from s4a's conflict. The PR and its issue stay open for inspection; close them afterwards, or pass `--close`.
 
 By default the script uses a temporary clone. `--clone` must point to a clean, disposable sandbox clone: the script resets its local test branches to the remote before each push.
+
+### Automatic merging
+
+With the same exclusive use of the sandbox, run:
+
+```sh
+uv run tests/smoke.py --suite merge --close --report merge-smoke-report.md
+```
+
+The driver saves the original value of `FACTORY_MERGE`, enables it for this suite, and restores the original value (including an absent variable) in `finally`, on success, failure or Ctrl-C. It records restoration in the report. A killed process or loss of GitHub access can prevent restoration; the setup output records the original value for recovery.
+
+Each stage creates its own issue and PR on `agent/issue-N`, then dispatches the installed reviewer. These deterministic fixture commits isolate review, fix and merge behaviour from implementation. `--stages m2` or `--stages m3` reruns only that stage with a fresh PR; `--pr` is not supported for this suite. Node must be installed locally so the driver can check the fixtures before pushing and run the tests on `main` after merging.
+
+| Stage | Action | Required outcome |
+|---|---|---|
+| m1 | Open a passing fixture PR and dispatch review with merging enabled. | The factory squash-merges the exact reviewed head. |
+| m2 | Wait until the agent reviews a passing commit, then push another passing commit. | The stale review discards its verdict without a fix round. The push handler waits in the PR queue; a fresh review approves the replacement and the factory merges it. The duplicate review request skips its agent. |
+| m3 | Open a passing fixture PR, then merge a base change that conflicts with it. Dispatch review explicitly, since GitHub skips `pull_request` workflows for conflicting PRs. | The reviewer approves the conflicting head, hands the merge conflict to one fix run, then reviews a different, fixed commit before merging it. Both branches' intended changes survive. |
+
+Every stage checks the bot merge actor, the approval's commit and timing, successful test and agent steps, and that the squash commit is on the base branch with exactly the reviewed tree. It runs all sandbox tests locally on the merged base and checks that no factory job failed or was cancelled. m3 changes separate fields on the same JSON line, with separate tests for each side; choosing either whole file cannot satisfy both tests.
+
+`--close` closes any unfinished test PRs and issues, waits for factory jobs to finish, and deletes all branches created by the suite. The merged `smoke-merge.json` and `test/factory-merge-{base,branch}.test.js` fixtures remain for future runs; each run updates their markers. Without `--close`, unfinished work remains for inspection and the merge setting is still restored.
 
 ## Expected outcomes
 
@@ -38,7 +62,7 @@ The issue has no `bug` or `enhancement` label, keeping the test focused on event
 
 Every stage also checks that no review, fix or push-handler run failed or was cancelled. A cancelled run would mean the PR's queue dropped a pending job.
 
-Not covered: pushes with `FACTORY_MERGE` on, where `--match-head-commit` must stop a merge of an unreviewed head; pushes during a fix run; and pushes to an assigned PR.
+Still not covered live: a push in the narrow interval between the final head check and GitHub's merge request (the `--match-head-commit` guard), pushes during a fix run, and pushes to an assigned PR. m2 covers a push during the agent review, not that later merge-request race.
 
 ## Runs
 
