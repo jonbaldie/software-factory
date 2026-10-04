@@ -72,6 +72,42 @@ Still not covered live: a push in the narrow interval between the final head che
 
 App publishing passed both implementation and conflict recovery without any CI approval. [#99](https://github.com/jonbaldie/software-factory-sandbox/pull/99) was opened by the dedicated sandbox App; [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101) received an App-authenticated fix push. Both passed required CI before the factory merged the reviewed heads. The duplicate review after the fix skipped its agent.
 
+The final sandbox workflow update also passed stale-review replacement in [#105](https://github.com/jonbaldie/software-factory-sandbox/pull/105): the old verdict was discarded, the duplicate skipped its agent, and the freshly reviewed replacement merged. All temporary branches were removed and `FACTORY_MERGE` was restored.
+
+### 2026-10-04 06:52 UTC, run 20261004-064910
+
+jonbaldie/software-factory-sandbox at [`bbcce73`](https://github.com/jonbaldie/software-factory-sandbox/commit/bbcce73406e10ac304d91fd1e1dfa0c2613f7d9d), `run-agent@v1` at [`c5f7296`](https://github.com/jonbaldie/software-factory/commit/c5f7296c3f4298d19c09d69b1d8355303e092b66). PR [#105](https://github.com/jonbaldie/software-factory-sandbox/pull/105). All checks passed.
+
+#### setup · Enable automatic merging for the reserved sandbox
+
+- Original FACTORY_MERGE: None (None means unset)
+- ✅ FACTORY_MERGE is true
+
+#### m2 · A passing push during review requires a fresh approval before merging
+
+- Opened [#105](https://github.com/jonbaldie/software-factory-sandbox/pull/105) at [`a9dba49`](https://github.com/jonbaldie/software-factory-sandbox/commit/a9dba49fc321e3e2254f6d3c83000e94be7d5bb0), for [issue #104](https://github.com/jonbaldie/software-factory-sandbox/issues/104); local tests pass
+- [Factory 2 · Review #80](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183926674) (in_progress) is reviewing passing commit [`a9dba49`](https://github.com/jonbaldie/software-factory-sandbox/commit/a9dba49fc321e3e2254f6d3c83000e94be7d5bb0)
+- Pushed [`447ff8b`](https://github.com/jonbaldie/software-factory-sandbox/commit/447ff8bb5ab1000620d40dbecad24df6a9e8da20): Merge smoke: replace the passing commit during review (tests pass locally)
+- Factory runs: [Factory · Review new commits #12](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183941734) (success), [Factory 2 · Review #80](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183926674) (success), [Factory 2 · Review #81](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183950526) (success), [Factory 2 · Review #82](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183957040) (success)
+- ✅ The stale and replacement reviews ran their agents; the duplicate request skipped its agent
+- ✅ Review [Factory 2 · Review #80](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183926674) (success) checked a9dba49, then discarded its result ([comment](https://github.com/jonbaldie/software-factory-sandbox/pull/105#issuecomment-5977452566))
+- ✅ The push handler ran for 447ff8b: [Factory · Review new commits #12](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183941734) (success)
+- ✅ The second push's handler waited in the PR queue until [Factory 2 · Review #80](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183926674) (success) finished (16s)
+- ✅ No fix round for a9dba49: no request-changes verdict, no `agent:changes-requested`, no fix run
+- ✅ Merged head [`447ff8b`](https://github.com/jonbaldie/software-factory-sandbox/commit/447ff8bb5ab1000620d40dbecad24df6a9e8da20) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/105#issuecomment-5977460178)
+- ✅ The factory merged the expected PR head: [`447ff8b`](https://github.com/jonbaldie/software-factory-sandbox/commit/447ff8bb5ab1000620d40dbecad24df6a9e8da20)
+- ✅ Squash commit [`2dc2d1c`](https://github.com/jonbaldie/software-factory-sandbox/commit/2dc2d1c41a4e339d79e8c281c3705b4cdb4f1ca3) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ No factory run failed or was cancelled (2 reviews ran the agent, 1 review requests stood down)
+
+#### restore · Restore the sandbox's original merge setting
+
+- ✅ Restored FACTORY_MERGE to None
+
+#### cleanup · Close temporary work and remove its branches
+
+- ✅ Deleted `agent/issue-104`
+
 ### 2026-10-04 06:47 UTC, run 20261004-064130
 
 jonbaldie/software-factory-sandbox at [`c52555c`](https://github.com/jonbaldie/software-factory-sandbox/commit/c52555cb49c1fe8dc56defda5f9bf90c89ec7a64), `run-agent@v1` at [`c5f7296`](https://github.com/jonbaldie/software-factory/commit/c5f7296c3f4298d19c09d69b1d8355303e092b66). PR [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101). All checks passed.
@@ -122,7 +158,7 @@ jonbaldie/software-factory-sandbox at [`c52555c`](https://github.com/jonbaldie/s
 - ✅ Deleted `agent/issue-100`
 - ✅ Deleted `smoke/merge-base-20261004-064130`
 
-All three merge scenarios passed across the runs below: clean merge ([#85](https://github.com/jonbaldie/software-factory-sandbox/pull/85)), stale-review replacement ([#87](https://github.com/jonbaldie/software-factory-sandbox/pull/87)), and conflict recovery ([#95](https://github.com/jonbaldie/software-factory-sandbox/pull/95)). The last run supplied the documented CI approval; that [CI run passed](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37182007647) on the fixed head before the factory merged it. Failed setup attempts and their cleanup are retained below.
+The earlier baseline runs below covered three merge scenarios: clean merge ([#85](https://github.com/jonbaldie/software-factory-sandbox/pull/85)), stale-review replacement ([#87](https://github.com/jonbaldie/software-factory-sandbox/pull/87)), and conflict recovery ([#95](https://github.com/jonbaldie/software-factory-sandbox/pull/95)). The earlier #95 run supplied the documented CI approval; that [CI run passed](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37182007647) on the fixed head before the factory merged it. Failed setup attempts and their cleanup are retained below.
 
 ### 2026-10-04 06:11 UTC, run 20261004-060726
 
