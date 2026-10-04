@@ -66,6 +66,12 @@ Still not covered live: a push in the narrow interval between the final head che
 
 ## Runs
 
+### 2026-10-04, merge-suite setup correction and interrupt recovery
+
+The first attempt on [sandbox #83](https://github.com/jonbaldie/software-factory-sandbox/pull/83) put the conflict scenario's instructions in the clean-merge ticket too. The [reviewer](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37180899187) consequently requested a base-side update that m1 was not meant to make. The fixture tickets now describe only their own scenario, and the driver runs and reports `npm test` for fixture preparation and the merged base.
+
+Stopped that attempt with SIGINT while the factory was running. The driver's `finally` restored the originally absent `FACTORY_MERGE`, closed [issue #82](https://github.com/jonbaldie/software-factory-sandbox/issues/82) and PR #83, waited for factory jobs, and deleted `agent/issue-82`. Nothing from that attempt merged into the sandbox base.
+
 ### 2026-10-03, factory follow-ups: both regressions verified live
 
 [Sandbox #81](https://github.com/jonbaldie/software-factory-sandbox/pull/81) installed the templates from [software-factory #20](https://github.com/jonbaldie/software-factory/pull/20), with merging still off. Reopened the original enhancement PR [#76](https://github.com/jonbaldie/software-factory-sandbox/pull/76) to replay the failures:
