@@ -66,6 +66,63 @@ Still not covered live: a push in the narrow interval between the final head che
 
 ## Runs
 
+The first complete-suite attempt passed m1 and m2. It stopped before m3 review because GitHub still reported the earlier clean mergeability immediately after the base fixture merged. The driver now confirms the conflict with local Git and waits for GitHub to report it, then dispatches review. Restoration and cleanup passed; m3 is rerun separately below.
+
+### 2026-10-04 05:56 UTC, run 20261004-055123
+
+jonbaldie/software-factory-sandbox at [`4e5ce3a`](https://github.com/jonbaldie/software-factory-sandbox/commit/4e5ce3a47943293c75a99603277a537e9eab264d), `run-agent@v1` at [`9f9db37`](https://github.com/jonbaldie/software-factory/commit/9f9db379e60b394eb62e55398ed5d1c67c231da0). PR [#89](https://github.com/jonbaldie/software-factory-sandbox/pull/89). 2 check(s) failed.
+
+#### setup · Enable automatic merging for the reserved sandbox
+
+- Original FACTORY_MERGE: None (None means unset)
+- ✅ FACTORY_MERGE is true
+
+#### m1 · A passing PR automatically merges at its reviewed head
+
+- Opened [#85](https://github.com/jonbaldie/software-factory-sandbox/pull/85) at [`8fff99a`](https://github.com/jonbaldie/software-factory-sandbox/commit/8fff99a1a25b2eade8dfbb51552b3f6fb7a0643e), for [issue #84](https://github.com/jonbaldie/software-factory-sandbox/issues/84); local tests pass
+- Factory runs: [Factory 2 · Review #68](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181085848) (success)
+- ✅ Merged head [`8fff99a`](https://github.com/jonbaldie/software-factory-sandbox/commit/8fff99a1a25b2eade8dfbb51552b3f6fb7a0643e) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/85#issuecomment-5977084117)
+- ✅ The factory merged the expected PR head: [`8fff99a`](https://github.com/jonbaldie/software-factory-sandbox/commit/8fff99a1a25b2eade8dfbb51552b3f6fb7a0643e)
+- ✅ Squash commit [`5bbb924`](https://github.com/jonbaldie/software-factory-sandbox/commit/5bbb92436523c9b118bb53277b778a48e22c25a5) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ No fix round for 8fff99a: no request-changes verdict, no `agent:changes-requested`, no fix run
+- ✅ No factory run failed or was cancelled (1 reviews ran the agent, 0 review requests stood down)
+
+#### m2 · A passing push during review requires a fresh approval before merging
+
+- Opened [#87](https://github.com/jonbaldie/software-factory-sandbox/pull/87) at [`7332440`](https://github.com/jonbaldie/software-factory-sandbox/commit/73324405c446963767f6b4762c42af96086f5a55), for [issue #86](https://github.com/jonbaldie/software-factory-sandbox/issues/86); local tests pass
+- [Factory 2 · Review #69](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181165460) (in_progress) is reviewing passing commit [`7332440`](https://github.com/jonbaldie/software-factory-sandbox/commit/73324405c446963767f6b4762c42af96086f5a55)
+- Pushed [`ff03eef`](https://github.com/jonbaldie/software-factory-sandbox/commit/ff03eef8f2e6aec7c4965ed5d17fe34db52b6969): Merge smoke: replace the passing commit during review (tests pass locally)
+- Factory runs: [Factory · Review new commits #10](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181182717) (success), [Factory 2 · Review #69](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181165460) (success), [Factory 2 · Review #70](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181197486) (success), [Factory 2 · Review #71](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181206344) (success)
+- ✅ The stale and replacement reviews ran their agents; the duplicate request skipped its agent
+- ✅ Review [Factory 2 · Review #69](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181165460) (success) checked 7332440, then discarded its result ([comment](https://github.com/jonbaldie/software-factory-sandbox/pull/87#issuecomment-5977092072))
+- ✅ The push handler ran for ff03eef: [Factory · Review new commits #10](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181182717) (success)
+- ✅ The second push's handler waited in the PR queue until [Factory 2 · Review #69](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181165460) (in_progress) finished (25s)
+- ✅ No fix round for 7332440: no request-changes verdict, no `agent:changes-requested`, no fix run
+- ✅ Merged head [`ff03eef`](https://github.com/jonbaldie/software-factory-sandbox/commit/ff03eef8f2e6aec7c4965ed5d17fe34db52b6969) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/87#issuecomment-5977098848)
+- ✅ The factory merged the expected PR head: [`ff03eef`](https://github.com/jonbaldie/software-factory-sandbox/commit/ff03eef8f2e6aec7c4965ed5d17fe34db52b6969)
+- ✅ Squash commit [`993403b`](https://github.com/jonbaldie/software-factory-sandbox/commit/993403b716ab4ecfee5ee05eff636e38f1b91f69) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ No factory run failed or was cancelled (2 reviews ran the agent, 1 review requests stood down)
+
+#### m3 · A merge conflict is fixed, reviewed again and automatically merged
+
+- Opened [#89](https://github.com/jonbaldie/software-factory-sandbox/pull/89) at [`67c1692`](https://github.com/jonbaldie/software-factory-sandbox/commit/67c16925d84480d46eaddf7d51ef9dfd78fbdf1e), for [issue #88](https://github.com/jonbaldie/software-factory-sandbox/issues/88); local tests pass
+- Merged base fixture [#90](https://github.com/jonbaldie/software-factory-sandbox/pull/90) after [CI](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37181290393/job/111374236428)
+- ❌ #89 conflicts before review (`clean`)
+- ❌ Stopped: StageFailed: the conflict scenario did not create a conflict
+
+#### restore · Restore the sandbox's original merge setting
+
+- ✅ Restored FACTORY_MERGE to None
+
+#### cleanup · Close temporary work and remove its branches
+
+- ✅ Deleted `agent/issue-84`
+- ✅ Deleted `agent/issue-86`
+- ✅ Deleted `agent/issue-88`
+- ✅ Deleted `smoke/merge-base-20261004-055123`
+
 ### 2026-10-04, merge-suite setup correction and interrupt recovery
 
 The first attempt on [sandbox #83](https://github.com/jonbaldie/software-factory-sandbox/pull/83) put the conflict scenario's instructions in the clean-merge ticket too. The [reviewer](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37180899187) consequently requested a base-side update that m1 was not meant to make. The fixture tickets now describe only their own scenario, and the driver runs and reports `npm test` for fixture preparation and the merged base.

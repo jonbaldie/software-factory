@@ -627,8 +627,10 @@ test('factory merge smoke preserves the {side} update', () => {{
                 "The maintainer may replace the marker during review. Review the current commit. "
                 "Run `npm test`; all tests must pass.")
         if stage == "m3":
-            body += ("\n\nMain changes the `base` field while this PR changes `branch`. "
-                     "Resolve the JSON conflict by retaining BOTH new values, and retain both sides' tests.")
+            body += ("\n\nThis PR changes only `branch` and its test. The maintainer deliberately changes `base` "
+                     "on main after this PR opens. The resulting merge conflict is intentional, not a code-review "
+                     "defect: review the branch change on its own merits so the factory's merge step can hand "
+                     "the conflict to the fixer. Fixer: merge main, retaining BOTH new values and both sides' tests.")
         else:
             body += "\n\nThis stage changes only `branch`. Leave the existing `base` value unchanged."
         issue = self.gh.post("issues", title=f"Merge smoke {stage}: {self.stamp}", body=body)
@@ -713,7 +715,8 @@ test('factory merge smoke preserves the {side} update', () => {{
         h = self.handler(pushed, sha)
         pr = self.merged(since)
         self.check_duplicate_stood_down(since)
-        self.check_discarded(since, self.gh.get(f"actions/runs/{review['id']}"), stale)
+        review = self.gh.get(f"actions/runs/{review['id']}")
+        self.check_discarded(since, review, stale)
         self.check_handler(h, sha)
         self.check_queued(h, review)
         self.check_no_round(since, stale, now())
@@ -743,12 +746,22 @@ test('factory merge smoke preserves the {side} update', () => {{
                 raise StageFailed(f"base fixture CI failed: {base_pr['html_url']}")
             return checks
         checks = wait("base fixture CI to pass", checked, 10 * 60)
-        self.gh.call("PUT", f"pulls/{base_pr['number']}/merge", [("merge_method", "squash"), ("sha", base_sha)])
+        result = json.loads(self.gh.call("PUT", f"pulls/{base_pr['number']}/merge",
+                                        [("merge_method", "squash"), ("sha", base_sha)]))
+        if not result.get("merged"):
+            raise StageFailed(f"base fixture did not merge: {base_pr['html_url']}")
         self.report.note(f"Merged base fixture [#{base_pr['number']}]({base_pr['html_url']}) after "
                          + ", ".join(f"[CI]({c['html_url']})" for c in checks))
-        mergeable, state = self.gh.mergeable(self.pr)
-        if not self.report.check(mergeable is False, f"#{self.pr} conflicts before review (`{state}`)"):
+        self.clone.fetch(self.base)
+        if not self.clone.conflicts(conflicting, f"origin/{self.base}"):
             raise StageFailed("the conflict scenario did not create a conflict")
+        # Immediately after the base merge GitHub can still return the earlier non-null
+        # 'clean' result. Wait for the expected conflict, not just a known mergeability.
+        def conflict_visible():
+            pr = self.gh.pr(self.pr)
+            return pr if pr["mergeable"] is False else None
+        conflict = wait("GitHub to report the new base conflict", conflict_visible, 300, every=5)
+        self.report.check(True, f"#{self.pr} conflicts before review (`{conflict['mergeable_state']}`), confirmed locally too")
         since = self.dispatch_review()
         pr = self.merged(since)
         verdicts = self.verdicts(since)
