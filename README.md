@@ -8,7 +8,8 @@ You describe the work in an issue and add `ready-for-agent`, or add `needs-triag
 
 The default agent is pi, using OpenRouter. Claude Code is also supported. Each stage runs on a fresh GitHub Actions runner. You supply the issue, test command, and model credentials.
 
-See the [example repository](https://github.com/jonbaldie/software-factory-sandbox).
+See the [example repository](https://github.com/jonbaldie/software-factory-sandbox)
+and the [real-repository pilot report](tests/database-pilot.md).
 
 ## How it works
 
