@@ -21,6 +21,7 @@ on:
 permissions:
   contents: write
   checks: read
+  statuses: read
   issues: write
   pull-requests: write
   actions: write
@@ -242,11 +243,12 @@ jobs:
                 if jq -e 'any(.[]; .bucket == "pending") and
                   all(.[]; .bucket == "pending" or .bucket == "pass" or .bucket == "skipping")' <<<"$checks" > /dev/null; then
                   : # Wait for checks already in progress.
-                elif jq -e 'length == 0' <<<"$checks" > /dev/null; then
+                elif [ -z "$checks" ] || jq -e 'length == 0' <<<"$checks" > /dev/null; then
+                  # gh reports no registered checks with empty stdout and a nonzero exit.
                   state=$(gh pr view "$PR" --json mergeStateStatus -q .mergeStateStatus)
                   if [ "$state" != BLOCKED ] && [ "$state" != UNKNOWN ]; then break; fi
                 else
-                  # Failed checks or check-query errors fall through to GitHub's merge rules.
+                  # Failed checks fall through to GitHub's merge rules.
                   break
                 fi
                 sleep 5

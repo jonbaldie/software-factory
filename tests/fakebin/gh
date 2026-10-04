@@ -162,9 +162,7 @@ elif (kind, verb) == ("pr", "merge"):
 elif (kind, verb) == ("pr", "checks"):
     if st.get("checks_missing"):
         st["checks_missing"] = False
-        save()
-        emit([])
-        sys.exit(0)
+        fail("no checks reported on the branch")
     pr["mergeStateStatus"] = "CLEAN"
     pending = st.get("checks_pending", False)
     st["checks_pending"] = False

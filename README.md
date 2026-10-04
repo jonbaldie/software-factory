@@ -153,7 +153,7 @@ GitHub requires approval for `pull_request` workflows triggered by the built-in 
 
 The factory mints a short-lived installation token after the agent finishes, scoped to the current repository. It uses that token only to push implementation/fix commits and open PRs. Labels, comments, workflow handoffs and merges still use the built-in token. The App key and token are not passed to the agent. If a configured App cannot authenticate, the job fails instead of falling back silently. Remove `FACTORY_APP_CLIENT_ID` to return to the built-in token.
 
-Keep required CI checks enabled. With `FACTORY_MERGE=true`, the reviewer waits up to five minutes for pending required checks, rechecking the reviewed commit while it waits. GitHub still enforces branch rules and required approvals. See [GitHub's token event rules](https://docs.github.com/en/actions/concepts/security/github_token).
+Keep required CI checks enabled. With `FACTORY_MERGE=true`, the reviewer waits up to five minutes for required CI to start and finish, rechecking the reviewed commit while it waits. GitHub still enforces branch rules and required approvals. See [GitHub's token event rules](https://docs.github.com/en/actions/concepts/security/github_token).
 
 ### Set project instructions
 
