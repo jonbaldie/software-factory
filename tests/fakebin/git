@@ -1,16 +1,27 @@
 #!/bin/bash
-# Fake git for tests/labels.py: a push does nothing, and everything else goes to the real git.
+# Fake git for tests/labels.py: pushes update the fake PR, other commands go to real git.
 if [ "$1" = push ]; then
   python3 - "$@" <<'PY'
-import json, os, sys
+import json, os, subprocess, sys
 path = os.environ["FAKE_GH_STATE"]
 with open(path) as f:
     state = json.load(f)
 url = next(arg for arg in sys.argv if arg.startswith("https://x-access-token:"))
 state.setdefault("push_tokens", []).append(url.split(":", 2)[2].split("@", 1)[0])
+env = {**os.environ, "PATH": os.environ["PATH"].split(os.pathsep, 1)[1]}
+head = subprocess.check_output(["git", "rev-parse", "HEAD"], env=env, text=True).strip()
+if state.get("push_on_publish"):
+    state["pr"]["headRefOid"] = "a" * 40
+    state["push_on_publish"] = False
+rejected = state.get("push_fails") or subprocess.run(["git", "merge-base", "--is-ancestor", state["pr"]["headRefOid"], head],
+                          env=env, capture_output=True).returncode != 0
+if not rejected:
+    state["pr"]["headRefOid"] = head
 with open(path, "w") as f:
     json.dump(state, f)
+if rejected:
+    sys.exit("! [rejected] HEAD -> agent/issue-39 (non-fast-forward)")
 PY
-  exit 0
+  exit $?
 fi
 PATH=${PATH#"$(dirname "$0"):"} exec git "$@"

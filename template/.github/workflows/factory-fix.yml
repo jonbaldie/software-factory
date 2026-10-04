@@ -12,6 +12,10 @@ on:
       pr:
         description: Pull request number
         required: true
+      automatic:
+        description: Skip this queued retry if the PR has already left fix
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -35,22 +39,29 @@ jobs:
       SETUP_COMMAND: ${{ vars.FACTORY_SETUP_COMMAND }}
       TEST_COMMAND: ${{ vars.FACTORY_TEST_COMMAND }}
     steps:
-      - name: Leave assigned work to its assignee
-        id: assigned
+      - name: Check whether the fix should run
+        id: eligible
         env:
           GH_TOKEN: ${{ github.token }}
+          AUTOMATIC: ${{ inputs.automatic || false }}
         run: |
+          pr=$(gh pr view "$PR" --json state,labels)
+          if [ "$(jq -r .state <<<"$pr")" != OPEN ]; then exit 0; fi
+          if [ "$AUTOMATIC" = true ] && ! jq -e 'any(.labels[]; .name == "agent:changes-requested")' <<<"$pr" > /dev/null; then
+            exit 0
+          fi
           # An assignee on the PR or its issue owns the work, so every later step is skipped and the labels stay as they are.
           issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
           owners=$( { gh pr view "$PR" --json assignees -q '.assignees[].login'
             for n in $issues; do gh issue view "$n" --json assignees -q '.assignees[].login'; done; } | sort -u | sed 's/^/@/' | paste -sd' ' -)
           if [ -n "$owners" ]; then
-            echo "owners=$owners" >> "$GITHUB_OUTPUT"
             gh pr comment "$PR" --body "⏸️ This pull request or its issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`agent:changes-requested\`."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Clear an earlier verdict
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         # Report failure adds agent:failed back if this run fails too. An approval no longer holds once more work is asked for.
@@ -58,28 +69,30 @@ jobs:
 
       - name: Find the PR branches
         id: pr
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh pr view "$PR" --json headRefName,baseRefName -q '"branch=\(.headRefName)\nbase=\(.baseRefName)"' >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v7
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         with:
           ref: ${{ steps.pr.outputs.branch }}
           fetch-depth: 0 # the prompts come from the base branch
           persist-credentials: false
 
       - uses: actions/setup-node@v7 # the agent runs on Node
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         with:
           node-version: 22
 
       - name: Merge the base branch in
-        if: steps.assigned.outputs.owners == ''
+        id: revision
+        if: steps.eligible.outputs.run == 'true'
         env:
           BASE: ${{ steps.pr.outputs.base }}
         run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           # Left uncommitted: conflicts stay marked for the agent, and the push step commits the merge with its work.
           if git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             merge --no-ff --no-commit "origin/$BASE"; then
@@ -93,7 +106,7 @@ jobs:
           fi
 
       - name: Build the fix prompt
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           BASE: ${{ steps.pr.outputs.base }}
@@ -131,12 +144,12 @@ jobs:
           } > "$RUNNER_TEMP/prompt.md"
 
       - name: Set up the project
-        if: steps.assigned.outputs.owners == '' && env.SETUP_COMMAND != ''
+        if: steps.eligible.outputs.run == 'true' && env.SETUP_COMMAND != ''
         run: eval "$SETUP_COMMAND"
 
       - name: Agent addresses the feedback
         id: agent
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         uses: jonbaldie/software-factory/run-agent@v1
         with:
           name: fix-pr-${{ env.PR }}
@@ -150,7 +163,7 @@ jobs:
 
       - name: Create a publishing token
         id: publisher
-        if: steps.assigned.outputs.owners == '' && vars.FACTORY_APP_CLIENT_ID != ''
+        if: steps.eligible.outputs.run == 'true' && vars.FACTORY_APP_CLIENT_ID != ''
         uses: actions/create-github-app-token@v3
         with:
           client-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
@@ -159,14 +172,29 @@ jobs:
           permission-pull-requests: write
 
       - name: Push and hand back to the reviewer
-        if: steps.assigned.outputs.owners == ''
+        if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PUBLISH_TOKEN: ${{ steps.publisher.outputs.token || github.token }}
           BRANCH: ${{ steps.pr.outputs.branch }}
           BASE: ${{ steps.pr.outputs.base }}
           AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
+          STARTED_SHA: ${{ steps.revision.outputs.sha }}
         run: |
+          # A human can push while the agent runs, outside this job's PR queue.
+          # Retry the same feedback from that head without consuming another review round.
+          require_current_head() {
+            pr=$(gh pr view "$PR" --json state,headRefOid)
+            if [ "$(jq -r .state <<<"$pr")" != OPEN ]; then exit 0; fi
+            head=$(jq -r .headRefOid <<<"$pr")
+            if [ "$head" != "$STARTED_SHA" ]; then
+              gh pr comment "$PR" --body "The PR changed during this fix, from \`$STARTED_SHA\` to \`$head\`. Discarded the unpublished fix and queued the same feedback against the current code, without another review round. [Fix run]($RUN_URL)"
+              gh pr edit "$PR" --remove-label agent:failed,agent:approved --add-label agent:changes-requested
+              gh workflow run factory-fix.yml -f pr="$PR" -f automatic=true
+              exit 0
+            fi
+          }
+          require_current_head
           git add -A
           # The merge brings in the base branch's .github/, so any other difference there came from the agent.
           if ! git diff --cached --quiet "origin/$BASE" -- .github; then
@@ -183,7 +211,11 @@ jobs:
           if git rev-parse -q --verify MERGE_HEAD > /dev/null || ! git diff --cached --quiet; then
             git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
               commit -q -m "Address review feedback"
-            git push "https://x-access-token:${PUBLISH_TOKEN}@github.com/${GH_REPO}.git" "HEAD:$BRANCH"
+            if ! git push "https://x-access-token:${PUBLISH_TOKEN}@github.com/${GH_REPO}.git" "HEAD:$BRANCH"; then
+              # Close the race after the head check. Other push failures still fail the job.
+              require_current_head
+              exit 1
+            fi
           elif [ -z "$AGENT_SUMMARY" ]; then
             echo "::error::The agent finished without changing any files or writing a summary"
             exit 1

@@ -167,6 +167,8 @@ Issue and PR comments link to the relevant workflow runs. Agent runs provide liv
 
 Each review names the commit it tested and checked. New commits on an approved PR clear its approval and queue another review, including when the push introduces merge conflicts. If the PR changes during review, the factory discards the old result and reviews the current code without using a fix round. Automatic merging requires the PR to still have the reviewed commit at its head.
 
+If you push while the fixer is working, it discards its unpublished changes and retries the same feedback from your new commit. This does not add a rejected-review round. A queued retry stands down if the PR has closed or left the fix stage, and pauses if the work has an assignee.
+
 | Label | Meaning or next step |
 |---|---|
 | `needs-triage` | The agent is triaging the issue. Add it to request a triage. |
