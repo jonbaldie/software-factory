@@ -243,11 +243,11 @@ class Clone:
             raise RuntimeError(f"git merge-tree failed:\n{p.stderr.strip()}")
         return p.returncode == 1
 
-    def tests_pass(self):
-        """Runs the sandbox's tests at HEAD, or returns None without Node."""
-        if not shutil.which("node"):
+    def tests_pass(self, command=("node", "--test")):
+        """Runs the sandbox's tests at HEAD, or returns None without the test runtime."""
+        if not shutil.which(command[0]):
             return None
-        return run("node", "--test", cwd=self.path, check=False).returncode == 0
+        return run(*command, cwd=self.path, check=False).returncode == 0
 
 
 class Report:
@@ -624,10 +624,13 @@ test('factory merge smoke preserves the {side} update', () => {{
         body = ("This issue drives software-factory's automatic-merge smoke test (`tests/smoke.py`).\n\n"
                 "Update the run marker in `smoke-merge.json` and its matching Node test. These are persistent "
                 "test fixtures, not library features. Do not change the library API or its documentation. "
-                "The maintainer may replace the marker during review. Review the current commit.\n\n"
-                "For the conflict scenario, main changes the `base` field while this PR changes `branch`. "
-                "Resolve the JSON conflict by retaining BOTH new values, and retain both sides' tests. "
+                "The maintainer may replace the marker during review. Review the current commit. "
                 "Run `npm test`; all tests must pass.")
+        if stage == "m3":
+            body += ("\n\nMain changes the `base` field while this PR changes `branch`. "
+                     "Resolve the JSON conflict by retaining BOTH new values, and retain both sides' tests.")
+        else:
+            body += "\n\nThis stage changes only `branch`. Leave the existing `base` value unchanged."
         issue = self.gh.post("issues", title=f"Merge smoke {stage}: {self.stamp}", body=body)
         self.issue = issue["number"]
         self.pr, self.branch = None, f"agent/issue-{self.issue}"
@@ -635,11 +638,11 @@ test('factory merge smoke preserves the {side} update', () => {{
         self.resources.append(resource)
         self.clone.checkout(self.branch, start=self.base)
         sha = self.clone.commit(f"Merge smoke {stage}: update branch fixture", self.fixture_files("branch", f"{self.stamp}-{stage}"))
-        if self.clone.tests_pass() is not True:
-            raise StageFailed("merge fixtures require Node and passing local tests")
+        if self.clone.tests_pass(("npm", "test")) is not True:
+            raise StageFailed("merge fixtures require npm and passing local tests")
         self.clone.push(self.branch)
         pr = self.gh.post("pulls", title=f"Merge smoke {stage}: {self.stamp}", head=self.branch, base=self.base,
-                          body=f"Closes #{self.issue}\n\n{body}\n\nValidation: `node --test` passed locally.")
+                          body=f"Closes #{self.issue}\n\n{body}\n\nValidation: `npm test` passed locally.")
         resource["pr"] = self.pr = pr["number"]
         self.report.note(f"Opened [#{self.pr}]({pr['html_url']}) at {self.commit_link(sha)}, "
                          f"for [issue #{self.issue}]({issue['html_url']}); local tests pass")
@@ -686,7 +689,7 @@ test('factory merge smoke preserves the {side} update', () => {{
         contained = self.clone.git("merge-base", "--is-ancestor", merged_sha, "HEAD", check=False).returncode == 0
         self.report.check(len(merged["parents"]) == 1 and merged["tree"]["sha"] == reviewed["tree"]["sha"] and contained,
                           f"Squash commit {self.commit_link(merged_sha)} is on `{self.base}` with exactly the reviewed tree")
-        self.report.check(self.clone.tests_pass() is True, f"All sandbox tests pass on `{self.base}` after the merge")
+        self.report.check(self.clone.tests_pass(("npm", "test")) is True, f"All sandbox tests pass on `{self.base}` after the merge")
 
     def m1(self):
         self.report.stage("m1", "A passing PR automatically merges at its reviewed head")
@@ -725,7 +728,7 @@ test('factory merge smoke preserves the {side} update', () => {{
         self.resources.append(resource)
         self.clone.checkout(branch, start=self.base)
         base_sha = self.clone.commit("Merge smoke: update base fixture", self.fixture_files("base", f"{self.stamp}-m3"))
-        if self.clone.tests_pass() is not True:
+        if self.clone.tests_pass(("npm", "test")) is not True:
             raise StageFailed("base fixture's local tests failed")
         self.clone.push(branch)
         base_pr = self.gh.post("pulls", title=f"Merge smoke: conflicting base {self.stamp}", head=branch, base=self.base,

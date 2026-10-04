@@ -34,7 +34,7 @@ uv run tests/smoke.py --suite merge --close --report merge-smoke-report.md
 
 The driver saves the original value of `FACTORY_MERGE`, enables it for this suite, and restores the original value (including an absent variable) in `finally`, on success, failure or Ctrl-C. It records restoration in the report. A killed process or loss of GitHub access can prevent restoration; the setup output records the original value for recovery.
 
-Each stage creates its own issue and PR on `agent/issue-N`, then dispatches the installed reviewer. These deterministic fixture commits isolate review, fix and merge behaviour from implementation. `--stages m2` or `--stages m3` reruns only that stage with a fresh PR; `--pr` is not supported for this suite. Node must be installed locally so the driver can check the fixtures before pushing and run the tests on `main` after merging.
+Each stage creates its own issue and PR on `agent/issue-N`, then dispatches the installed reviewer. These deterministic fixture commits isolate review, fix and merge behaviour from implementation. `--stages m2` or `--stages m3` reruns only that stage with a fresh PR; `--pr` is not supported for this suite. Node and npm must be installed locally so the driver can check the fixtures before pushing and run `npm test` on `main` after merging.
 
 | Stage | Action | Required outcome |
 |---|---|---|
