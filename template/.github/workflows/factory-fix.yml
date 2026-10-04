@@ -148,10 +148,21 @@ jobs:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
+      - name: Create a publishing token
+        id: publisher
+        if: steps.assigned.outputs.owners == '' && vars.FACTORY_APP_CLIENT_ID != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - name: Push and hand back to the reviewer
         if: steps.assigned.outputs.owners == ''
         env:
           GH_TOKEN: ${{ github.token }}
+          PUBLISH_TOKEN: ${{ steps.publisher.outputs.token || github.token }}
           BRANCH: ${{ steps.pr.outputs.branch }}
           BASE: ${{ steps.pr.outputs.base }}
           AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
@@ -172,7 +183,7 @@ jobs:
           if git rev-parse -q --verify MERGE_HEAD > /dev/null || ! git diff --cached --quiet; then
             git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
               commit -q -m "Address review feedback"
-            git push "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "HEAD:$BRANCH"
+            git push "https://x-access-token:${PUBLISH_TOKEN}@github.com/${GH_REPO}.git" "HEAD:$BRANCH"
           elif [ -z "$AGENT_SUMMARY" ]; then
             echo "::error::The agent finished without changing any files or writing a summary"
             exit 1
@@ -184,7 +195,8 @@ jobs:
             printf '\n%s\n\n---\n_Fixed by the factory · [fix run](%s)_\n' "$AGENT_SUMMARY" "$RUN_URL"
           } > "$RUNNER_TEMP/body.md"
           gh pr edit "$PR" --body-file "$RUNNER_TEMP/body.md" --remove-label agent:changes-requested --add-label agent:review
-          gh workflow run factory-review.yml -f pr="$PR"
+          # An App push can also queue the push handler; a redundant request must stand down.
+          gh workflow run factory-review.yml -f pr="$PR" -f automatic=true
 
       - name: Report failure
         if: failure() || cancelled() # a timeout or a cancel by hand counts as cancelled, not failed

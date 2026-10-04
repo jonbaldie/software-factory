@@ -1,4 +1,16 @@
 #!/bin/bash
 # Fake git for tests/labels.py: a push does nothing, and everything else goes to the real git.
-if [ "$1" = push ]; then exit 0; fi
+if [ "$1" = push ]; then
+  python3 - "$@" <<'PY'
+import json, os, sys
+path = os.environ["FAKE_GH_STATE"]
+with open(path) as f:
+    state = json.load(f)
+url = next(arg for arg in sys.argv if arg.startswith("https://x-access-token:"))
+state.setdefault("push_tokens", []).append(url.split(":", 2)[2].split("@", 1)[0])
+with open(path, "w") as f:
+    json.dump(state, f)
+PY
+  exit 0
+fi
 PATH=${PATH#"$(dirname "$0"):"} exec git "$@"

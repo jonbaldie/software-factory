@@ -9,6 +9,7 @@ with open(state_path) as f:
 
 args = sys.argv[1:]
 st["calls"].append(args)
+st.setdefault("auth_calls", []).append({"args": args, "token": os.environ.get("GH_TOKEN")})
 
 VALUE_FLAGS = {"--json", "-q", "--jq", "--body", "--body-file", "--add-label", "--remove-label", "-f", "-R", "--repo", "--reason",
                "--state", "--limit", "--label", "--title", "--search", "--head", "--match-head-commit", "--method", "-F"}
@@ -155,9 +156,22 @@ elif (kind, verb) == ("pr", "merge"):
         st["push_on_merge"] = False
     if "--match-head-commit" in flags and flags["--match-head-commit"][0] != pr["headRefOid"]:
         fail("Pull request head does not match the expected commit")
-    if not st["merge_ok"]:
+    if not st["merge_ok"] or st.get("checks_pending"):
         fail("Pull request is not mergeable")
     pr["state"] = "MERGED"
+elif (kind, verb) == ("pr", "checks"):
+    if st.get("checks_missing"):
+        st["checks_missing"] = False
+        fail("no checks reported on the branch")
+    pr["mergeStateStatus"] = "CLEAN"
+    pending = st.get("checks_pending", False)
+    st["checks_pending"] = False
+    if st.get("push_during_checks"):
+        pr["headRefOid"] = "a" * 40
+    if st.get("assign_during_checks"):
+        pr["assignees"] = [{"login": "maintainer"}]
+    save()
+    emit([{"bucket": "pending" if pending else "pass"}])
 elif (kind, verb) == ("workflow", "run"):
     st["dispatches"].append([pos[2]] + flags.get("-f", []))
 else:

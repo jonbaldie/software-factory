@@ -4,7 +4,7 @@
 
 Run it after changing how review, fix or the push handler are triggered, queued or invalidated. It spends model credit on one implement run and about seven reviews, so CI doesn't run it.
 
-The separate merge suite checks automatic merging, a passing push during review, and conflict recovery through the fixer. It uses three small fixture PRs and spends about five reviews and one fix, with no implementation run.
+The separate merge suite checks automatic merging, a passing push during review, and conflict recovery through the fixer. It uses four small fixture PRs and spends one implementation run, about six reviews and one fix. Configure the optional publishing App in the sandbox to test unattended CI.
 
 ## Run it
 
@@ -34,17 +34,18 @@ uv run tests/smoke.py --suite merge --close --report merge-smoke-report.md
 
 The driver saves the original value of `FACTORY_MERGE`, enables it for this suite, and restores the original value (including an absent variable) in `finally`, on success, failure or Ctrl-C. It records restoration in the report. A killed process or loss of GitHub access can prevent restoration; the setup output records the original value for recovery.
 
-Each stage creates its own issue and PR on `agent/issue-N`, then dispatches the installed reviewer. These deterministic fixture commits isolate review, fix and merge behaviour from implementation. `--stages m2` or `--stages m3` reruns only that stage with a fresh PR; `--pr` is not supported for this suite. Node and npm must be installed locally so the driver can check the fixtures before pushing and run `npm test` on `main` after merging.
+Stages m1–m3 create their own issue and PR on `agent/issue-N`, then dispatch the installed reviewer. m4 labels an issue `ready-for-agent` and lets the factory implement, publish, review and merge it. These deterministic fixture commits isolate review, fix and merge behaviour from implementation. `--stages m2` or `--stages m3` reruns only that stage with a fresh PR; `--pr` is not supported for this suite. Node and npm must be installed locally so the driver can check the fixtures before pushing and run `npm test` on `main` after merging.
 
 | Stage | Action | Required outcome |
 |---|---|---|
 | m1 | Open a passing fixture PR and dispatch review with merging enabled. | The factory squash-merges the exact reviewed head. |
 | m2 | Wait until the agent reviews a passing commit, then push another passing commit. | The stale review discards its verdict without a fix round. The push handler waits in the PR queue; a fresh review approves the replacement and the factory merges it. The duplicate review request skips its agent. |
+| m4 | Label a fixture issue `ready-for-agent`. | The App opens the implementation PR, required CI passes without approval, and the factory merges the exact reviewed head. |
 | m3 | Open a passing fixture PR, then merge a base change that conflicts with it. Dispatch review explicitly, since GitHub skips `pull_request` workflows for conflicting PRs. | The reviewer approves the conflicting head, hands the merge conflict to one fix run, then reviews a different, fixed commit before merging it. Both branches' intended changes survive. |
 
 Every stage checks the bot merge actor, the approval's commit and timing, successful test and agent steps, and that the squash commit is on the base branch with exactly the reviewed tree. It runs all sandbox tests locally on the merged base and checks that no factory job failed or was cancelled. m3 changes separate fields on the same JSON line, with separate tests for each side; choosing either whole file cannot satisfy both tests.
 
-The sandbox requires its `ci.yml` test check before merging. GitHub now [requires approval for PR workflows triggered by `GITHUB_TOKEN`](https://docs.github.com/en/actions/concepts/security/github_token), including the fixer's push. The driver supplies that maintainer approval for the current fixture's CI and records the run link. It checks the bot actor, current branch and head, and restricts changed paths to the three fixture files. Required checks and merge rules remain enabled. This suite tests automatic merging once the sandbox's CI approval prerequisite is met; it does not prove an unattended bot push can clear that prerequisite.
+The sandbox requires its `ci.yml` test check before merging. The driver never approves CI: an `action_required` run fails the stage. m3 and m4 verify that a GitHub App triggered CI and that its required `test` check passed on the merged head before the merge. This covers both fix pushes and implementation PR creation. Earlier reports below explicitly record runs that used maintainer approval before App publishing was available.
 
 `--close` closes any unfinished test PRs and issues, waits for factory jobs to finish, and deletes all branches created by the suite. The merged `smoke-merge.json` and `test/factory-merge-{base,branch}.test.js` fixtures remain for future runs; each run updates their markers. Without `--close`, unfinished work remains for inspection and the merge setting is still restored.
 
@@ -68,7 +69,96 @@ Still not covered live: a push in the narrow interval between the final head che
 
 ## Runs
 
-All three merge scenarios passed across the runs below: clean merge ([#85](https://github.com/jonbaldie/software-factory-sandbox/pull/85)), stale-review replacement ([#87](https://github.com/jonbaldie/software-factory-sandbox/pull/87)), and conflict recovery ([#95](https://github.com/jonbaldie/software-factory-sandbox/pull/95)). The last run supplied the documented CI approval; that [CI run passed](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37182007647) on the fixed head before the factory merged it. Failed setup attempts and their cleanup are retained below.
+
+App publishing passed both implementation and conflict recovery without any CI approval. [#99](https://github.com/jonbaldie/software-factory-sandbox/pull/99) was opened by the dedicated sandbox App; [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101) received an App-authenticated fix push. Both passed required CI before the factory merged the reviewed heads. The duplicate review after the fix skipped its agent.
+
+The final sandbox workflow update also passed stale-review replacement in [#105](https://github.com/jonbaldie/software-factory-sandbox/pull/105): the old verdict was discarded, the duplicate skipped its agent, and the freshly reviewed replacement merged. All temporary branches were removed and `FACTORY_MERGE` was restored.
+
+### 2026-10-04 06:52 UTC, run 20261004-064910
+
+jonbaldie/software-factory-sandbox at [`bbcce73`](https://github.com/jonbaldie/software-factory-sandbox/commit/bbcce73406e10ac304d91fd1e1dfa0c2613f7d9d), `run-agent@v1` at [`c5f7296`](https://github.com/jonbaldie/software-factory/commit/c5f7296c3f4298d19c09d69b1d8355303e092b66). PR [#105](https://github.com/jonbaldie/software-factory-sandbox/pull/105). All checks passed.
+
+#### setup · Enable automatic merging for the reserved sandbox
+
+- Original FACTORY_MERGE: None (None means unset)
+- ✅ FACTORY_MERGE is true
+
+#### m2 · A passing push during review requires a fresh approval before merging
+
+- Opened [#105](https://github.com/jonbaldie/software-factory-sandbox/pull/105) at [`a9dba49`](https://github.com/jonbaldie/software-factory-sandbox/commit/a9dba49fc321e3e2254f6d3c83000e94be7d5bb0), for [issue #104](https://github.com/jonbaldie/software-factory-sandbox/issues/104); local tests pass
+- [Factory 2 · Review #80](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183926674) (in_progress) is reviewing passing commit [`a9dba49`](https://github.com/jonbaldie/software-factory-sandbox/commit/a9dba49fc321e3e2254f6d3c83000e94be7d5bb0)
+- Pushed [`447ff8b`](https://github.com/jonbaldie/software-factory-sandbox/commit/447ff8bb5ab1000620d40dbecad24df6a9e8da20): Merge smoke: replace the passing commit during review (tests pass locally)
+- Factory runs: [Factory · Review new commits #12](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183941734) (success), [Factory 2 · Review #80](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183926674) (success), [Factory 2 · Review #81](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183950526) (success), [Factory 2 · Review #82](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183957040) (success)
+- ✅ The stale and replacement reviews ran their agents; the duplicate request skipped its agent
+- ✅ Review [Factory 2 · Review #80](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183926674) (success) checked a9dba49, then discarded its result ([comment](https://github.com/jonbaldie/software-factory-sandbox/pull/105#issuecomment-5977452566))
+- ✅ The push handler ran for 447ff8b: [Factory · Review new commits #12](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183941734) (success)
+- ✅ The second push's handler waited in the PR queue until [Factory 2 · Review #80](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183926674) (success) finished (16s)
+- ✅ No fix round for a9dba49: no request-changes verdict, no `agent:changes-requested`, no fix run
+- ✅ Merged head [`447ff8b`](https://github.com/jonbaldie/software-factory-sandbox/commit/447ff8bb5ab1000620d40dbecad24df6a9e8da20) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/105#issuecomment-5977460178)
+- ✅ The factory merged the expected PR head: [`447ff8b`](https://github.com/jonbaldie/software-factory-sandbox/commit/447ff8bb5ab1000620d40dbecad24df6a9e8da20)
+- ✅ Squash commit [`2dc2d1c`](https://github.com/jonbaldie/software-factory-sandbox/commit/2dc2d1c41a4e339d79e8c281c3705b4cdb4f1ca3) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ No factory run failed or was cancelled (2 reviews ran the agent, 1 review requests stood down)
+
+#### restore · Restore the sandbox's original merge setting
+
+- ✅ Restored FACTORY_MERGE to None
+
+#### cleanup · Close temporary work and remove its branches
+
+- ✅ Deleted `agent/issue-104`
+
+### 2026-10-04 06:47 UTC, run 20261004-064130
+
+jonbaldie/software-factory-sandbox at [`c52555c`](https://github.com/jonbaldie/software-factory-sandbox/commit/c52555cb49c1fe8dc56defda5f9bf90c89ec7a64), `run-agent@v1` at [`c5f7296`](https://github.com/jonbaldie/software-factory/commit/c5f7296c3f4298d19c09d69b1d8355303e092b66). PR [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101). All checks passed.
+
+#### setup · Enable automatic merging for the reserved sandbox
+
+- Original FACTORY_MERGE: None (None means unset)
+- ✅ FACTORY_MERGE is true
+
+#### m4 · An issue is implemented and merged with unattended App CI
+
+- Opened [issue #98](https://github.com/jonbaldie/software-factory-sandbox/issues/98) with `ready-for-agent`
+- Factory runs: [Factory 2 · Review #76](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183583933) (success)
+- ✅ The App published [#99](https://github.com/jonbaldie/software-factory-sandbox/pull/99): jonbaldie-factory-sandbox[bot]
+- ✅ One implementation succeeded: [Factory 1 · Implement #66](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183544866) (success)
+- ✅ Merged head [`944b617`](https://github.com/jonbaldie/software-factory-sandbox/commit/944b61757939c4f823862b2c4b84927dd506b3ab) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/99#issuecomment-5977408691)
+- ✅ The factory merged the expected PR head: [`944b617`](https://github.com/jonbaldie/software-factory-sandbox/commit/944b61757939c4f823862b2c4b84927dd506b3ab)
+- ✅ Squash commit [`5b28596`](https://github.com/jonbaldie/software-factory-sandbox/commit/5b285969a94b306f702a465524c4d59fb42e46b0) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ Required CI passed on the merged head before merging: [CI #40](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183581360) (success)
+- ✅ A GitHub App triggered CI without a maintainer approval: jonbaldie-factory-sandbox[bot]
+- ✅ The requested marker is on the merged base
+- ✅ No factory run failed or was cancelled (1 reviews ran the agent, 0 review requests stood down)
+
+#### m3 · A merge conflict is fixed, reviewed again and automatically merged
+
+- Opened [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101) at [`03c57fb`](https://github.com/jonbaldie/software-factory-sandbox/commit/03c57fbc52e1a8cc2df6f4793079f184ccf8b6c5), for [issue #100](https://github.com/jonbaldie/software-factory-sandbox/issues/100); local tests pass
+- Merged base fixture [#102](https://github.com/jonbaldie/software-factory-sandbox/pull/102) after [CI](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183637320/job/111381003714)
+- Factory runs: [Factory · Review new commits #11](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183753081) (success), [Factory 2 · Review #77](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183653986) (success), [Factory 2 · Review #78](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183753420) (success), [Factory 2 · Review #79](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183760613) (success), [Factory 3 · Fix #26](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183690257) (success)
+- ✅ #101 conflicts before review (`dirty`), confirmed locally too
+- ✅ One conflict handoff ran the fixer, then a different commit received a fresh approval: [conflict](https://github.com/jonbaldie/software-factory-sandbox/pull/101#issuecomment-5977418861)
+- ✅ Merged head [`284e615`](https://github.com/jonbaldie/software-factory-sandbox/commit/284e6157fe07ca91f42cbb9629b8ed7fe63a043a) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/101#issuecomment-5977433615)
+- ✅ The factory merged the expected PR head: [`284e615`](https://github.com/jonbaldie/software-factory-sandbox/commit/284e6157fe07ca91f42cbb9629b8ed7fe63a043a)
+- ✅ Squash commit [`da4b9b3`](https://github.com/jonbaldie/software-factory-sandbox/commit/da4b9b3a52c175b8621416bf392b58cbe161ea38) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ Required CI passed on the merged head before merging: [CI #43](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183754066) (success)
+- ✅ A GitHub App triggered CI without a maintainer approval: jonbaldie-factory-sandbox[bot]
+- ✅ The merged fixture preserves both branches' new values; both regression tests pass
+- ✅ No factory run failed or was cancelled (2 reviews ran the agent, 1 review requests stood down)
+
+#### restore · Restore the sandbox's original merge setting
+
+- ✅ Restored FACTORY_MERGE to None
+
+#### cleanup · Close temporary work and remove its branches
+
+- ✅ Deleted `agent/issue-98`
+- ✅ Deleted `agent/issue-100`
+- ✅ Deleted `smoke/merge-base-20261004-064130`
+
+The earlier baseline runs below covered three merge scenarios: clean merge ([#85](https://github.com/jonbaldie/software-factory-sandbox/pull/85)), stale-review replacement ([#87](https://github.com/jonbaldie/software-factory-sandbox/pull/87)), and conflict recovery ([#95](https://github.com/jonbaldie/software-factory-sandbox/pull/95)). The earlier #95 run supplied the documented CI approval; that [CI run passed](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37182007647) on the fixed head before the factory merged it. Failed setup attempts and their cleanup are retained below.
 
 ### 2026-10-04 06:11 UTC, run 20261004-060726
 
