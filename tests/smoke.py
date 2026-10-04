@@ -8,7 +8,7 @@ tests/labels.py simulates GitHub. This drives the installed workflows instead, s
 event delivery and the per-PR job queue. It spends model credit on one implement run and about seven
 reviews, and takes about 15 minutes.
 
-Every stage runs on the same factory PR:
+The default push suite runs every stage on the same factory PR:
   s1   A ready-for-agent issue becomes a PR, which the reviewer approves and leaves open: FACTORY_MERGE is off.
   s2   A push to the approved PR clears the approval, and a new review checks the new head.
   s3   A push during a review discards that review's verdict without spending a fix round. The commit it
@@ -16,13 +16,19 @@ Every stage runs on the same factory PR:
   s4a  As s2, but the push introduces a merge conflict with the base branch.
   s4b  As s3, but the push introduces a merge conflict with the base branch.
 
+The merge suite (--suite merge) uses a fresh fixture PR for each stage, with FACTORY_MERGE=true:
+  m1   A passing PR is automatically squash-merged at its reviewed head.
+  m2   A passing head is replaced during review; only the freshly reviewed replacement merges.
+  m3   A conflicting PR goes through fix, fresh review and automatic merge, preserving both sides.
+It saves and restores FACTORY_MERGE, including on failure. It spends about five reviews and one fix.
+
 The expected outcomes, and the record of past runs, are in tests/smoke.md.
 
 The pushed commits are written for jonbaldie/software-factory-sandbox, a small Node library. s4a merges a
 change to `smoke.txt` into the base branch, so that the PR's later edits to that file conflict with it.
 
 Needs gh signed in with write access to the sandbox, git able to push to it over HTTPS (`gh auth setup-git`),
-and the factory installed there with FACTORY_MERGE unset. Only REST calls are used.
+and the factory installed there. The push suite requires FACTORY_MERGE unset. Only REST calls are used.
 
 Usage: uv run tests/smoke.py [--repo OWNER/NAME] [--pr N] [--stages s2,s3] [--report FILE] [--close]
 """
@@ -35,6 +41,8 @@ AGENT_STEP = "Agent reviews the change"
 SMOKE_FILE = "smoke.txt"
 TESTS = "test/textkit.test.js"
 STAGES = ["s1", "s2", "s3", "s4a", "s4b"]
+MERGE_STAGES = ["m1", "m2", "m3"]
+MERGE_FILE = "smoke-merge.json"
 MARGIN = timedelta(seconds=5)  # allows for clock skew against GitHub's timestamps
 FAILED_LABELS = {"agent:failed", "ready-for-human"}
 
@@ -160,6 +168,23 @@ class GitHub:
         pr = wait(f"GitHub to work out whether #{n} can merge", probe, 300, every=5)
         return pr["mergeable"], pr["mergeable_state"]
 
+    def merge_setting(self):
+        variables = self.items("actions/variables?per_page=100", ".variables")
+        return next((v["value"] for v in variables if v["name"] == "FACTORY_MERGE"), None)
+
+    def set_merge(self, value):
+        current = self.merge_setting()
+        if current == value:
+            return
+        if value is None:
+            self.call("DELETE", "actions/variables/FACTORY_MERGE")
+        elif current is None:
+            self.post("actions/variables", name="FACTORY_MERGE", value=value)
+        else:
+            self.call("PATCH", "actions/variables/FACTORY_MERGE", [("name", "FACTORY_MERGE"), ("value", value)])
+        if self.merge_setting() != value:
+            raise StageFailed("FACTORY_MERGE did not retain its requested value")
+
 
 def step(job, name):
     return next((s for s in (job or {}).get("steps", []) if s["name"] == name), None)
@@ -218,11 +243,11 @@ class Clone:
             raise RuntimeError(f"git merge-tree failed:\n{p.stderr.strip()}")
         return p.returncode == 1
 
-    def tests_pass(self):
-        """Runs the sandbox's tests at HEAD, or returns None without Node."""
-        if not shutil.which("node"):
+    def tests_pass(self, command=("node", "--test")):
+        """Runs the sandbox's tests at HEAD, or returns None without the test runtime."""
+        if not shutil.which(command[0]):
             return None
-        return run("node", "--test", cwd=self.path, check=False).returncode == 0
+        return run(*command, cwd=self.path, check=False).returncode == 0
 
 
 class Report:
@@ -572,22 +597,261 @@ class Smoke:
         self.check_runs_clean(since)
 
 
+class MergeSmoke(Smoke):
+    """Repeatable fixture PRs: exercise the installed reviewer/fixer, without an implementer."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.resources = []
+        self.approved_ci = set()
+
+    def fixture_files(self, side, value):
+        data = json.loads(self.clone.read(MERGE_FILE) or '{"base": "initial", "branch": "initial"}')
+        data[side] = value
+        # One line makes independent edits to the two fields conflict. Each side has its own
+        # test, so the fixer must preserve both values instead of choosing one whole file.
+        test = f"""import {{ test }} from 'node:test';
+import assert from 'node:assert/strict';
+import {{ readFileSync }} from 'node:fs';
+
+test('factory merge smoke preserves the {side} update', () => {{
+  const fixture = JSON.parse(readFileSync(new URL('../{MERGE_FILE}', import.meta.url), 'utf8'));
+  assert.equal(fixture.{side}, {json.dumps(value)});
+}});
+"""
+        return {MERGE_FILE: json.dumps(data, sort_keys=True) + "\n", f"test/factory-merge-{side}.test.js": test}
+
+    def fixture_pr(self, stage):
+        body = ("This issue drives software-factory's automatic-merge smoke test (`tests/smoke.py`).\n\n"
+                "Update the run marker in `smoke-merge.json` and its matching Node test. These are persistent "
+                "test fixtures, not library features. Do not change the library API or its documentation. "
+                "The maintainer may replace the marker during review. Review the current commit. "
+                "Run `npm test`; all tests must pass.")
+        if stage == "m3":
+            body += ("\n\nThis PR changes only `branch` and its test. The maintainer deliberately changes `base` "
+                     "on main after this PR opens. The resulting merge conflict is intentional, not a code-review "
+                     "defect: review the branch change on its own merits so the factory's merge step can hand "
+                     "the conflict to the fixer. Fixer: merge main, retaining BOTH new values and both sides' tests.")
+        else:
+            body += "\n\nThis stage changes only `branch`. Leave the existing `base` value unchanged."
+        issue = self.gh.post("issues", title=f"Merge smoke {stage}: {self.stamp}", body=body)
+        self.issue = issue["number"]
+        self.pr, self.branch = None, f"agent/issue-{self.issue}"
+        resource = {"issue": self.issue, "pr": None, "branch": self.branch}
+        self.resources.append(resource)
+        self.clone.checkout(self.branch, start=self.base)
+        sha = self.clone.commit(f"Merge smoke {stage}: update branch fixture", self.fixture_files("branch", f"{self.stamp}-{stage}"))
+        if self.clone.tests_pass(("npm", "test")) is not True:
+            raise StageFailed("merge fixtures require npm and passing local tests")
+        self.clone.push(self.branch)
+        pr = self.gh.post("pulls", title=f"Merge smoke {stage}: {self.stamp}", head=self.branch, base=self.base,
+                          body=f"Closes #{self.issue}\n\n{body}\n\nValidation: `npm test` passed locally.")
+        resource["pr"] = self.pr = pr["number"]
+        self.report.note(f"Opened [#{self.pr}]({pr['html_url']}) at {self.commit_link(sha)}, "
+                         f"for [issue #{self.issue}]({issue['html_url']}); local tests pass")
+        return sha
+
+    def dispatch_review(self):
+        since = now() - MARGIN
+        self.gh.post(f"actions/workflows/{REVIEW}/dispatches", ref=self.base, **{"inputs[pr]": str(self.pr)})
+        return since
+
+    def approve_fixture_ci(self, since):
+        # GitHub holds pull_request workflows triggered by GITHUB_TOKEN for approval.
+        # Supply that maintainer action only for this fixture's CI; required checks still run.
+        pr = self.gh.pr(self.pr)
+        if pr["state"] != "open":
+            return
+        for ci in self.gh.runs("ci.yml", since):
+            pending = ci["status"] == "action_required" or ci["conclusion"] == "action_required"
+            if (not pending or ci["id"] in self.approved_ci or ci["event"] != "pull_request"
+                    or ci["head_sha"] != pr["head"]["sha"] or ci["head_branch"] != self.branch
+                    or ci["actor"]["login"] != BOT):
+                continue
+            files = {f[key] for f in self.gh.items(f"pulls/{self.pr}/files?per_page=100")
+                     for key in ("filename", "previous_filename") if key in f}
+            fixtures = {MERGE_FILE, "test/factory-merge-base.test.js", "test/factory-merge-branch.test.js"}
+            if not files or not files <= fixtures:
+                raise StageFailed(f"refusing to approve CI for non-fixture changes: {sorted(files)}")
+            self.gh.post(f"actions/runs/{ci['id']}/approve")
+            self.approved_ci.add(ci["id"])
+            self.report.note(f"Approved [fixture CI]({ci['html_url']}) for {self.commit_link(ci['head_sha'])}; "
+                             "GitHub requires maintainer approval after the fixer's bot push")
+
+    def merged(self, since):
+        def probe():
+            self.approve_fixture_ci(since)
+            if any(r["status"] != "completed" for r in self.factory_runs(since)):
+                return None
+            pr = self.gh.pr(self.pr)
+            labels = self.gh.labels(self.pr)
+            if labels & FAILED_LABELS:
+                raise StageFailed(f"#{self.pr} stopped with {sorted(labels)}")
+            if pr["merged"]:
+                return pr
+            if pr["state"] != "open":
+                raise StageFailed(f"#{self.pr} closed without merging")
+            return None
+        return wait(f"the factory to merge #{self.pr} and finish its jobs", probe, 45 * 60, every=10)
+
+    def check_merged(self, since, pr, expected_sha=None):
+        head, merged_sha = pr["head"]["sha"], pr["merge_commit_sha"]
+        approvals = [v for v in self.verdicts(since) if v["kind"] == "approve" and v["sha"] == head]
+        approval = approvals[0] if len(approvals) == 1 else None
+        job = self.gh.job(approval["run"]) if approval and approval["run"] else None
+        tests = step(job, "Run the tests")
+        agent = step(job, AGENT_STEP)
+        ok = bool(approval and tests and agent and job["conclusion"] == "success"
+                  and tests["conclusion"] == agent["conclusion"] == "success"
+                  and when(tests["completed_at"]) <= approval["at"] <= when(pr["merged_at"])
+                  and "ready for you to merge" not in approval["body"])
+        self.report.check(ok, f"Merged head {self.commit_link(head)} has one fresh approval after tests and agent review"
+                          + (f": [verdict]({approval['url']})" if approval else ""))
+        self.report.check(pr["merged_by"]["login"] == BOT and (expected_sha is None or head == expected_sha),
+                          f"The factory merged the expected PR head: {self.commit_link(head)}")
+        merged = self.gh.get(f"git/commits/{merged_sha}")
+        reviewed = self.gh.get(f"git/commits/{head}")
+        self.clone.checkout(self.base)
+        contained = self.clone.git("merge-base", "--is-ancestor", merged_sha, "HEAD", check=False).returncode == 0
+        self.report.check(len(merged["parents"]) == 1 and merged["tree"]["sha"] == reviewed["tree"]["sha"] and contained,
+                          f"Squash commit {self.commit_link(merged_sha)} is on `{self.base}` with exactly the reviewed tree")
+        self.report.check(self.clone.tests_pass(("npm", "test")) is True, f"All sandbox tests pass on `{self.base}` after the merge")
+
+    def m1(self):
+        self.report.stage("m1", "A passing PR automatically merges at its reviewed head")
+        sha = self.fixture_pr("m1")
+        since = self.dispatch_review()
+        pr = self.merged(since)
+        self.check_merged(since, pr, sha)
+        self.check_no_round(since, sha, now())
+        self.check_runs_clean(since)
+
+    def m2(self):
+        self.report.stage("m2", "A passing push during review requires a fresh approval before merging")
+        stale = self.fixture_pr("m2")
+        since = self.dispatch_review()
+        review = self.running_review(since)
+        self.report.note(f"{self.run_link(review)} is reviewing passing commit {self.commit_link(stale)}")
+        # Unlike s3, both commits pass: an old approval would otherwise permit a merge.
+        self.clone.checkout(self.branch)
+        sha, pushed = self.push("Merge smoke: replace the passing commit during review",
+                                self.fixture_files("branch", f"{self.stamp}-m2-replacement"))
+        h = self.handler(pushed, sha)
+        pr = self.merged(since)
+        self.check_duplicate_stood_down(since)
+        review = self.gh.get(f"actions/runs/{review['id']}")
+        self.check_discarded(since, review, stale)
+        self.check_handler(h, sha)
+        self.check_queued(h, review)
+        self.check_no_round(since, stale, now())
+        self.check_merged(since, pr, sha)
+        self.check_runs_clean(since)
+
+    def m3(self):
+        self.report.stage("m3", "A merge conflict is fixed, reviewed again and automatically merged")
+        conflicting = self.fixture_pr("m3")
+        branch = f"smoke/merge-base-{self.stamp}"
+        resource = {"issue": None, "pr": None, "branch": branch}
+        self.resources.append(resource)
+        self.clone.checkout(branch, start=self.base)
+        base_sha = self.clone.commit("Merge smoke: update base fixture", self.fixture_files("base", f"{self.stamp}-m3"))
+        if self.clone.tests_pass(("npm", "test")) is not True:
+            raise StageFailed("base fixture's local tests failed")
+        self.clone.push(branch)
+        base_pr = self.gh.post("pulls", title=f"Merge smoke: conflicting base {self.stamp}", head=branch, base=self.base,
+                               body=f"Updates the base fixture and its test for merge smoke PR #{self.pr}. Local tests pass.")
+        resource["pr"] = base_pr["number"]
+
+        def checked():
+            checks = self.gh.items(f"commits/{base_sha}/check-runs?per_page=100", ".check_runs")
+            if not checks or any(c["status"] != "completed" for c in checks):
+                return None
+            if any(c["conclusion"] != "success" for c in checks):
+                raise StageFailed(f"base fixture CI failed: {base_pr['html_url']}")
+            return checks
+        checks = wait("base fixture CI to pass", checked, 10 * 60)
+        result = json.loads(self.gh.call("PUT", f"pulls/{base_pr['number']}/merge",
+                                        [("merge_method", "squash"), ("sha", base_sha)]))
+        if not result.get("merged"):
+            raise StageFailed(f"base fixture did not merge: {base_pr['html_url']}")
+        self.report.note(f"Merged base fixture [#{base_pr['number']}]({base_pr['html_url']}) after "
+                         + ", ".join(f"[CI]({c['html_url']})" for c in checks))
+        self.clone.fetch(self.base)
+        if not self.clone.conflicts(conflicting, f"origin/{self.base}"):
+            raise StageFailed("the conflict scenario did not create a conflict")
+        # Immediately after the base merge GitHub can still return the earlier non-null
+        # 'clean' result. Wait for the expected conflict, not just a known mergeability.
+        def conflict_visible():
+            pr = self.gh.pr(self.pr)
+            return pr if pr["mergeable"] is False else None
+        conflict = wait("GitHub to report the new base conflict", conflict_visible, 300, every=5)
+        self.report.check(True, f"#{self.pr} conflicts before review (`{conflict['mergeable_state']}`), confirmed locally too")
+        since = self.dispatch_review()
+        pr = self.merged(since)
+        verdicts = self.verdicts(since)
+        conflicts = [v for v in verdicts if v["kind"] == "request_changes" and "### 🔁 Merge conflicts" in v["body"]]
+        initial = [v for v in verdicts if v["kind"] == "approve" and v["sha"] == conflicting]
+        fixes = self.gh.runs(FIX, since)
+        fix_job = self.gh.job(fixes[0]["id"]) if len(fixes) == 1 else None
+        fix_agent = step(fix_job, "Agent addresses the feedback")
+        fixed = pr["head"]["sha"]
+        fresh = [v for v in verdicts if v["kind"] == "approve" and v["sha"] == fixed]
+        ok = bool(len(initial) == len(conflicts) == len(fixes) == len(fresh) == 1 and fixed != conflicting
+                  and len([v for v in verdicts if v["kind"] == "request_changes"]) == 1
+                  and fix_agent and fix_agent["conclusion"] == "success" and fixes[0]["conclusion"] == "success"
+                  and initial[0]["at"] <= conflicts[0]["at"] <= when(fix_agent["started_at"])
+                  and when(fix_agent["completed_at"]) <= fresh[0]["at"])
+        self.report.check(ok, "One conflict handoff ran the fixer, then a different commit received a fresh approval"
+                          + "".join(f": [conflict]({v['url']})" for v in conflicts))
+        self.check_merged(since, pr)
+        data = json.loads(self.clone.read(MERGE_FILE))
+        self.report.check(data == {"base": f"{self.stamp}-m3", "branch": f"{self.stamp}-m3"},
+                          "The merged fixture preserves both branches' new values; both regression tests pass")
+        self.check_runs_clean(since)
+
+    def cleanup(self):
+        self.report.stage("cleanup", "Close temporary work and remove its branches")
+        for resource in self.resources:
+            if resource["pr"] and self.gh.pr(resource["pr"])["state"] == "open":
+                self.gh.call("PATCH", f"pulls/{resource['pr']}", [("state", "closed")])
+            if resource["issue"] and self.gh.get(f"issues/{resource['issue']}")["state"] == "open":
+                self.gh.call("PATCH", f"issues/{resource['issue']}", [("state", "closed")])
+        # Closing first prevents an in-flight reviewer from merging; wait before deleting branches
+        # so a running fixer cannot recreate them after cleanup.
+        def idle():
+            return not any(r["status"] != "completed" and r["path"].rsplit("/", 1)[-1] in (PUSH, REVIEW, FIX)
+                           for r in self.gh.items("actions/runs?per_page=100", ".workflow_runs"))
+        wait("factory jobs to finish before branch cleanup", idle, 20 * 60)
+        for resource in self.resources:
+            branch = resource["branch"]
+            if self.gh.items(f"git/matching-refs/heads/{branch}"):
+                try:
+                    self.gh.call("DELETE", f"git/refs/heads/{branch}")
+                except RuntimeError:
+                    self.clone.git("push", "origin", "--delete", branch)
+            self.report.check(not self.gh.items(f"git/matching-refs/heads/{branch}"), f"Deleted `{branch}`")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--repo", default="jonbaldie/software-factory-sandbox")
+    parser.add_argument("--suite", choices=["push", "merge"], default="push", help="merge enables and restores FACTORY_MERGE")
     parser.add_argument("--pr", type=int, help="continue with this approved factory PR instead of running s1")
-    parser.add_argument("--stages", default=",".join(STAGES), help="comma-separated stages to run, in order")
+    parser.add_argument("--stages", help="comma-separated stages to run, in order; defaults to every stage in the suite")
     parser.add_argument("--clone", help="a clean, disposable sandbox clone (local branches are reset); defaults to a temporary clone")
     parser.add_argument("--report", help="also write the Markdown report to this file")
-    parser.add_argument("--close", action="store_true", help="close the PR and its issue afterwards")
+    parser.add_argument("--close", action="store_true", help="close temporary PRs/issues afterwards; merge suite also deletes branches")
     parser.add_argument("--trailer", action="append", default=[], help="a trailer to add to each commit")
     args = parser.parse_args()
-    stages = [s for s in args.stages.split(",") if s]
-    if unknown := set(stages) - set(STAGES):
+    available = MERGE_STAGES if args.suite == "merge" else STAGES
+    stages = [s for s in (args.stages or ",".join(available)).split(",") if s]
+    if unknown := set(stages) - set(available):
         parser.error(f"unknown stages: {', '.join(sorted(unknown))}")
+    if args.suite == "merge" and args.pr:
+        parser.error("the merge suite creates a fresh PR per stage; select --stages instead of --pr")
     if args.pr:
         stages = [s for s in stages if s != "s1"]
-    elif "s1" not in stages:
+    elif args.suite == "push" and "s1" not in stages:
         parser.error("pass --pr to skip s1")
     if not stages:
         parser.error("select at least one stage other than s1 when resuming")
@@ -595,11 +859,9 @@ def main():
     gh = GitHub(args.repo)
     if PUSH not in {f["name"] for f in gh.items("contents/.github/workflows")}:
         sys.exit(f"{args.repo} has no {PUSH}: install the factory there first")
-    p = run("gh", "api", f"repos/{args.repo}/actions/variables/FACTORY_MERGE", "--jq", ".value", check=False)
-    if p.returncode == 0 and p.stdout.strip() == "true":
+    original_merge = gh.merge_setting()  # Fail before mutations if the setting cannot be read.
+    if args.suite == "push" and original_merge == "true":
         sys.exit("FACTORY_MERGE is true, so the factory would merge the PR: unset it for the smoke test")
-    if p.returncode and "404" not in p.stderr:
-        log("couldn't read FACTORY_MERGE; s1 checks the approval's wording instead")
 
     # Dispatch runs have no PR association in GitHub's API. Review/fix observations therefore
     # require exclusive use of this sandbox. Reject known competing work before making changes.
@@ -613,7 +875,8 @@ def main():
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     workdir = args.clone or tempfile.mkdtemp(prefix="factory-smoke-")
     report = Report()
-    smoke = Smoke(gh, Clone(args.repo, workdir, args.trailer), report, stamp)
+    smoke_type = MergeSmoke if args.suite == "merge" else Smoke
+    smoke = smoke_type(gh, Clone(args.repo, workdir, args.trailer), report, stamp)
     base_sha = gh.get(f"commits/{smoke.base}")["sha"]
     factory = gh.get("repos/jonbaldie/software-factory/commits/v1")["sha"]
     if args.pr:
@@ -624,13 +887,32 @@ def main():
             sys.exit("--pr must name a PR created for tests/smoke.py")
         smoke.issue = int(issue[1])
     try:
+        if args.suite == "merge":
+            report.stage("setup", "Enable automatic merging for the reserved sandbox")
+            report.note(f"Original FACTORY_MERGE: {original_merge!r} (None means unset)")
+            gh.set_merge("true")
+            report.check(gh.merge_setting() == "true", "FACTORY_MERGE is true")
         for stage in stages:
             getattr(smoke, stage)()
+            if report.failures:
+                break
     except (Exception, KeyboardInterrupt) as e:
         if not report.stages:
             report.stage(stage, "setup")
         report.check(False, f"Stopped: {type(e).__name__}: {e}")
     finally:
+        if args.suite == "merge":
+            report.stage("restore", "Restore the sandbox's original merge setting")
+            try:
+                gh.set_merge(original_merge)
+                report.check(gh.merge_setting() == original_merge, f"Restored FACTORY_MERGE to {original_merge!r}")
+            except (Exception, KeyboardInterrupt) as e:
+                report.check(False, f"Restore FACTORY_MERGE to {original_merge!r} manually: {e}")
+            if args.close:
+                try:
+                    smoke.cleanup()
+                except (Exception, KeyboardInterrupt) as e:
+                    report.check(False, f"Cleanup stopped: {e}. Resources: {smoke.resources}")
         pr_link = f"[#{smoke.pr}](https://github.com/{args.repo}/pull/{smoke.pr})" if smoke.pr else "no PR"
         header = (f"### {now():%Y-%m-%d %H:%M} UTC, run {stamp}\n\n"
                   f"{args.repo} at {smoke.commit_link(base_sha)}, `run-agent@v1` at "
@@ -641,7 +923,7 @@ def main():
         if args.report:
             with open(args.report, "w") as f:
                 f.write(text)
-        if args.close and smoke.pr:
+        if args.close and smoke.pr and args.suite == "push":
             gh.call("PATCH", f"pulls/{smoke.pr}", [("state", "closed")])
             if smoke.issue:
                 gh.call("PATCH", f"issues/{smoke.issue}", [("state", "closed"), ("state_reason", "not_planned")])
