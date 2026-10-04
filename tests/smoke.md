@@ -69,6 +69,59 @@ Still not covered live: a push in the narrow interval between the final head che
 
 ## Runs
 
+
+App publishing passed both implementation and conflict recovery without any CI approval. [#99](https://github.com/jonbaldie/software-factory-sandbox/pull/99) was opened by the dedicated sandbox App; [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101) received an App-authenticated fix push. Both passed required CI before the factory merged the reviewed heads. The duplicate review after the fix skipped its agent.
+
+### 2026-10-04 06:47 UTC, run 20261004-064130
+
+jonbaldie/software-factory-sandbox at [`c52555c`](https://github.com/jonbaldie/software-factory-sandbox/commit/c52555cb49c1fe8dc56defda5f9bf90c89ec7a64), `run-agent@v1` at [`c5f7296`](https://github.com/jonbaldie/software-factory/commit/c5f7296c3f4298d19c09d69b1d8355303e092b66). PR [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101). All checks passed.
+
+#### setup · Enable automatic merging for the reserved sandbox
+
+- Original FACTORY_MERGE: None (None means unset)
+- ✅ FACTORY_MERGE is true
+
+#### m4 · An issue is implemented and merged with unattended App CI
+
+- Opened [issue #98](https://github.com/jonbaldie/software-factory-sandbox/issues/98) with `ready-for-agent`
+- Factory runs: [Factory 2 · Review #76](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183583933) (success)
+- ✅ The App published [#99](https://github.com/jonbaldie/software-factory-sandbox/pull/99): jonbaldie-factory-sandbox[bot]
+- ✅ One implementation succeeded: [Factory 1 · Implement #66](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183544866) (success)
+- ✅ Merged head [`944b617`](https://github.com/jonbaldie/software-factory-sandbox/commit/944b61757939c4f823862b2c4b84927dd506b3ab) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/99#issuecomment-5977408691)
+- ✅ The factory merged the expected PR head: [`944b617`](https://github.com/jonbaldie/software-factory-sandbox/commit/944b61757939c4f823862b2c4b84927dd506b3ab)
+- ✅ Squash commit [`5b28596`](https://github.com/jonbaldie/software-factory-sandbox/commit/5b285969a94b306f702a465524c4d59fb42e46b0) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ Required CI passed on the merged head before merging: [CI #40](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183581360) (success)
+- ✅ A GitHub App triggered CI without a maintainer approval: jonbaldie-factory-sandbox[bot]
+- ✅ The requested marker is on the merged base
+- ✅ No factory run failed or was cancelled (1 reviews ran the agent, 0 review requests stood down)
+
+#### m3 · A merge conflict is fixed, reviewed again and automatically merged
+
+- Opened [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101) at [`03c57fb`](https://github.com/jonbaldie/software-factory-sandbox/commit/03c57fbc52e1a8cc2df6f4793079f184ccf8b6c5), for [issue #100](https://github.com/jonbaldie/software-factory-sandbox/issues/100); local tests pass
+- Merged base fixture [#102](https://github.com/jonbaldie/software-factory-sandbox/pull/102) after [CI](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183637320/job/111381003714)
+- Factory runs: [Factory · Review new commits #11](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183753081) (success), [Factory 2 · Review #77](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183653986) (success), [Factory 2 · Review #78](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183753420) (success), [Factory 2 · Review #79](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183760613) (success), [Factory 3 · Fix #26](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183690257) (success)
+- ✅ #101 conflicts before review (`dirty`), confirmed locally too
+- ✅ One conflict handoff ran the fixer, then a different commit received a fresh approval: [conflict](https://github.com/jonbaldie/software-factory-sandbox/pull/101#issuecomment-5977418861)
+- ✅ Merged head [`284e615`](https://github.com/jonbaldie/software-factory-sandbox/commit/284e6157fe07ca91f42cbb9629b8ed7fe63a043a) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/101#issuecomment-5977433615)
+- ✅ The factory merged the expected PR head: [`284e615`](https://github.com/jonbaldie/software-factory-sandbox/commit/284e6157fe07ca91f42cbb9629b8ed7fe63a043a)
+- ✅ Squash commit [`da4b9b3`](https://github.com/jonbaldie/software-factory-sandbox/commit/da4b9b3a52c175b8621416bf392b58cbe161ea38) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ Required CI passed on the merged head before merging: [CI #43](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37183754066) (success)
+- ✅ A GitHub App triggered CI without a maintainer approval: jonbaldie-factory-sandbox[bot]
+- ✅ The merged fixture preserves both branches' new values; both regression tests pass
+- ✅ No factory run failed or was cancelled (2 reviews ran the agent, 1 review requests stood down)
+
+#### restore · Restore the sandbox's original merge setting
+
+- ✅ Restored FACTORY_MERGE to None
+
+#### cleanup · Close temporary work and remove its branches
+
+- ✅ Deleted `agent/issue-98`
+- ✅ Deleted `agent/issue-100`
+- ✅ Deleted `smoke/merge-base-20261004-064130`
+
 All three merge scenarios passed across the runs below: clean merge ([#85](https://github.com/jonbaldie/software-factory-sandbox/pull/85)), stale-review replacement ([#87](https://github.com/jonbaldie/software-factory-sandbox/pull/87)), and conflict recovery ([#95](https://github.com/jonbaldie/software-factory-sandbox/pull/95)). The last run supplied the documented CI approval; that [CI run passed](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37182007647) on the fixed head before the factory merged it. Failed setup attempts and their cleanup are retained below.
 
 ### 2026-10-04 06:11 UTC, run 20261004-060726
