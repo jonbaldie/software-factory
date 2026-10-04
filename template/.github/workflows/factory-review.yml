@@ -235,12 +235,18 @@ jobs:
             if [ "$MERGE" = true ]; then
               # App-authenticated pushes start CI without approval. Give required checks up to
               # five minutes to finish, while still discarding a verdict if another commit arrives.
-              # No checks, failed checks or API errors fall through to GitHub's merge rules.
+              # A queued workflow may not have registered its required checks yet.
               for _ in {1..60}; do
                 require_current_head
                 checks=$(gh pr checks "$PR" --required --json bucket || true)
-                if ! jq -e 'any(.[]; .bucket == "pending") and
+                if jq -e 'any(.[]; .bucket == "pending") and
                   all(.[]; .bucket == "pending" or .bucket == "pass" or .bucket == "skipping")' <<<"$checks" > /dev/null; then
+                  : # Wait for checks already in progress.
+                elif jq -e 'length == 0' <<<"$checks" > /dev/null; then
+                  state=$(gh pr view "$PR" --json mergeStateStatus -q .mergeStateStatus)
+                  if [ "$state" != BLOCKED ] && [ "$state" != UNKNOWN ]; then break; fi
+                else
+                  # Failed checks or check-query errors fall through to GitHub's merge rules.
                   break
                 fi
                 sleep 5

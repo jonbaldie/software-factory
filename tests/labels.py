@@ -236,6 +236,9 @@ AUTO_REVIEW = "factory-review.yml pr=40 automatic=true"
 # follow_up: another job on the same issue or PR, inheriting its final labels, comments and author.
 # The retries are issue #9: a retried review or fix clears agent:failed, and a failed retry puts it back.
 SCENARIOS = [
+    dict(name="review, required CI registers late then finishes before merging", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, checks_missing=True, checks_pending=True, comments=[], agent=approve,
+         final=["agent:approved"], dispatch=[], failed=False, merged=True),
     dict(name="review, a push during required CI discards the approval", wf="factory-review.yml", event=None,
          start=["agent:review"], vars=MERGE_ON, checks_pending=True, push_during_checks=True, comments=[], agent=approve,
          final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False, merged=False,
@@ -574,9 +577,10 @@ def run_scenario(sc, trace):
         "push_on_handoff": sc.get("push_on_handoff", False),
         "fail_head_after_approval": sc.get("fail_head_after_approval", False),
         "checks_pending": sc.get("checks_pending", False),
+        "checks_missing": sc.get("checks_missing", False),
         "push_during_checks": sc.get("push_during_checks", False),
         "assign_during_checks": sc.get("assign_during_checks", False),
-        "pr": {"number": 40, "baseRefName": "main", "headRefName": "agent/issue-39", "headRefOid": head,
+        "pr": {"mergeStateStatus": "BLOCKED" if sc.get("checks_missing") else "CLEAN", "number": 40, "baseRefName": "main", "headRefName": "agent/issue-39", "headRefOid": head,
                "state": sc.get("pr_state", "CLOSED" if sc["wf"] == "factory-implement.yml" else "OPEN"),
                "url": "https://github.com/o/sandbox/pull/40",
                "mergeable": sc.get("merge_blocked", "MERGEABLE"),

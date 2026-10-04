@@ -160,6 +160,12 @@ elif (kind, verb) == ("pr", "merge"):
         fail("Pull request is not mergeable")
     pr["state"] = "MERGED"
 elif (kind, verb) == ("pr", "checks"):
+    if st.get("checks_missing"):
+        st["checks_missing"] = False
+        save()
+        emit([])
+        sys.exit(0)
+    pr["mergeStateStatus"] = "CLEAN"
     pending = st.get("checks_pending", False)
     st["checks_pending"] = False
     if st.get("push_during_checks"):
