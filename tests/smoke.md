@@ -70,6 +70,44 @@ Still not covered live: a push in the narrow interval between the final head che
 
 ## Runs
 
+The concurrent-push candidate was installed by [sandbox#106](https://github.com/jonbaldie/software-factory-sandbox/pull/106). All 15 checks passed in m5: the stale fixer queued one retry, the human commit survived, only the initial rejection used a review round, and [#108](https://github.com/jonbaldie/software-factory-sandbox/pull/108) merged after fresh review and required App CI. The merge setting was restored and the temporary branch was deleted.
+
+### 2026-10-04 07:57 UTC, run 20261004-075114
+
+jonbaldie/software-factory-sandbox at [`5e15e00`](https://github.com/jonbaldie/software-factory-sandbox/commit/5e15e0071d9711764214b194dd470937e938d8c2), `run-agent@v1` at [`15646b5`](https://github.com/jonbaldie/software-factory/commit/15646b553c4ba43e16a4ca2841f8d7e636761869). PR [#108](https://github.com/jonbaldie/software-factory-sandbox/pull/108). All checks passed.
+
+#### setup · Enable automatic merging for the reserved sandbox
+
+- Original FACTORY_MERGE: None (None means unset)
+- ✅ FACTORY_MERGE is true
+
+#### m5 · A human push during a fix survives automatic retry and merge
+
+- Opened [#108](https://github.com/jonbaldie/software-factory-sandbox/pull/108) at [`2a5cb60`](https://github.com/jonbaldie/software-factory-sandbox/commit/2a5cb6027c2e50305e953e18cc9694bfaffeed8c), for [issue #107](https://github.com/jonbaldie/software-factory-sandbox/issues/107); local tests fail as intended
+- [Factory 3 · Fix #27](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187116197) (in_progress) is fixing [`2a5cb60`](https://github.com/jonbaldie/software-factory-sandbox/commit/2a5cb6027c2e50305e953e18cc9694bfaffeed8c)
+- Pushed [`dcf498a`](https://github.com/jonbaldie/software-factory-sandbox/commit/dcf498ae4c926ec3cca9931ec7893c7da00db535): Merge smoke: preserve a human update made during the fix (tests fail locally)
+- Factory runs: [Factory · Review new commits #13](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187133895) (skipped), [Factory · Review new commits #14](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187207892) (success), [Factory 2 · Review #83](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187060363) (success), [Factory 2 · Review #84](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187208092) (success), [Factory 2 · Review #85](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187214966) (success), [Factory 3 · Fix #27](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187116197) (success), [Factory 3 · Fix #28](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187150285) (success)
+- ✅ The human push landed while the original fix agent was running: [Factory · Review new commits #13](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187133895) (skipped)
+- ✅ The stale fix ended successfully and queued one fresh fix of the same feedback: [retry](https://github.com/jonbaldie/software-factory-sandbox/pull/108#issuecomment-5977866528)
+- ✅ Only the initial failing commit consumed a rejection round
+- ✅ The fixed head contains the human commit [`dcf498a`](https://github.com/jonbaldie/software-factory-sandbox/commit/dcf498ae4c926ec3cca9931ec7893c7da00db535)
+- ✅ Merged head [`f70a0c7`](https://github.com/jonbaldie/software-factory-sandbox/commit/f70a0c78414b83c6eddd4b63e3ff79c245c3ff97) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/108#issuecomment-5977888952)
+- ✅ The factory merged the expected PR head: [`f70a0c7`](https://github.com/jonbaldie/software-factory-sandbox/commit/f70a0c78414b83c6eddd4b63e3ff79c245c3ff97)
+- ✅ Squash commit [`165801d`](https://github.com/jonbaldie/software-factory-sandbox/commit/165801da6a1d69f65e1a6699d1017629977e5efa) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ Required CI passed on the merged head before merging: [CI #50](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187208861) (success)
+- ✅ A GitHub App triggered CI without a maintainer approval: jonbaldie-factory-sandbox[bot]
+- ✅ The merged fixture keeps the human update and the requested fix; both regression tests pass
+- ✅ No factory run failed or was cancelled (2 reviews ran the agent, 1 review requests stood down)
+
+#### restore · Restore the sandbox's original merge setting
+
+- ✅ Restored FACTORY_MERGE to None
+
+#### cleanup · Close temporary work and remove its branches
+
+- ✅ Deleted `agent/issue-107`
+
 
 App publishing passed both implementation and conflict recovery without any CI approval. [#99](https://github.com/jonbaldie/software-factory-sandbox/pull/99) was opened by the dedicated sandbox App; [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101) received an App-authenticated fix push. Both passed required CI before the factory merged the reviewed heads. The duplicate review after the fix skipped its agent.
 
