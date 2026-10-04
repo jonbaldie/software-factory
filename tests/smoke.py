@@ -21,7 +21,8 @@ The merge suite (--suite merge) uses a fresh fixture PR for each stage, with FAC
   m2   A passing head is replaced during review; only the freshly reviewed replacement merges.
   m3   A conflicting PR goes through fix, fresh review and automatic merge, preserving both sides.
   m4   A ready-for-agent issue is implemented, published by the App, reviewed and merged without CI approval.
-It saves and restores FACTORY_MERGE, including on failure. It spends one implement run, about six reviews and one fix.
+  m5   A human pushes during a fix; a fresh fix preserves that commit and merges without another rejection round.
+It saves and restores FACTORY_MERGE, including on failure. It spends one implement run, about eight reviews and three fixes.
 
 The expected outcomes, and the record of past runs, are in tests/smoke.md.
 
@@ -39,10 +40,11 @@ from datetime import datetime, timedelta, timezone
 BOT = "github-actions[bot]"
 PUSH, REVIEW, FIX, IMPLEMENT = "factory-review-push.yml", "factory-review.yml", "factory-fix.yml", "factory-implement.yml"
 AGENT_STEP = "Agent reviews the change"
+FIX_AGENT_STEP = "Agent addresses the feedback"
 SMOKE_FILE = "smoke.txt"
 TESTS = "test/textkit.test.js"
 STAGES = ["s1", "s2", "s3", "s4a", "s4b"]
-MERGE_STAGES = ["m1", "m2", "m3", "m4"]
+MERGE_STAGES = ["m1", "m2", "m3", "m4", "m5"]
 MERGE_FILE = "smoke-merge.json"
 MARGIN = timedelta(seconds=5)  # allows for clock skew against GitHub's timestamps
 FAILED_LABELS = {"agent:failed", "ready-for-human"}
@@ -398,17 +400,17 @@ class Smoke:
             return done[0] if done and done[0]["status"] == "completed" else None
         return wait("the push handler", probe, 30 * 60, every=5)
 
-    def running_review(self, since):
-        """The review run that is part-way through its agent step, so a push now lands mid-review."""
+    def running_agent(self, since, workflow=REVIEW, name=AGENT_STEP):
+        """Find the running agent so the next push can land during its work."""
         def probe():
-            for r in self.gh.runs(REVIEW, since):
-                agent = step(self.gh.job(r["id"]), AGENT_STEP)
+            for r in self.gh.runs(workflow, since):
+                agent = step(self.gh.job(r["id"]), name)
                 if agent and agent["status"] == "in_progress":
                     return r
                 if agent and agent["conclusion"] == "success":
-                    raise StageFailed(f"review {r['html_url']} finished its agent step before the push could land")
+                    raise StageFailed(f"{r['html_url']} finished its agent step before the push could land")
             return None
-        return wait("a review to reach its agent step", probe, 30 * 60, every=3)
+        return wait(f"{workflow} to reach its agent step", probe, 30 * 60, every=3)
 
     # ---- checks shared by the stages ----
     def check_handler(self, h, sha, note=""):
@@ -541,7 +543,7 @@ class Smoke:
         stale, since = self.push("Test uncapitalize on all-caps input, with the wrong expectation", {TESTS: text},
                                  passing=False)
         self.check_handler(self.handler(since, stale), stale)
-        review = self.running_review(since)
+        review = self.running_agent(since)
         self.report.note(f"{self.run_link(review)} is running its agent on {stale[:7]}")
         sha, pushed = self.push("Correct the all-caps uncapitalize test", {TESTS: self.clone.read(TESTS).replace(WRONG, RIGHT)})
         self.mid_review_checks(since, stale, review, sha, pushed)
@@ -577,7 +579,7 @@ class Smoke:
         stale, since = self.push(f"Restore {SMOKE_FILE}, resolving the conflict",
                                  {SMOKE_FILE: self.clone.read(SMOKE_FILE, rev=merge_base)})
         self.check_handler(self.handler(since, stale), stale)
-        review = self.running_review(since)
+        review = self.running_agent(since)
         self.report.note(f"{self.run_link(review)} is running its agent on {stale[:7]}")
         sha, pushed = self.push(f"Edit {SMOKE_FILE} so it conflicts with {self.base} again",
                                 {SMOKE_FILE: self.smoke_text(f"PR #{self.pr}, s4b")}, conflict=True)
@@ -632,6 +634,11 @@ test('factory merge smoke preserves the {side} update', () => {{
                      "on main after this PR opens. The resulting merge conflict is intentional, not a code-review "
                      "defect: review the branch change on its own merits so the factory's merge step can hand "
                      "the conflict to the fixer. Fixer: merge main, retaining BOTH new values and both sides' tests.")
+        elif stage == "m5":
+            body += (f"\n\nSet `branch` to `{self.stamp}-m5`. The initial JSON value is deliberately wrong; "
+                     "the branch test already asserts the requested value. Fix the JSON, preserving that assertion. "
+                     "While the fixer works, the maintainer will update `base` and its test on this same branch. "
+                     "Keep that new base value and test unchanged. Both markers must survive the final merge.")
         else:
             body += "\n\nThis stage changes only `branch`. Leave the existing `base` value unchanged."
         issue = self.gh.post("issues", title=f"Merge smoke {stage}: {self.stamp}", body=body)
@@ -640,15 +647,21 @@ test('factory merge smoke preserves the {side} update', () => {{
         resource = {"issue": self.issue, "pr": None, "branch": self.branch}
         self.resources.append(resource)
         self.clone.checkout(self.branch, start=self.base)
-        sha = self.clone.commit(f"Merge smoke {stage}: update branch fixture", self.fixture_files("branch", f"{self.stamp}-{stage}"))
-        if self.clone.tests_pass(("npm", "test")) is not True:
-            raise StageFailed("merge fixtures require npm and passing local tests")
+        files = self.fixture_files("branch", f"{self.stamp}-{stage}")
+        if stage == "m5":
+            data = json.loads(files[MERGE_FILE])
+            data["branch"] = "deliberately-unfixed"
+            files[MERGE_FILE] = json.dumps(data, sort_keys=True) + "\n"
+        sha = self.clone.commit(f"Merge smoke {stage}: update branch fixture", files)
+        passing = stage != "m5"
+        if self.clone.tests_pass(("npm", "test")) is not passing:
+            raise StageFailed(f"merge fixtures require npm and {'passing' if passing else 'failing'} local tests")
         self.clone.push(self.branch)
         pr = self.gh.post("pulls", title=f"Merge smoke {stage}: {self.stamp}", head=self.branch, base=self.base,
-                          body=f"Closes #{self.issue}\n\n{body}\n\nValidation: `npm test` passed locally.")
+                          body=f"Closes #{self.issue}\n\n{body}\n\nValidation: `npm test` {'passed' if passing else 'failed as intended'} locally.")
         resource["pr"] = self.pr = pr["number"]
         self.report.note(f"Opened [#{self.pr}]({pr['html_url']}) at {self.commit_link(sha)}, "
-                         f"for [issue #{self.issue}]({issue['html_url']}); local tests pass")
+                         f"for [issue #{self.issue}]({issue['html_url']}); local tests {'pass' if passing else 'fail as intended'}")
         return sha
 
     def dispatch_review(self):
@@ -731,7 +744,7 @@ test('factory merge smoke preserves the {side} update', () => {{
         self.report.stage("m2", "A passing push during review requires a fresh approval before merging")
         stale = self.fixture_pr("m2")
         since = self.dispatch_review()
-        review = self.running_review(since)
+        review = self.running_agent(since)
         self.report.note(f"{self.run_link(review)} is reviewing passing commit {self.commit_link(stale)}")
         # Unlike s3, both commits pass: an old approval would otherwise permit a merge.
         self.clone.checkout(self.branch)
@@ -847,6 +860,47 @@ test('factory merge smoke preserves the {side} update', () => {{
         self.check_ci(pr, app=True)
         self.report.check(json.loads(self.clone.read(MERGE_FILE))["branch"] == value,
                           "The requested marker is on the merged base")
+        self.check_runs_clean(since)
+
+    def m5(self):
+        self.report.stage("m5", "A human push during a fix survives automatic retry and merge")
+        stale = self.fixture_pr("m5")
+        since = self.dispatch_review()
+        fixing = self.running_agent(since, FIX, FIX_AGENT_STEP)
+        self.report.note(f"{self.run_link(fixing)} is fixing {self.commit_link(stale)}")
+        self.clone.checkout(self.branch)
+        human, _ = self.push("Merge smoke: preserve a human update made during the fix",
+                             self.fixture_files("base", f"{self.stamp}-m5-human"), passing=False)
+        # GitHub's push event is the authoritative time of the human update.
+        handler = self.handler(since, human)
+        pr = self.merged(since)
+        fixes = self.gh.runs(FIX, since)
+        jobs = [self.gh.job(r["id"]) for r in fixes]
+        agents = [step(j, FIX_AGENT_STEP) for j in jobs]
+        first = agents[0] if agents else None
+        self.report.check(bool(first and when(first["started_at"]) <= when(handler["created_at"])
+                               < when(first["completed_at"])),
+                          f"The human push landed while the original fix agent was running: {self.run_link(handler)}")
+        retries = [c for c in self.gh.comments(self.pr, since)
+                   if c["user"]["login"] == BOT and c["body"].startswith("The PR changed during this fix")
+                   and stale in c["body"] and human in c["body"]]
+        ok = (len(fixes) == 2 and len(retries) == 1
+              and all(a and a["conclusion"] == "success" for a in agents)
+              and all(r["conclusion"] == "success" for r in fixes)
+              and when(jobs[0]["completed_at"]) <= when(agents[1]["started_at"]))
+        self.report.check(ok, "The stale fix ended successfully and queued one fresh fix of the same feedback"
+                          + "".join(f": [retry]({c['html_url']})" for c in retries))
+        rounds = [v for v in self.verdicts(since) if v["kind"] == "request_changes"]
+        self.report.check(len(rounds) == 1 and rounds[0]["sha"] == stale,
+                          "Only the initial failing commit consumed a rejection round")
+        history = self.gh.get(f"compare/{human}...{pr['head']['sha']}")
+        self.report.check(history["status"] == "ahead" and history["merge_base_commit"]["sha"] == human,
+                          f"The fixed head contains the human commit {self.commit_link(human)}")
+        self.check_merged(since, pr)
+        self.check_ci(pr, app=True)
+        self.report.check(json.loads(self.clone.read(MERGE_FILE)) == {
+            "base": f"{self.stamp}-m5-human", "branch": f"{self.stamp}-m5"},
+            "The merged fixture keeps the human update and the requested fix; both regression tests pass")
         self.check_runs_clean(since)
 
     def cleanup(self):

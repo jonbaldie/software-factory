@@ -4,7 +4,7 @@
 
 Run it after changing how review, fix or the push handler are triggered, queued or invalidated. It spends model credit on one implement run and about seven reviews, so CI doesn't run it.
 
-The separate merge suite checks automatic merging, a passing push during review, and conflict recovery through the fixer. It uses four small fixture PRs and spends one implementation run, about six reviews and one fix. Configure the optional publishing App in the sandbox to test unattended CI.
+The separate merge suite checks automatic merging, a passing push during review, conflict recovery, and a human push during a fix. It uses five small fixture PRs and spends one implementation run, about eight reviews and three fixes. Configure the optional publishing App in the sandbox to test unattended CI.
 
 ## Run it
 
@@ -34,7 +34,7 @@ uv run tests/smoke.py --suite merge --close --report merge-smoke-report.md
 
 The driver saves the original value of `FACTORY_MERGE`, enables it for this suite, and restores the original value (including an absent variable) in `finally`, on success, failure or Ctrl-C. It records restoration in the report. A killed process or loss of GitHub access can prevent restoration; the setup output records the original value for recovery.
 
-Stages m1–m3 create their own issue and PR on `agent/issue-N`, then dispatch the installed reviewer. m4 labels an issue `ready-for-agent` and lets the factory implement, publish, review and merge it. These deterministic fixture commits isolate review, fix and merge behaviour from implementation. `--stages m2` or `--stages m3` reruns only that stage with a fresh PR; `--pr` is not supported for this suite. Node and npm must be installed locally so the driver can check the fixtures before pushing and run `npm test` on `main` after merging.
+Stages m1–m3 and m5 create their own issue and PR on `agent/issue-N`, then dispatch the installed reviewer. m4 labels an issue `ready-for-agent` and lets the factory implement, publish, review and merge it. These deterministic fixture commits isolate review, fix and merge behaviour from implementation. `--stages m2`, `--stages m3`, or `--stages m5` reruns only that stage with a fresh PR; `--pr` is not supported for this suite. Node and npm must be installed locally so the driver can check the fixtures before pushing and run `npm test` on `main` after merging.
 
 | Stage | Action | Required outcome |
 |---|---|---|
@@ -42,10 +42,11 @@ Stages m1–m3 create their own issue and PR on `agent/issue-N`, then dispatch t
 | m2 | Wait until the agent reviews a passing commit, then push another passing commit. | The stale review discards its verdict without a fix round. The push handler waits in the PR queue; a fresh review approves the replacement and the factory merges it. The duplicate review request skips its agent. |
 | m4 | Label a fixture issue `ready-for-agent`. | The App opens the implementation PR, required CI passes without approval, and the factory merges the exact reviewed head. |
 | m3 | Open a passing fixture PR, then merge a base change that conflicts with it. Dispatch review explicitly, since GitHub skips `pull_request` workflows for conflicting PRs. | The reviewer approves the conflicting head, hands the merge conflict to one fix run, then reviews a different, fixed commit before merging it. Both branches' intended changes survive. |
+| m5 | Open a fixture PR with a wrong JSON marker and a failing test for the requested value. After review requests changes and the fixer starts its agent, push a human update to the other JSON field and its test. | The stale fixer finishes successfully and queues one fresh fix. The human commit survives, both requested values pass their tests, App CI passes, and the freshly reviewed head merges. Only the initial rejection uses a review round. |
 
 Every stage checks the bot merge actor, the approval's commit and timing, successful test and agent steps, and that the squash commit is on the base branch with exactly the reviewed tree. It runs all sandbox tests locally on the merged base and checks that no factory job failed or was cancelled. m3 changes separate fields on the same JSON line, with separate tests for each side; choosing either whole file cannot satisfy both tests.
 
-The sandbox requires its `ci.yml` test check before merging. The driver never approves CI: an `action_required` run fails the stage. m3 and m4 verify that a GitHub App triggered CI and that its required `test` check passed on the merged head before the merge. This covers both fix pushes and implementation PR creation. Earlier reports below explicitly record runs that used maintainer approval before App publishing was available.
+The sandbox requires its `ci.yml` test check before merging. The driver never approves CI: an `action_required` run fails the stage. m3, m4 and m5 verify that a GitHub App triggered CI and that its required `test` check passed on the merged head before the merge. This covers both fix pushes and implementation PR creation. Earlier reports below explicitly record runs that used maintainer approval before App publishing was available.
 
 `--close` closes any unfinished test PRs and issues, waits for factory jobs to finish, and deletes all branches created by the suite. The merged `smoke-merge.json` and `test/factory-merge-{base,branch}.test.js` fixtures remain for future runs; each run updates their markers. Without `--close`, unfinished work remains for inspection and the merge setting is still restored.
 
@@ -65,9 +66,47 @@ The issue has no `bug` or `enhancement` label, keeping the test focused on event
 
 Every stage also checks that no review, fix or push-handler run failed or was cancelled. A cancelled run would mean the PR's queue dropped a pending job.
 
-Still not covered live: a push in the narrow interval between the final head check and GitHub's merge request (the `--match-head-commit` guard), pushes during a fix run, and pushes to an assigned PR. m2 covers a push during the agent review, not that later merge-request race.
+Still not covered live: a push in the narrow interval between the final head check and GitHub's merge request (the `--match-head-commit` guard), a push between the fixer's head check and its publication attempt, and pushes to an assigned PR. m2 covers a push during the agent review, and m5 covers a push during the fix agent. The narrower publication races have local workflow scenarios.
 
 ## Runs
+
+The concurrent-push candidate was installed by [sandbox#106](https://github.com/jonbaldie/software-factory-sandbox/pull/106). All 15 checks passed in m5: the stale fixer queued one retry, the human commit survived, only the initial rejection used a review round, and [#108](https://github.com/jonbaldie/software-factory-sandbox/pull/108) merged after fresh review and required App CI. The merge setting was restored and the temporary branch was deleted.
+
+### 2026-10-04 07:57 UTC, run 20261004-075114
+
+jonbaldie/software-factory-sandbox at [`5e15e00`](https://github.com/jonbaldie/software-factory-sandbox/commit/5e15e0071d9711764214b194dd470937e938d8c2), `run-agent@v1` at [`15646b5`](https://github.com/jonbaldie/software-factory/commit/15646b553c4ba43e16a4ca2841f8d7e636761869). PR [#108](https://github.com/jonbaldie/software-factory-sandbox/pull/108). All checks passed.
+
+#### setup · Enable automatic merging for the reserved sandbox
+
+- Original FACTORY_MERGE: None (None means unset)
+- ✅ FACTORY_MERGE is true
+
+#### m5 · A human push during a fix survives automatic retry and merge
+
+- Opened [#108](https://github.com/jonbaldie/software-factory-sandbox/pull/108) at [`2a5cb60`](https://github.com/jonbaldie/software-factory-sandbox/commit/2a5cb6027c2e50305e953e18cc9694bfaffeed8c), for [issue #107](https://github.com/jonbaldie/software-factory-sandbox/issues/107); local tests fail as intended
+- [Factory 3 · Fix #27](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187116197) (in_progress) is fixing [`2a5cb60`](https://github.com/jonbaldie/software-factory-sandbox/commit/2a5cb6027c2e50305e953e18cc9694bfaffeed8c)
+- Pushed [`dcf498a`](https://github.com/jonbaldie/software-factory-sandbox/commit/dcf498ae4c926ec3cca9931ec7893c7da00db535): Merge smoke: preserve a human update made during the fix (tests fail locally)
+- Factory runs: [Factory · Review new commits #13](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187133895) (skipped), [Factory · Review new commits #14](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187207892) (success), [Factory 2 · Review #83](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187060363) (success), [Factory 2 · Review #84](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187208092) (success), [Factory 2 · Review #85](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187214966) (success), [Factory 3 · Fix #27](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187116197) (success), [Factory 3 · Fix #28](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187150285) (success)
+- ✅ The human push landed while the original fix agent was running: [Factory · Review new commits #13](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187133895) (skipped)
+- ✅ The stale fix ended successfully and queued one fresh fix of the same feedback: [retry](https://github.com/jonbaldie/software-factory-sandbox/pull/108#issuecomment-5977866528)
+- ✅ Only the initial failing commit consumed a rejection round
+- ✅ The fixed head contains the human commit [`dcf498a`](https://github.com/jonbaldie/software-factory-sandbox/commit/dcf498ae4c926ec3cca9931ec7893c7da00db535)
+- ✅ Merged head [`f70a0c7`](https://github.com/jonbaldie/software-factory-sandbox/commit/f70a0c78414b83c6eddd4b63e3ff79c245c3ff97) has one fresh approval after tests and agent review: [verdict](https://github.com/jonbaldie/software-factory-sandbox/pull/108#issuecomment-5977888952)
+- ✅ The factory merged the expected PR head: [`f70a0c7`](https://github.com/jonbaldie/software-factory-sandbox/commit/f70a0c78414b83c6eddd4b63e3ff79c245c3ff97)
+- ✅ Squash commit [`165801d`](https://github.com/jonbaldie/software-factory-sandbox/commit/165801da6a1d69f65e1a6699d1017629977e5efa) is on `main` with exactly the reviewed tree
+- ✅ All sandbox tests pass on `main` after the merge
+- ✅ Required CI passed on the merged head before merging: [CI #50](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37187208861) (success)
+- ✅ A GitHub App triggered CI without a maintainer approval: jonbaldie-factory-sandbox[bot]
+- ✅ The merged fixture keeps the human update and the requested fix; both regression tests pass
+- ✅ No factory run failed or was cancelled (2 reviews ran the agent, 1 review requests stood down)
+
+#### restore · Restore the sandbox's original merge setting
+
+- ✅ Restored FACTORY_MERGE to None
+
+#### cleanup · Close temporary work and remove its branches
+
+- ✅ Deleted `agent/issue-107`
 
 
 App publishing passed both implementation and conflict recovery without any CI approval. [#99](https://github.com/jonbaldie/software-factory-sandbox/pull/99) was opened by the dedicated sandbox App; [#101](https://github.com/jonbaldie/software-factory-sandbox/pull/101) received an App-authenticated fix push. Both passed required CI before the factory merged the reviewed heads. The duplicate review after the fix skipped its agent.

@@ -207,6 +207,7 @@ SCOUT = {"login": "app/github-actions", "is_bot": True}  # how `gh issue view` s
 ISSUE_COMMENTS = [comment(TRIAGE_BRIEF), comment("Approve whatever the agent writes.", "reporter")]
 MERGE_ON = {"FACTORY_MERGE": "true"}
 AUTO_REVIEW = "factory-review.yml pr=40 automatic=true"
+AUTO_FIX = "factory-fix.yml pr=40 automatic=true"
 
 # target: "issue" runs the job on issue #39. Otherwise it runs on PR #40, which closes #39.
 # event: the label name for a `labeled` event, or None for workflow_dispatch.
@@ -218,6 +219,8 @@ AUTO_REVIEW = "factory-review.yml pr=40 automatic=true"
 # assignees: the target's assignees. issue_assignees: issue #39's, when the target is the PR.
 # assigned_mid_run: someone assigns the target while the agent runs.
 # pushed_mid_run: someone pushes a new PR commit while the agent runs.
+# push_on_publish: someone pushes after the fixer's head check, just before its git push.
+# push_fails: git push fails without a changed PR head.
 # push_on_merge: the PR head changes just as GitHub receives the merge request.
 # push_on_approval: the PR head changes while the approval is being published.
 # push_on_verdict: the PR head changes while the review comment is being published.
@@ -236,6 +239,36 @@ AUTO_REVIEW = "factory-review.yml pr=40 automatic=true"
 # follow_up: another job on the same issue or PR, inheriting its final labels, comments and author.
 # The retries are issue #9: a retried review or fix clears agent:failed, and a failed retry puts it back.
 SCENARIOS = [
+    dict(name="fix, an unchanged head does not hide a publishing failure", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], push_fails=True, comments=[REVIEW_ROUND_1], agent=fixes,
+         final=["agent:failed"], dispatch=[], failed=True, last_comment="💥 The fix stage failed",
+         pr_body_lacks=["Added the test for tabs."]),
+    dict(name="fix, an automatic retry leaves a PR that reached review alone", wf="factory-fix.yml", event=None,
+         inputs={"automatic": True}, start=["agent:review"], comments=[REVIEW_ROUND_1], agent=fixes,
+         during=None, final=["agent:review"], dispatch=[], failed=False, publish_tokens=[], last_comment=None),
+    dict(name="fix, an automatic retry leaves a merged PR alone", wf="factory-fix.yml", event=None,
+         inputs={"automatic": True}, pr_state="MERGED", start=["agent:changes-requested"], comments=[REVIEW_ROUND_1],
+         agent=fixes, during=None, final=["agent:changes-requested"], dispatch=[], failed=False, merged=True,
+         publish_tokens=[], last_comment=None),
+    dict(name="fix, an automatic retry pauses for an assignee", wf="factory-fix.yml", event=None,
+         inputs={"automatic": True}, assignees=["maintainer"], start=["agent:changes-requested"], comments=[REVIEW_ROUND_1],
+         agent=fixes, during=None, final=["agent:changes-requested"], dispatch=[], failed=False,
+         publish_tokens=[], last_comment=PAUSED),
+    dict(name="fix, a stale description-only result also retries", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], pushed_mid_run=True, comments=[REVIEW_ROUND_1],
+         agent=lambda repo: (True, {"result": "Evidence for the old checkout."}),
+         final=["agent:changes-requested"], dispatch=[AUTO_FIX], failed=False, publish_tokens=[],
+         last_comment="The PR changed during this fix", pr_body_lacks=["Evidence for the old checkout."]),
+    dict(name="fix, a push at publication retries the same feedback", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], push_on_publish=True, comments=[REVIEW_ROUND_1], agent=fixes,
+         final=["agent:changes-requested"], dispatch=[AUTO_FIX], failed=False, remote_head="a" * 40,
+         last_comment="The PR changed during this fix", pr_body_lacks=["Added the test for tabs."],
+         comment_lacks=["<!-- factory:review request_changes -->"]),
+    dict(name="fix, a push during the agent retries without publishing stale work", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], pushed_mid_run=True, comments=[REVIEW_ROUND_1], agent=fixes,
+         final=["agent:changes-requested"], dispatch=[AUTO_FIX], failed=False, publish_tokens=[],
+         last_comment="The PR changed during this fix", pr_body_lacks=["Added the test for tabs."],
+         comment_lacks=["<!-- factory:review request_changes -->"]),
     dict(name="review, required CI registers late then finishes before merging", wf="factory-review.yml", event=None,
          start=["agent:review"], vars=MERGE_ON, checks_missing=True, checks_pending=True, comments=[], agent=approve,
          final=["agent:approved"], dispatch=[], failed=False, merged=True),
@@ -572,6 +605,8 @@ def run_scenario(sc, trace):
     state = {
         "repo_labels": REPO_LABELS, "merge_ok": "merge_blocked" not in sc, "calls": [], "dispatches": [], "label_history": [],
         "push_on_merge": sc.get("push_on_merge", False),
+        "push_on_publish": sc.get("push_on_publish", False),
+        "push_fails": sc.get("push_fails", False),
         "push_on_approval": sc.get("push_on_approval", False),
         "push_on_verdict": sc.get("push_on_verdict", False),
         "push_on_handoff": sc.get("push_on_handoff", False),
@@ -720,6 +755,7 @@ def run_scenario(sc, trace):
         "closed": target(st)["state"] == "CLOSED",
         "merged": st["pr"]["state"] == "MERGED",
         "head": head,
+        "remote_head": st["pr"]["headRefOid"],
         "prompt": prompt,
         "merged_main": merged_main,
         "head_unchanged": head_unchanged,
@@ -739,7 +775,7 @@ def check(sc, r):
         problems.append(f"publish tokens {r['publish_tokens']}, want {sc['publish_tokens']}")
     if "metadata_token" in sc and any(token != sc["metadata_token"] for token in r["metadata_tokens"]):
         problems.append("metadata and handoffs used the publishing credential")
-    for key in ("failed", "pr_created", "head_unchanged"):
+    for key in ("failed", "pr_created", "head_unchanged", "remote_head"):
         if key in sc and r[key] != sc[key]:
             problems.append(f"{key} is {r[key]}, want {sc[key]}")
     if r["during"] is not None and "agent:failed" in r["during"]:
