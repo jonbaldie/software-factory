@@ -603,6 +603,7 @@ class MergeSmoke(Smoke):
     def __init__(self, *args):
         super().__init__(*args)
         self.resources = []
+        self.approved_ci = set()
 
     def fixture_files(self, side, value):
         data = json.loads(self.clone.read(MERGE_FILE) or '{"base": "initial", "branch": "initial"}')
@@ -655,8 +656,31 @@ test('factory merge smoke preserves the {side} update', () => {{
         self.gh.post(f"actions/workflows/{REVIEW}/dispatches", ref=self.base, **{"inputs[pr]": str(self.pr)})
         return since
 
+    def approve_fixture_ci(self, since):
+        # GitHub holds pull_request workflows triggered by GITHUB_TOKEN for approval.
+        # Supply that maintainer action only for this fixture's CI; required checks still run.
+        pr = self.gh.pr(self.pr)
+        if pr["state"] != "open":
+            return
+        for ci in self.gh.runs("ci.yml", since):
+            pending = ci["status"] == "action_required" or ci["conclusion"] == "action_required"
+            if (not pending or ci["id"] in self.approved_ci or ci["event"] != "pull_request"
+                    or ci["head_sha"] != pr["head"]["sha"] or ci["head_branch"] != self.branch
+                    or ci["actor"]["login"] != BOT):
+                continue
+            files = {f[key] for f in self.gh.items(f"pulls/{self.pr}/files?per_page=100")
+                     for key in ("filename", "previous_filename") if key in f}
+            fixtures = {MERGE_FILE, "test/factory-merge-base.test.js", "test/factory-merge-branch.test.js"}
+            if not files or not files <= fixtures:
+                raise StageFailed(f"refusing to approve CI for non-fixture changes: {sorted(files)}")
+            self.gh.post(f"actions/runs/{ci['id']}/approve")
+            self.approved_ci.add(ci["id"])
+            self.report.note(f"Approved [fixture CI]({ci['html_url']}) for {self.commit_link(ci['head_sha'])}; "
+                             "GitHub requires maintainer approval after the fixer's bot push")
+
     def merged(self, since):
         def probe():
+            self.approve_fixture_ci(since)
             if any(r["status"] != "completed" for r in self.factory_runs(since)):
                 return None
             pr = self.gh.pr(self.pr)
