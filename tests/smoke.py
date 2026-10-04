@@ -20,7 +20,8 @@ The merge suite (--suite merge) uses a fresh fixture PR for each stage, with FAC
   m1   A passing PR is automatically squash-merged at its reviewed head.
   m2   A passing head is replaced during review; only the freshly reviewed replacement merges.
   m3   A conflicting PR goes through fix, fresh review and automatic merge, preserving both sides.
-It saves and restores FACTORY_MERGE, including on failure. It spends about five reviews and one fix.
+  m4   A ready-for-agent issue is implemented, published by the App, reviewed and merged without CI approval.
+It saves and restores FACTORY_MERGE, including on failure. It spends one implement run, about six reviews and one fix.
 
 The expected outcomes, and the record of past runs, are in tests/smoke.md.
 
@@ -41,7 +42,7 @@ AGENT_STEP = "Agent reviews the change"
 SMOKE_FILE = "smoke.txt"
 TESTS = "test/textkit.test.js"
 STAGES = ["s1", "s2", "s3", "s4a", "s4b"]
-MERGE_STAGES = ["m1", "m2", "m3"]
+MERGE_STAGES = ["m1", "m2", "m3", "m4"]
 MERGE_FILE = "smoke-merge.json"
 MARGIN = timedelta(seconds=5)  # allows for clock skew against GitHub's timestamps
 FAILED_LABELS = {"agent:failed", "ready-for-human"}
@@ -598,12 +599,11 @@ class Smoke:
 
 
 class MergeSmoke(Smoke):
-    """Repeatable fixture PRs: exercise the installed reviewer/fixer, without an implementer."""
+    """Repeatable fixture changes exercise publishing, review, fix and protected merges."""
 
     def __init__(self, *args):
         super().__init__(*args)
         self.resources = []
-        self.approved_ci = set()
 
     def fixture_files(self, side, value):
         data = json.loads(self.clone.read(MERGE_FILE) or '{"base": "initial", "branch": "initial"}')
@@ -656,31 +656,32 @@ test('factory merge smoke preserves the {side} update', () => {{
         self.gh.post(f"actions/workflows/{REVIEW}/dispatches", ref=self.base, **{"inputs[pr]": str(self.pr)})
         return since
 
-    def approve_fixture_ci(self, since):
-        # GitHub holds pull_request workflows triggered by GITHUB_TOKEN for approval.
-        # Supply that maintainer action only for this fixture's CI; required checks still run.
-        pr = self.gh.pr(self.pr)
-        if pr["state"] != "open":
-            return
+    def reject_ci_approval(self, since):
         for ci in self.gh.runs("ci.yml", since):
-            pending = ci["status"] == "action_required" or ci["conclusion"] == "action_required"
-            if (not pending or ci["id"] in self.approved_ci or ci["event"] != "pull_request"
-                    or ci["head_sha"] != pr["head"]["sha"] or ci["head_branch"] != self.branch
-                    or ci["actor"]["login"] != BOT):
-                continue
-            files = {f[key] for f in self.gh.items(f"pulls/{self.pr}/files?per_page=100")
-                     for key in ("filename", "previous_filename") if key in f}
-            fixtures = {MERGE_FILE, "test/factory-merge-base.test.js", "test/factory-merge-branch.test.js"}
-            if not files or not files <= fixtures:
-                raise StageFailed(f"refusing to approve CI for non-fixture changes: {sorted(files)}")
-            self.gh.post(f"actions/runs/{ci['id']}/approve")
-            self.approved_ci.add(ci["id"])
-            self.report.note(f"Approved [fixture CI]({ci['html_url']}) for {self.commit_link(ci['head_sha'])}; "
-                             "GitHub requires maintainer approval after the fixer's bot push")
+            if (ci["head_branch"] == self.branch and ci["event"] == "pull_request"
+                    and "action_required" in (ci["status"], ci["conclusion"])):
+                raise StageFailed(f"CI required human approval: {ci['html_url']}")
+
+    def check_ci(self, pr, app=False):
+        runs = [r for r in self.gh.runs("ci.yml", when(pr["created_at"]) - MARGIN)
+                if r["event"] == "pull_request" and r["head_sha"] == pr["head"]["sha"]
+                and r["head_branch"] == self.branch]
+        checks = self.gh.items(f"commits/{pr['head']['sha']}/check-runs?per_page=100", ".check_runs")
+        tests = [c for c in checks if c["name"] == "test" and c["app"]["slug"] == "github-actions"]
+        ok = bool(runs and tests and all(r["conclusion"] == "success" for r in runs)
+                  and all(c["conclusion"] == "success" and when(c["completed_at"]) <= when(pr["merged_at"])
+                          for c in tests))
+        self.report.check(ok, "Required CI passed on the merged head before merging: "
+                          + ", ".join(self.run_link(r) for r in runs))
+        if app:
+            self.report.check(bool(runs) and all(r["actor"]["type"] == "Bot" and r["actor"]["login"] != BOT
+                                                for r in runs),
+                              "A GitHub App triggered CI without a maintainer approval: "
+                              + ", ".join(sorted({r["actor"]["login"] for r in runs})))
 
     def merged(self, since):
         def probe():
-            self.approve_fixture_ci(since)
+            self.reject_ci_approval(since)
             if any(r["status"] != "completed" for r in self.factory_runs(since)):
                 return None
             pr = self.gh.pr(self.pr)
@@ -804,9 +805,48 @@ test('factory merge smoke preserves the {side} update', () => {{
         self.report.check(ok, "One conflict handoff ran the fixer, then a different commit received a fresh approval"
                           + "".join(f": [conflict]({v['url']})" for v in conflicts))
         self.check_merged(since, pr)
+        self.check_ci(pr, app=True)
         data = json.loads(self.clone.read(MERGE_FILE))
         self.report.check(data == {"base": f"{self.stamp}-m3", "branch": f"{self.stamp}-m3"},
                           "The merged fixture preserves both branches' new values; both regression tests pass")
+        self.check_runs_clean(since)
+
+    def m4(self):
+        self.report.stage("m4", "An issue is implemented and merged with unattended App CI")
+        since = now() - MARGIN
+        value = f"{self.stamp}-m4"
+        body = ("This issue drives software-factory's unattended smoke test (`tests/smoke.py`).\n\n"
+                f"Set only the `branch` field in `{MERGE_FILE}` to `{value}`, preserving the existing `base` value. "
+                "Update `test/factory-merge-branch.test.js` to assert that exact new value. These persistent "
+                "fixtures exercise the factory; leave the library API, documentation and base test unchanged. "
+                "Run `npm test`. The factory should publish, review and merge this change without human intervention.")
+        issue = self.gh.post("issues", title=f"Unattended merge smoke: {self.stamp}", body=body)
+        self.issue, self.pr = issue["number"], None
+        self.branch = f"agent/issue-{self.issue}"
+        resource = {"issue": self.issue, "pr": None, "branch": self.branch}
+        self.resources.append(resource)
+        self.gh.post(f"issues/{self.issue}/labels", labels=["ready-for-agent"])
+        self.report.note(f"Opened [issue #{self.issue}]({issue['html_url']}) with `ready-for-agent`")
+
+        def opened():
+            labels = self.gh.labels(self.issue)
+            if labels & (FAILED_LABELS | {"needs-info"}):
+                raise StageFailed(f"implementation stopped with {sorted(labels)}")
+            owner = self.gh.repo.split("/")[0]
+            prs = self.gh.items(f"pulls?state=all&head={owner}:{self.branch}")
+            return prs[0] if prs else None
+        pr = wait("the App to publish the implementation PR", opened, 40 * 60, every=15)
+        resource["pr"] = self.pr = pr["number"]
+        self.report.check(pr["user"]["type"] == "Bot" and pr["user"]["login"] != BOT,
+                          f"The App published [#{self.pr}]({pr['html_url']}): {pr['user']['login']}")
+        pr = self.merged(since)
+        implement = [r for r in self.gh.runs(IMPLEMENT, since) if r["conclusion"] != "skipped"]
+        self.report.check(len(implement) == 1 and implement[0]["conclusion"] == "success",
+                          "One implementation succeeded: " + ", ".join(self.run_link(r) for r in implement))
+        self.check_merged(since, pr)
+        self.check_ci(pr, app=True)
+        self.report.check(json.loads(self.clone.read(MERGE_FILE))["branch"] == value,
+                          "The requested marker is on the merged base")
         self.check_runs_clean(since)
 
     def cleanup(self):
@@ -819,7 +859,7 @@ test('factory merge smoke preserves the {side} update', () => {{
         # Closing first prevents an in-flight reviewer from merging; wait before deleting branches
         # so a running fixer cannot recreate them after cleanup.
         def idle():
-            return not any(r["status"] != "completed" and r["path"].rsplit("/", 1)[-1] in (PUSH, REVIEW, FIX)
+            return not any(r["status"] != "completed" and r["path"].rsplit("/", 1)[-1] in (PUSH, REVIEW, FIX, IMPLEMENT)
                            for r in self.gh.items("actions/runs?per_page=100", ".workflow_runs"))
         wait("factory jobs to finish before branch cleanup", idle, 20 * 60)
         for resource in self.resources:

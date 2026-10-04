@@ -236,10 +236,34 @@ AUTO_REVIEW = "factory-review.yml pr=40 automatic=true"
 # follow_up: another job on the same issue or PR, inheriting its final labels, comments and author.
 # The retries are issue #9: a retried review or fix clears agent:failed, and a failed retry puts it back.
 SCENARIOS = [
+    dict(name="review, a push during required CI discards the approval", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, checks_pending=True, push_during_checks=True, comments=[], agent=approve,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False, merged=False,
+         last_comment="The PR changed since", comment_lacks=["<!-- factory:review approve -->"]),
+    dict(name="review, assignment during required CI leaves the PR open", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, checks_pending=True, assign_during_checks=True, comments=[], agent=approve,
+         final=["agent:approved"], dispatch=[], failed=False, merged=False, last_comment=PAUSED_BEFORE_MERGE),
+    dict(name="fix, missing App key fails without publishing", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], comments=[REVIEW_ROUND_1], agent=fixes,
+         vars={"FACTORY_APP_CLIENT_ID": "app-client"}, final=["agent:failed"], dispatch=[], failed=True,
+         publish_tokens=[], last_comment="💥 The fix stage failed"),
+    dict(name="review, required CI finishes before automatic merging", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, checks_pending=True, comments=[], agent=approve,
+         final=["agent:approved"], dispatch=[], failed=False, merged=True),
+    dict(name="fix, App authentication pushes code and keeps handoffs on the built-in token", wf="factory-fix.yml",
+         event=None, start=["agent:changes-requested"], comments=[REVIEW_ROUND_1], agent=fixes,
+         vars={"FACTORY_APP_CLIENT_ID": "app-client"}, secrets={"FACTORY_APP_PRIVATE_KEY": "fake-key"},
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False,
+         publish_tokens=["fake-app-token"], metadata_token="fake-token"),
+    dict(name="implement, App authentication publishes a PR and queues one automatic review", wf="factory-implement.yml",
+         target="issue", event="ready-for-agent", start=["ready-for-agent"], comments=[], agent=implements,
+         vars={"FACTORY_APP_CLIENT_ID": "app-client"}, secrets={"FACTORY_APP_PRIVATE_KEY": "fake-key"},
+         final=["ready-for-agent"], dispatch=[AUTO_REVIEW], failed=False, pr_created=True,
+         publish_tokens=["fake-app-token", "fake-app-token"], metadata_token="fake-token"),
     dict(name="fix, description feedback appends evidence without a commit", wf="factory-fix.yml", event=None,
          start=["agent:changes-requested"], comments=[REVIEW_ROUND_1],
          agent=lambda repo: (True, {"result": "**Slices:**\n- Tabs are blank: green on arrival, covered by the whitespace slice."}),
-         final=["agent:review"], dispatch=["factory-review.yml pr=40"], failed=False, head_unchanged=True,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False, head_unchanged=True,
          prompt_has=["Adds isBlank.\n\nCloses #39"],
          pr_body_has=["Adds isBlank.\n\nCloses #39", "**Slices:**\n- Tabs are blank: green on arrival, covered by the whitespace slice."]),
     dict(name="implement, duplicate ready label leaves an open PR alone", wf="factory-implement.yml",
@@ -335,8 +359,9 @@ SCENARIOS = [
                         prompt_has=[DIAGNOSTIC, "Input was abc, maxLength was -1."], prompt_lacks=["Invented diagnosis."])),
     dict(name="implement completed, opens a PR with the structured summary and starts review", wf="factory-implement.yml",
          target="issue", event="ready-for-agent", start=["enhancement", "ready-for-agent"], comments=[], agent=implements,
-         final=["enhancement", "ready-for-agent"], dispatch=["factory-review.yml pr=40"], failed=False, pr_created=True,
-         pr_body_has=[IMPLEMENTED, "Closes #39"], pr_body_lacks=["Raw transport message."]),
+         final=["enhancement", "ready-for-agent"], dispatch=[AUTO_REVIEW], failed=False, pr_created=True,
+         pr_body_has=[IMPLEMENTED, "Closes #39"], pr_body_lacks=["Raw transport message."],
+         publish_tokens=["fake-token", "fake-token"], metadata_token="fake-token"),
     dict(name="implement crashes, remains a failure", wf="factory-implement.yml", target="issue", event="ready-for-agent",
          start=["bug", "ready-for-agent"], comments=[], agent=crashes, final=["bug", "ready-for-agent", "agent:failed"],
          dispatch=[], failed=True, pr_created=False, last_comment="💥 The factory failed on this ticket."),
@@ -358,7 +383,7 @@ SCENARIOS = [
     dict(name="review retry, fails again", wf="factory-review.yml", event="agent:review", start=["agent:failed", "agent:review"],
          comments=[REVIEW_FAILED], agent=crashes, final=["agent:failed"], dispatch=[], last_comment="💥 The review stage failed"),
     dict(name="fix retry, hands back", wf="factory-fix.yml", event="agent:changes-requested", start=["agent:failed", "agent:changes-requested"],
-         comments=[REVIEW_ROUND_1, FIX_FAILED], agent=fixes, final=["agent:review"], dispatch=["factory-review.yml pr=40"]),
+         comments=[REVIEW_ROUND_1, FIX_FAILED], agent=fixes, final=["agent:review"], dispatch=[AUTO_REVIEW]),
     dict(name="fix retry, fails again", wf="factory-fix.yml", event="agent:changes-requested", start=["agent:failed", "agent:changes-requested"],
          comments=[REVIEW_ROUND_1, FIX_FAILED], agent=crashes, final=["agent:failed"], dispatch=[], last_comment="💥 The fix stage failed"),
     dict(name="review, never failed", wf="factory-review.yml", event="agent:review", start=["agent:review"],
@@ -375,7 +400,7 @@ SCENARIOS = [
     dict(name="a maintainer asks for more on an approved PR, fix drops the approval", wf="factory-fix.yml",
          event="agent:changes-requested", start=["agent:approved", "agent:changes-requested"],
          comments=[APPROVED_FOR_HUMAN, comment("Treat tabs as blank too.", "maintainer", "OWNER")], agent=fixes,
-         during=["agent:changes-requested"], final=["agent:review"], dispatch=["factory-review.yml pr=40"],
+         during=["agent:changes-requested"], final=["agent:review"], dispatch=[AUTO_REVIEW],
          prompt_has=["Treat tabs as blank too."]),
     dict(name="review reads the triage brief, not the reporter", wf="factory-review.yml", event="agent:review", start=["agent:review"],
          comments=[], agent=approve, final=["agent:approved"], dispatch=[],
@@ -383,7 +408,7 @@ SCENARIOS = [
     dict(name="review dispatched by fix, never failed", wf="factory-review.yml", event=None, start=["agent:review"],
          comments=[REVIEW_ROUND_1], agent=request_changes, final=["agent:changes-requested"], dispatch=["factory-fix.yml pr=40"]),
     dict(name="fix dispatched by review, never failed", wf="factory-fix.yml", event=None, start=["agent:changes-requested"],
-         comments=[REVIEW_ROUND_1], agent=fixes, final=["agent:review"], dispatch=["factory-review.yml pr=40"]),
+         comments=[REVIEW_ROUND_1], agent=fixes, final=["agent:review"], dispatch=[AUTO_REVIEW]),
     dict(name="review approves, merge conflicts, hands to the fixer", wf="factory-review.yml", event=None, start=["agent:review"],
          vars=MERGE_ON, comments=[], agent=approve, merge_blocked="CONFLICTING", final=["agent:changes-requested"],
          dispatch=["factory-fix.yml pr=40"], last_comment=MERGE_CONFLICTS),
@@ -395,13 +420,13 @@ SCENARIOS = [
          last_comment=MERGE_BLOCKED),
     dict(name="fix resolves merge conflicts", wf="factory-fix.yml", event=None, start=["agent:changes-requested"],
          comments=[MERGE_CONFLICTS], main_files={"README.md": "textkit\nisEmpty\n"}, agent=resolves, final=["agent:review"],
-         dispatch=["factory-review.yml pr=40"], merged_main=True, prompt_has=["## Merge conflicts", "- README.md"]),
+         dispatch=[AUTO_REVIEW], merged_main=True, prompt_has=["## Merge conflicts", "- README.md"]),
     dict(name="fix leaves conflict markers, fails", wf="factory-fix.yml", event=None, start=["agent:changes-requested"],
          comments=[MERGE_CONFLICTS], main_files={"README.md": "textkit\nisEmpty\n"}, agent=fixes, final=["agent:failed"],
          dispatch=[], last_comment="💥 The fix stage failed"),
     dict(name="fix brings in main's factory changes", wf="factory-fix.yml", event=None, start=["agent:changes-requested"],
          comments=[REVIEW_ROUND_1], main_files={".github/factory/style.md": "Use tabs.\n"}, agent=fixes, final=["agent:review"],
-         dispatch=["factory-review.yml pr=40"], merged_main=True, prompt_lacks=["## Merge conflicts"]),
+         dispatch=[AUTO_REVIEW], merged_main=True, prompt_lacks=["## Merge conflicts"]),
     dict(name="fix edits .github, fails", wf="factory-fix.yml", event=None, start=["agent:changes-requested"],
          comments=[REVIEW_ROUND_1], agent=edits_factory, final=["agent:failed"], dispatch=[],
          last_comment="💥 The fix stage failed"),
@@ -548,6 +573,9 @@ def run_scenario(sc, trace):
         "push_on_verdict": sc.get("push_on_verdict", False),
         "push_on_handoff": sc.get("push_on_handoff", False),
         "fail_head_after_approval": sc.get("fail_head_after_approval", False),
+        "checks_pending": sc.get("checks_pending", False),
+        "push_during_checks": sc.get("push_during_checks", False),
+        "assign_during_checks": sc.get("assign_during_checks", False),
         "pr": {"number": 40, "baseRefName": "main", "headRefName": "agent/issue-39", "headRefOid": head,
                "state": sc.get("pr_state", "CLOSED" if sc["wf"] == "factory-implement.yml" else "OPEN"),
                "url": "https://github.com/o/sandbox/pull/40",
@@ -589,7 +617,7 @@ def run_scenario(sc, trace):
         "github": {"event_name": event_name, "repository": "o/sandbox", "server_url": "https://github.com", "run_id": "1",
                    "token": "fake-token", "event": event},
         "inputs": inputs,
-        "vars": {"FACTORY_TEST_COMMAND": "true", **sc.get("vars", {})}, "secrets": {}, "runner": {"temp": temp}, "steps": {}, "env": {},
+        "vars": {"FACTORY_TEST_COMMAND": "true", **sc.get("vars", {})}, "secrets": sc.get("secrets", {}), "runner": {"temp": temp}, "steps": {}, "env": {},
     }
     failed = False
     ctx["funcs"] = {"success": lambda: not failed, "failure": lambda: failed, "cancelled": lambda: False, "always": lambda: True,
@@ -636,6 +664,10 @@ def run_scenario(sc, trace):
                             st["pr"]["headRefOid"] = "a" * 40
                         with open(state_path, "w") as f:
                             json.dump(st, f)
+                elif "actions/create-github-app-token@" in step["uses"]:
+                    inputs = {k: interp(v, ctx) for k, v in step["with"].items()}
+                    ok = bool(inputs.get("client-id") and inputs.get("private-key"))
+                    outputs = {"token": "fake-app-token"} if ok else {}
                 else:
                     ok = True
             else:
@@ -671,6 +703,9 @@ def run_scenario(sc, trace):
     shutil.rmtree(root)
     result = {
         "failed": failed,
+        "publish_tokens": st.get("push_tokens", []) + [call["token"] for call in st.get("auth_calls", [])
+                                                       if call["args"][:2] == ["pr", "create"]],
+        "metadata_tokens": [call["token"] for call in st.get("auth_calls", []) if call["args"][:2] != ["pr", "create"]],
         "pr_created": any(call[:2] == ["pr", "create"] for call in st["calls"]),
         "pr_body": st["pr"]["body"],
         "during": during,
@@ -696,6 +731,10 @@ def run_scenario(sc, trace):
 
 def check(sc, r):
     problems = []
+    if "publish_tokens" in sc and r["publish_tokens"] != sc["publish_tokens"]:
+        problems.append(f"publish tokens {r['publish_tokens']}, want {sc['publish_tokens']}")
+    if "metadata_token" in sc and any(token != sc["metadata_token"] for token in r["metadata_tokens"]):
+        problems.append("metadata and handoffs used the publishing credential")
     for key in ("failed", "pr_created", "head_unchanged"):
         if key in sc and r[key] != sc[key]:
             problems.append(f"{key} is {r[key]}, want {sc[key]}")

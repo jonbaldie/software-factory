@@ -115,6 +115,7 @@ Set repository variables under **Settings → Secrets and variables → Actions 
 | `FACTORY_SETUP_COMMAND` | Installs dependencies before each agent stage. | None; installer detects `npm ci` when `package-lock.json` exists. |
 | `FACTORY_HARNESS` | Chooses the agent: `pi` or `claude`. | `pi` |
 | `FACTORY_MODEL` | Chooses the model for all agent stages. | See below. |
+| `FACTORY_APP_CLIENT_ID` | Publish branches and PRs using this GitHub App; also set the `FACTORY_APP_PRIVATE_KEY` secret. | Unset: use the built-in token. |
 | `FACTORY_MERGE` | Set to `true` to have the factory merge approved PRs. | Off, so you merge them. |
 
 The workflows install Node 22 for the agent. Add setup steps to the workflows if your project needs other runtimes or services.
@@ -136,6 +137,23 @@ gh secret set ANTHROPIC_API_KEY
 For the token option, generate a token with `claude setup-token` and save it as `CLAUDE_CODE_OAUTH_TOKEN`. If you previously set `FACTORY_MODEL`, update it for the new agent or delete it to use the default.
 
 To choose a different model for one stage, set `model` on that workflow's `run-agent` step.
+
+### Run CI without approval
+
+GitHub requires approval for `pull_request` workflows triggered by the built-in `GITHUB_TOKEN`. For unattended CI on implementation and fix pushes, configure a dedicated GitHub App:
+
+1. [Register a GitHub App](https://github.com/settings/apps/new) with repository **Contents: Read and write** and **Pull requests: Read and write** permissions. Disable its webhook; it needs no callback URL or OAuth setup.
+2. Install it on only the repository running the factory.
+3. Generate a private key. Save the App's **Client ID** as the repository variable `FACTORY_APP_CLIENT_ID` and the key as the Actions secret `FACTORY_APP_PRIVATE_KEY`:
+
+   ```sh
+   gh variable set FACTORY_APP_CLIENT_ID --body YOUR_CLIENT_ID
+   gh secret set FACTORY_APP_PRIVATE_KEY < /path/to/app.private-key.pem
+   ```
+
+The factory mints a short-lived installation token after the agent finishes, scoped to the current repository. It uses that token only to push implementation/fix commits and open PRs. Labels, comments, workflow handoffs and merges still use the built-in token. The App key and token are not passed to the agent. If a configured App cannot authenticate, the job fails instead of falling back silently. Remove `FACTORY_APP_CLIENT_ID` to return to the built-in token.
+
+Keep required CI checks enabled. With `FACTORY_MERGE=true`, the reviewer waits up to five minutes for pending required checks, rechecking the reviewed commit while it waits. GitHub still enforces branch rules and required approvals. See [GitHub's token event rules](https://docs.github.com/en/actions/concepts/security/github_token).
 
 ### Set project instructions
 

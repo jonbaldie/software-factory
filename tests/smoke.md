@@ -4,7 +4,7 @@
 
 Run it after changing how review, fix or the push handler are triggered, queued or invalidated. It spends model credit on one implement run and about seven reviews, so CI doesn't run it.
 
-The separate merge suite checks automatic merging, a passing push during review, and conflict recovery through the fixer. It uses three small fixture PRs and spends about five reviews and one fix, with no implementation run.
+The separate merge suite checks automatic merging, a passing push during review, and conflict recovery through the fixer. It uses four small fixture PRs and spends one implementation run, about six reviews and one fix. Configure the optional publishing App in the sandbox to test unattended CI.
 
 ## Run it
 
@@ -34,17 +34,18 @@ uv run tests/smoke.py --suite merge --close --report merge-smoke-report.md
 
 The driver saves the original value of `FACTORY_MERGE`, enables it for this suite, and restores the original value (including an absent variable) in `finally`, on success, failure or Ctrl-C. It records restoration in the report. A killed process or loss of GitHub access can prevent restoration; the setup output records the original value for recovery.
 
-Each stage creates its own issue and PR on `agent/issue-N`, then dispatches the installed reviewer. These deterministic fixture commits isolate review, fix and merge behaviour from implementation. `--stages m2` or `--stages m3` reruns only that stage with a fresh PR; `--pr` is not supported for this suite. Node and npm must be installed locally so the driver can check the fixtures before pushing and run `npm test` on `main` after merging.
+Stages m1–m3 create their own issue and PR on `agent/issue-N`, then dispatch the installed reviewer. m4 labels an issue `ready-for-agent` and lets the factory implement, publish, review and merge it. These deterministic fixture commits isolate review, fix and merge behaviour from implementation. `--stages m2` or `--stages m3` reruns only that stage with a fresh PR; `--pr` is not supported for this suite. Node and npm must be installed locally so the driver can check the fixtures before pushing and run `npm test` on `main` after merging.
 
 | Stage | Action | Required outcome |
 |---|---|---|
 | m1 | Open a passing fixture PR and dispatch review with merging enabled. | The factory squash-merges the exact reviewed head. |
 | m2 | Wait until the agent reviews a passing commit, then push another passing commit. | The stale review discards its verdict without a fix round. The push handler waits in the PR queue; a fresh review approves the replacement and the factory merges it. The duplicate review request skips its agent. |
+| m4 | Label a fixture issue `ready-for-agent`. | The App opens the implementation PR, required CI passes without approval, and the factory merges the exact reviewed head. |
 | m3 | Open a passing fixture PR, then merge a base change that conflicts with it. Dispatch review explicitly, since GitHub skips `pull_request` workflows for conflicting PRs. | The reviewer approves the conflicting head, hands the merge conflict to one fix run, then reviews a different, fixed commit before merging it. Both branches' intended changes survive. |
 
 Every stage checks the bot merge actor, the approval's commit and timing, successful test and agent steps, and that the squash commit is on the base branch with exactly the reviewed tree. It runs all sandbox tests locally on the merged base and checks that no factory job failed or was cancelled. m3 changes separate fields on the same JSON line, with separate tests for each side; choosing either whole file cannot satisfy both tests.
 
-The sandbox requires its `ci.yml` test check before merging. GitHub now [requires approval for PR workflows triggered by `GITHUB_TOKEN`](https://docs.github.com/en/actions/concepts/security/github_token), including the fixer's push. The driver supplies that maintainer approval for the current fixture's CI and records the run link. It checks the bot actor, current branch and head, and restricts changed paths to the three fixture files. Required checks and merge rules remain enabled. This suite tests automatic merging once the sandbox's CI approval prerequisite is met; it does not prove an unattended bot push can clear that prerequisite.
+The sandbox requires its `ci.yml` test check before merging. The driver never approves CI: an `action_required` run fails the stage. m3 and m4 verify that a GitHub App triggered CI and that its required `test` check passed on the merged head before the merge. This covers both fix pushes and implementation PR creation. Earlier reports below explicitly record runs that used maintainer approval before App publishing was available.
 
 `--close` closes any unfinished test PRs and issues, waits for factory jobs to finish, and deletes all branches created by the suite. The merged `smoke-merge.json` and `test/factory-merge-{base,branch}.test.js` fixtures remain for future runs; each run updates their markers. Without `--close`, unfinished work remains for inspection and the merge setting is still restored.
 

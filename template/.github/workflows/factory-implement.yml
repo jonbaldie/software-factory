@@ -151,10 +151,21 @@ jobs:
           set -o pipefail
           eval "$TEST_COMMAND" 2>&1 | tee "$RUNNER_TEMP/tests.txt" # a failure is saved with the agent's work
 
+      - name: Create a publishing token
+        id: publisher
+        if: steps.implementation.outputs.outcome == 'completed' && vars.FACTORY_APP_CLIENT_ID != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - name: Open the pull request
         if: steps.implementation.outputs.outcome == 'completed'
         env:
           GH_TOKEN: ${{ github.token }}
+          PUBLISH_TOKEN: ${{ steps.publisher.outputs.token || github.token }}
         run: |
           branch="agent/issue-$ISSUE"
           title=$(gh issue view "$ISSUE" --json title -q .title)
@@ -172,7 +183,7 @@ jobs:
           # Continuing from agent:wip, the saved commits can be the whole change, so this commit may be empty.
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q --allow-empty -m "$title" -m "Closes #$ISSUE"
-          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "$branch"
+          git push --force "https://x-access-token:${PUBLISH_TOKEN}@github.com/${GH_REPO}.git" "$branch"
 
           {
             cat "$RUNNER_TEMP/implementation.md"
@@ -181,14 +192,16 @@ jobs:
           # A retry after a PR was closed opens a fresh one: the closed PR keeps the old description and can't merge.
           pr_url=$(gh pr list --head "$branch" --state open --json url -q '.[].url')
           if [ -z "$pr_url" ]; then
-            pr_url=$(gh pr create --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/body.md" --label agent:review)
+            pr_url=$(GH_TOKEN="$PUBLISH_TOKEN" gh pr create --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/body.md")
           fi
+          # Keep labels on GITHUB_TOKEN: an App-authenticated label would start a second reviewer.
+          gh pr edit "${pr_url##*/}" --add-label agent:review
 
           gh issue edit "$ISSUE" --remove-label agent:working,agent:wip
           gh issue comment "$ISSUE" --body "🏭 Opened $pr_url"
 
           # Labels added with GITHUB_TOKEN don't trigger workflows, so hand off to the reviewer explicitly.
-          gh workflow run factory-review.yml -f pr="${pr_url##*/}"
+          gh workflow run factory-review.yml -f pr="${pr_url##*/}" -f automatic=true
 
       - name: Report failure
         if: failure() || cancelled() # a timeout or a cancel by hand counts as cancelled, not failed
