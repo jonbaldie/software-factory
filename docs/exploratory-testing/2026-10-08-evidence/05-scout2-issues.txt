@@ -1,0 +1,4 @@
+4 "Handle empty titles in slug   " agent:failed
+3 "Strip accents from letters, so \"Café\" becomes \"cafe\"" agent:failed
+2 "Support Windows line endings in slug\r" agent:failed
+1 "Add a maxLength option to slug */" agent:failed

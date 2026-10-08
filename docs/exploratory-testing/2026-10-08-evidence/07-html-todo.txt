@@ -1,0 +1,2 @@
+7 Add a page footer -->
+6 src/nospace.js:2:// TODO(factory):Validate the input type

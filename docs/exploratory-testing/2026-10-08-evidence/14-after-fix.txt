@@ -1,0 +1,8 @@
+Added the exported `countLines(input)` helper in `src/textkit.js`, handling LF, CRLF, and lone CR while counting intervening blank lines and excluding a phantom final line after a trailing break. Added tests in `test/textkit.test.js` and documented the import and API in `README.md`. `npm test` passes (136 tests).
+
+**Decisions:**
+- Split on CRLF before CR or LF, then omit only the final empty segme
+----
+<!-- factory:review approve --> ### ✅ Approved by the reviewer agent, ready for you to merge  The change satisfies the ticket and coding standards, covers the required edge cases, and reports a passing test run.   Reviewed commit: `5bc199aa5cd9d1083c0bb9eaa302b894e6d82a90`  _[Review run](https://git
+<!-- factory:review request_changes --> ### 🔁 Changes requested (round 1 of 3)  The code, API documentation, and tests satisfy the ticket. The method's evidence is incomplete for the final added test, and the reported test count does not match the supplied output.  - Update the PR description to acc
+<!-- factory:review approve --> ### ✅ Approved by the reviewer agent, ready for you to merge  The helper meets the ticket’s line-ending and trailing-break behavior, and the tests cover the requested examples plus consecutive breaks. It follows AGENTS.md, documents the API, and the supplied test outp
