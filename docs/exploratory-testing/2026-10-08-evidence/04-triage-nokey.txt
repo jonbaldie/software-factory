@@ -1,0 +1,25 @@
+  JSON_SCHEMA: {"type": "object", "required": ["category", "state", "comment"], "properties": {
+triage	Agent triages the ticket	  "category": {"type": "string", "enum": ["bug", "enhancement"]},
+triage	Agent triages the ticket	  "state": {"type": "string", "enum": ["ready-for-agent", "ready-for-human", "needs-info", "wontfix"]},
+triage	Agent triages the ticket	  "comment": {"type": "string"}}}
+##[endgroup]
+##[error]No OpenRouter credential. Add an OPENROUTER_API_KEY repository secret.
+##[error]Process completed with exit code 1.
+##[end-action id=agent.run;outcome=failure;conclusion=failure;duration_ms=24]
+##[start-action display=Upload transcript;id=agent.__actions_upload-artifact]
+##[group]Run actions/upload-artifact@v7
+with:
+  name: transcript-triage-issue-1
+  path: /home/runner/work/_temp/triage-issue-1.jsonl
+  if-no-files-found: ignore
+  compression-level: 6
+  overwrite: false
+  include-hidden-files: false
+  archive: true
+env:
+  ISSUE: 1
+  GH_REPO: jonbaldie/sf-explore-2026-10-08
+  RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-08/actions/runs/37824649097
+##[endgroup]
+No files were found with the provided path: /home/runner/work/_temp/triage-issue-1.jsonl. No artifacts will be uploaded.
+##[end-action id=agent.__actions_upload-artifact;outcome=success;conclusion=success;duration_ms=177]

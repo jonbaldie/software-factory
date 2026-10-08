@@ -1,0 +1,100 @@
+diff --git a/README.md b/README.md
+index 59365ec..8c99518 100644
+--- a/README.md
++++ b/README.md
+@@ -3,7 +3,7 @@
+ Tiny string helpers. The code is a stand-in: the real point of this repo is the **software factory** that builds it, a set of GitHub Actions that turn labelled issues into reviewed, merged pull requests. See [FACTORY.md](FACTORY.md).
+ 
+ ```js
+-import { capitalize, camelCase, collapseWhitespace, countOccurrences, ensurePrefix, ensureSuffix, isBlank, isPalindrome, initials, kebabCase, padCenter, padLeftTo, padRightTo, pascalCase, repeatWithSeparator, reverseWords, slugify, snakeCase, stripPrefix, stripSuffix, swapCase, titleCase, truncate, wordCount, wordWrap } from './src/textkit.js';
++import { capitalize, camelCase, collapseWhitespace, countLines, countOccurrences, ensurePrefix, ensureSuffix, isBlank, isPalindrome, initials, kebabCase, padCenter, padLeftTo, padRightTo, pascalCase, repeatWithSeparator, reverseWords, slugify, snakeCase, stripPrefix, stripSuffix, swapCase, titleCase, truncate, wordCount, wordWrap } from './src/textkit.js';
+ ```
+ 
+ ## API
+@@ -43,6 +43,16 @@ repeatWithSeparator('ab', 3, '-'); // "ab-ab-ab"
+ repeatWithSeparator('ab', 0, '-'); // ""
+ ```
+ 
++### `countLines(input)`
++
++Counts lines separated by LF, CRLF (as one line break), or a lone CR. Empty input returns `0`, and a trailing line break does not add an extra line. Consecutive line breaks count the blank lines between them.
++
++```js
++countLines('a\nb');       // 2
++countLines('a\r\n\r\nb'); // 3
++countLines('a\n');        // 1
++```
++
+ ### `countOccurrences(input, search)`
+ 
+ Counts occurrences of `search` in `input` from left to right without counting overlapping matches. An empty search string returns `0`.
+diff --git a/src/textkit.js b/src/textkit.js
+index 4437701..1b94cf7 100644
+--- a/src/textkit.js
++++ b/src/textkit.js
+@@ -155,6 +155,18 @@ export function wordCount(input) {
+   return input.match(/[\p{L}\p{N}\p{M}]+(?:[-'’][\p{L}\p{N}\p{M}]+)*/gu)?.length ?? 0;
+ }
+ 
++/**
++ * Count lines separated by LF, CRLF, or CR; a trailing line break adds no extra line.
++ * @example countLines('a\nb') // 2
++ * @example countLines('a\r\n') // 1
++ * @param {string} input
++ * @returns {number}
++ */
++export function countLines(input) {
++  const lines = input.split(/\r\n|\r|\n/u);
++  return lines.at(-1) === '' ? lines.length - 1 : lines.length;
++}
++
+ /**
+  * Count non-overlapping occurrences of a search string from left to right.
+  * @example countOccurrences('banana', 'an') // 2
+diff --git a/test/textkit.test.js b/test/textkit.test.js
+index 611cd6c..bddbeeb 100644
+--- a/test/textkit.test.js
++++ b/test/textkit.test.js
+@@ -1,6 +1,6 @@
+ import { test } from 'node:test';
+ import assert from 'node:assert/strict';
+-import { capitalize, camelCase, collapseWhitespace, countOccurrences, ensurePrefix, ensureSuffix, initials, isBlank, isPalindrome, kebabCase, padCenter, padLeftTo, padRightTo, pascalCase, repeatWithSeparator, reverseWords, slugify, snakeCase, stripPrefix, stripSuffix, swapCase, titleCase, truncate, wordCount, wordWrap } from '../src/textkit.js';
++import { capitalize, camelCase, collapseWhitespace, countLines, countOccurrences, ensurePrefix, ensureSuffix, initials, isBlank, isPalindrome, kebabCase, padCenter, padLeftTo, padRightTo, pascalCase, repeatWithSeparator, reverseWords, slugify, snakeCase, stripPrefix, stripSuffix, swapCase, titleCase, truncate, wordCount, wordWrap } from '../src/textkit.js';
+ 
+ test('ensurePrefix leaves input unchanged when it already has the prefix', () => {
+   assert.equal(ensurePrefix('https://example.com', 'https://'), 'https://example.com');
+@@ -497,6 +497,34 @@ test('repeatWithSeparator rejects counts that are not non-negative integers', ()
+   assert.throws(() => repeatWithSeparator('ab', '2', '-'), RangeError);
+ });
+ 
++test('countLines returns zero for empty input', () => {
++  assert.equal(countLines(''), 0);
++});
++
++test('countLines returns one for a single line', () => {
++  assert.equal(countLines('a'), 1);
++});
++
++test('countLines counts lines separated by LF', () => {
++  assert.equal(countLines('a\nb'), 2);
++});
++
++test('countLines does not count an empty segment after a trailing LF', () => {
++  assert.equal(countLines('a\n'), 1);
++});
++
++test('countLines counts a lone CR as a line break', () => {
++  assert.equal(countLines('a\rb'), 2);
++});
++
++test('countLines counts CRLF as one line break', () => {
++  assert.equal(countLines('a\r\nb'), 2);
++});
++
++test('countLines counts a blank line between consecutive CRLFs', () => {
++  assert.equal(countLines('a\r\n\r\nb'), 3);
++});
++
+ test('countOccurrences counts matches from left to right', () => {
+   assert.equal(countOccurrences('banana', 'an'), 2);
+ });

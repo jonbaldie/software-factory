@@ -20,6 +20,8 @@ A pushed branch, an open PR or a handoff is unfinished work. If a required step 
 
 `uv run tests/smoke.py` pushes to a factory PR in the sandbox and checks what real GitHub Actions do with each push. See `tests/smoke.md`. Run it after changing how review, fix or the push handler are triggered or queued, and add its report to `tests/smoke.md`. It spends model credit, so CI doesn't run it.
 
+Exploratory test reports, with their evidence and filed issues, are in `docs/exploratory-testing/`. Read the latest one before changing the installer, the scout or the issue-to-PR pipeline.
+
 ## Agent skills
 
 ### Issue tracker

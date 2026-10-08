@@ -1,0 +1,49 @@
+Installing the software factory into jonbaldie/sf-explore-2026-10-08 from jonbaldie/software-factory@v1
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = npm test
+  FACTORY_SETUP_COMMAND (none)
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  ! OPENROUTER_API_KEY is missing
+
+Next
+  1. Add the agent's API key. Give it its own credit limit. This prompts for the value:
+       gh secret set OPENROUTER_API_KEY --repo jonbaldie/sf-explore-2026-10-08
+  2. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  3. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.

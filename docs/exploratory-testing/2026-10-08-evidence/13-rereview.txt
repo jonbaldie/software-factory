@@ -1,0 +1,11 @@
+<!-- factory:review request_changes -->
+### 🔁 Changes requested (round 1 of 3)
+
+The code, API documentation, and tests satisfy the ticket. The method's evidence is incomplete for the final added test, and the reported test count does not match the supplied output.
+
+- Update the PR description to account for `countLines counts each break in a run of LFs` in the Slices evidence: include its red failure line, or mark it green on arrival and identify the slice that built the behavior. Correct the summary's test count to 137 to match the supplied output.
+
+Reviewed commit: `5ca29c512a791312c51b7622ef56765946693734`
+
+_[Review run](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37825692369)_
+

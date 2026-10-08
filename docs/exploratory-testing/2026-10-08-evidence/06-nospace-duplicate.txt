@@ -1,0 +1,6 @@
+6 src/nospace.js:2:// TODO(factory):Validate the input type
+5 src/nospace.js:1:// TODO(factory):Validate the input type
+4 Handle empty titles in slug   
+3 Strip accents from letters, so "Café" becomes "cafe"
+2 Support Windows line endings in slug
+1 Add a maxLength option to slug */

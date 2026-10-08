@@ -1,0 +1,28 @@
+Add countLines helper
+agent/issue-109
+5bc199aa5cd9d1083c0bb9eaa302b894e6d82a90
+["README.md","src/textkit.js","test/textkit.test.js"]
+["test=SUCCESS"]
+Added the exported `countLines(input)` helper in `src/textkit.js`, handling LF, CRLF, and lone CR while counting intervening blank lines and excluding a phantom final line after a trailing break. Added tests in `test/textkit.test.js` and documented the import and API in `README.md`. `npm test` passes (136 tests).
+
+**Decisions:**
+- Split on CRLF before CR or LF, then omit only the final empty segment so consecutive breaks still count blank lines.
+- Treat nonempty input without a line break as one line; did not add type validation beyond the string input contract.
+
+**Seams:**
+- Exported `countLines(input)` in `src/textkit.js`; tests call this public function.
+
+**Slices:**
+- `countLines returns zero for empty input` — red: `SyntaxError: The requested module '../src/textkit.js' does not provide an export named 'countLines'`.
+- `countLines returns one for a single line` — green on arrival; built by the empty-input/export slice.
+- `countLines counts lines separated by LF` — red: `1 !== 2`.
+- `countLines does not count an empty segment after a trailing LF` — red: `2 !== 1`.
+- `countLines counts a lone CR as a line break` — red: `1 !== 2`.
+- `countLines counts CRLF as one line break` — red: `3 !== 2`.
+- `countLines counts a blank line between consecutive CRLFs` — green on arrival; built by the CRLF grouping slice.
+
+Closes #109
+
+---
+_Opened by the factory · [implement run](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/37825018869)_
+
