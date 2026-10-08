@@ -141,14 +141,7 @@ console.log(`🏁 ${subtype} · ${turns} turns · $${result.total_cost_usd.toFix
 // top-level types and enums. Anything else counts as no answer, so the stage fails
 // rather than acting on a guess.
 function readStructured(text, schema) {
-  const blocks = [...text.matchAll(/```json\s*\n([\s\S]*?)```/g)];
-  if (blocks.length === 0) return null;
-  let value;
-  try {
-    value = JSON.parse(blocks.at(-1)[1]);
-  } catch {
-    return null;
-  }
+  const value = lastJsonBlock(text);
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   for (const key of schema.required ?? []) {
     if (!(key in value)) return null;
@@ -164,4 +157,29 @@ function readStructured(text, schema) {
     }
   }
   return value;
+}
+
+// The parsed value of the last ```json block, or undefined if there is none or it
+// isn't closed or isn't valid JSON. A block ends at the first ``` after its opening
+// line, unless what comes before that isn't valid JSON but runs on to a later ```
+// that is: then the earlier ``` was inside a JSON string.
+function lastJsonBlock(text) {
+  const parse = (json) => { try { return { value: JSON.parse(json) }; } catch { return null; } };
+  const opener = /```json\s*\n/g;
+  let last;
+  while (opener.exec(text)) {
+    const start = opener.lastIndex;
+    const first = text.indexOf("```", start);
+    if (first < 0) return undefined;
+    let end = first;
+    let parsed = parse(text.slice(start, first));
+    for (let e = text.indexOf("```", first + 1); !parsed && e >= 0; e = text.indexOf("```", e + 1)) {
+      parsed = parse(text.slice(start, e));
+      if (parsed) end = e;
+    }
+    last = parsed?.value;
+    // A block with no valid JSON may have run on to the next block's opening fence.
+    opener.lastIndex = parsed ? end + 3 : first;
+  }
+  return last;
 }
