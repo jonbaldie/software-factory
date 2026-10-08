@@ -230,6 +230,8 @@ AUTO_FIX = "factory-fix.yml pr=40 automatic=true"
 # inputs, pr_state: dispatch inputs and the PR's live state when a queued job starts.
 # vars: repository variables besides FACTORY_TEST_COMMAND, such as MERGE_ON to let the reviewer merge.
 # files: more files in the repo, such as a TODO for the scout.
+# queued: {label: n} adds n open issues with that label. queued_prs: {(state, label): n} adds n PRs besides #40.
+# summary_has: lines the job's step summary must contain.
 # main_files: files committed to main after the agent's branch, so the fixer has main to merge in.
 # merge_blocked: GitHub refuses the merge and reports this mergeable state.
 # merged_main: the fixer's commit has main in its history.
@@ -555,6 +557,11 @@ SCENARIOS = [
                 "src/b.py": "# TODO(factory): Add pagination to search\n"}, comments=[], agent=None, final=[],
          created_issue_titles=["Treat tabs as blank", "Add pagination to search"],
          dispatch=["factory-triage.yml issue=41", "factory-triage.yml issue=42"]),
+    dict(name="scout reports queues longer than 30", wf="factory-scout.yml", target="issue", event=None, start=[],
+         queued={"needs-triage": 30}, queued_prs={("OPEN", "agent:review"): 31, ("MERGED", "agent:approved"): 31},
+         comments=[], agent=None, final=[], dispatch=[],
+         summary_has=["| Issues labelled `needs-triage` | 31 |", "| PRs labelled `agent:review` | 31 |",
+                      re.compile(r"\| Approved PRs merged since \S+ \| 31 \|")]),
 ]
 
 
@@ -643,6 +650,13 @@ def run_scenario(sc, trace):
                    "37": {"number": 37, "title": "Add isEmpty", "body": "", "author": {"login": "reporter"}, "state": "CLOSED",
                           "labels": [], "comments": [], "assignees": []}},
     }
+    for label, n in sc.get("queued", {}).items():
+        for k in range(n):
+            state["issues"][str(100 + len(state["issues"]))] = {
+                "number": 100 + len(state["issues"]), "title": f"Queued {label} {k}", "body": "", "author": {"login": "reporter"},
+                "state": "OPEN", "labels": [{"name": label}], "comments": [], "assignees": []}
+    state["other_prs"] = [{"number": 1000 + k, "state": pr_state, "labels": [{"name": label}]}
+                          for (pr_state, label), n in sc.get("queued_prs", {}).items() for k in range(n)]
     with open(state_path, "w") as f:
         json.dump(state, f)
 
@@ -751,8 +765,11 @@ def run_scenario(sc, trace):
         st = json.load(f)
     merged_main = subprocess.run(["git", "merge-base", "--is-ancestor", "main", "HEAD"], cwd=repo).returncode == 0
     head_unchanged = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip() == head
+    summary_path = os.path.join(root, "summary.md")
+    summary = open(summary_path).read() if os.path.exists(summary_path) else ""
     shutil.rmtree(root)
     result = {
+        "summary": summary,
         "failed": failed,
         "publish_tokens": st.get("push_tokens", []) + [call["token"] for call in st.get("auth_calls", [])
                                                        if call["args"][:2] == ["pr", "create"]],
@@ -832,6 +849,9 @@ def check(sc, r):
     for text in sc.get("pr_body_lacks", []):
         if text in r["pr_body"]:
             problems.append(f"PR body has {text!r}")
+    for line in sc.get("summary_has", []):
+        if not (line.search(r["summary"]) if isinstance(line, re.Pattern) else line in r["summary"]):
+            problems.append(f"step summary lacks {getattr(line, 'pattern', line)!r}")
     if "follow_up" in sc:
         problems.extend("follow-up: " + problem for problem in check(sc["follow_up"], r["follow_up"]))
     return problems
