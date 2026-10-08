@@ -51,6 +51,12 @@ jobs:
 
       - name: Factory report
         run: |
+          # gh lists 30 items unless told otherwise. Fetch one past the cap to tell a full count from a capped one.
+          count() {
+            local n
+            n=$(gh "$@" --limit 1001 --json number -q length)
+            if [ "$n" -gt 1000 ]; then echo "1000+"; else echo "$n"; fi
+          }
           {
             echo
             echo "## 🏭 Factory report"
@@ -58,11 +64,11 @@ jobs:
             echo "| Queue | Open |"
             echo "|---|---|"
             for label in needs-triage ready-for-agent agent:working agent:failed; do
-              echo "| Issues labelled \`$label\` | $(gh issue list --label "$label" --json number -q length) |"
+              echo "| Issues labelled \`$label\` | $(count issue list --label "$label") |"
             done
             for label in agent:review agent:changes-requested agent:approved ready-for-human agent:failed; do
-              echo "| PRs labelled \`$label\` | $(gh pr list --label "$label" --json number -q length) |"
+              echo "| PRs labelled \`$label\` | $(count pr list --label "$label") |"
             done
             since=$(date -u -d '7 days ago' +%F)
-            echo "| Approved PRs merged since $since | $(gh pr list --state merged --label agent:approved --search "merged:>=$since" --json number -q length) |"
+            echo "| Approved PRs merged since $since | $(count pr list --state merged --label agent:approved --search "merged:>=$since") |"
           } >> "$GITHUB_STEP_SUMMARY"

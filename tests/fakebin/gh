@@ -56,10 +56,10 @@ def split(values):
 
 
 def listed(items):
-    """The items `gh issue list` or `gh pr list` would show for --state and --label."""
+    """The items `gh issue list` or `gh pr list` would show for --state and --label. Like gh, it shows 30 unless --limit says otherwise."""
     state = flags.get("--state", ["open"])[0]
     emit([i for i in items if state in ("all", i["state"].lower())
-          and all(name in [l["name"] for l in i["labels"]] for name in flags.get("--label", []))])
+          and all(name in [l["name"] for l in i["labels"]] for name in flags.get("--label", []))][:int(flags.get("--limit", [30])[0])])
 
 
 def fail(msg):
@@ -113,7 +113,7 @@ elif (kind, verb) == ("issue", "create"):
                             "labels": [{"name": x} for x in split(flags.get("--label", []))]}
     print(f"https://github.com/o/sandbox/issues/{n}")
 elif (kind, verb) == ("pr", "list"):
-    listed([pr])
+    listed([pr, *st.get("other_prs", [])])
 elif (kind, verb) == ("pr", "create"):
     pr.update(state="OPEN", title=flags["--title"][0], headRefName=flags["--head"][0],
               body=open(flags["--body-file"][0]).read(), labels=[{"name": x} for x in split(flags.get("--label", []))])
