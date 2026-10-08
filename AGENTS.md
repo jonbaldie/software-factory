@@ -16,6 +16,8 @@ A pushed branch, an open PR or a handoff is unfinished work. If a required step 
 
 `uv run tests/labels.py` runs the triage, scout, implement, review and fix jobs against a fake `gh` and checks the labels they leave. Run it after changing any of those workflows or `ticket.jq`, and add a scenario for each new label change. CI runs it on every PR.
 
+`uv run tests/pi.py` runs `run-agent/pi.mjs` against a fake `pi` and checks how it reads the agent's final JSON answer. Run it after changing `pi.mjs`. CI runs it on every PR.
+
 `uv run tests/smoke.py` pushes to a factory PR in the sandbox and checks what real GitHub Actions do with each push. See `tests/smoke.md`. Run it after changing how review, fix or the push handler are triggered or queued, and add its report to `tests/smoke.md`. It spends model credit, so CI doesn't run it.
 
 ## Agent skills

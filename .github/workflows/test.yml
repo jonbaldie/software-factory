@@ -23,3 +23,6 @@ jobs:
 
       - name: Factory labels
         run: uv run tests/labels.py
+
+      - name: pi harness
+        run: uv run tests/pi.py
