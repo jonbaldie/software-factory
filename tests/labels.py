@@ -543,6 +543,18 @@ SCENARIOS = [
     dict(name="scout files a ticket and starts its triage", wf="factory-scout.yml", target="issue", event=None, start=[],
          files={"src/text.py": "# TODO(factory): Treat tabs as blank\n"}, comments=[], agent=None, final=[],
          dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout files repeated TODO titles once", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.py": "# TODO(factory): Treat tabs as blank\n",
+                "src/b.py": "# TODO(factory): Treat tabs as blank\n"}, comments=[], agent=None, final=[],
+         created_issue_titles=["Treat tabs as blank"], dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout skips an existing TODO title", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/text.py": "# TODO(factory): Add isEmpty\n"}, comments=[], agent=None, final=[],
+         created_issue_titles=[], dispatch=[]),
+    dict(name="scout files distinct TODO titles once each", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.py": "# TODO(factory): Treat tabs as blank\n",
+                "src/b.py": "# TODO(factory): Add pagination to search\n"}, comments=[], agent=None, final=[],
+         created_issue_titles=["Treat tabs as blank", "Add pagination to search"],
+         dispatch=["factory-triage.yml issue=41", "factory-triage.yml issue=42"]),
 ]
 
 
@@ -751,6 +763,8 @@ def run_scenario(sc, trace):
         "final": sorted(l["name"] for l in target(st)["labels"]),
         "history": st["label_history"],
         "dispatch": [" ".join(d) for d in st["dispatches"]],
+        "created_issue_titles": [call[call.index("--title") + 1] for call in st["calls"]
+                                 if call[:2] == ["issue", "create"]],
         "new_comments": [c["body"] for c in target(st)["comments"][before:]],
         "closed": target(st)["state"] == "CLOSED",
         "merged": st["pr"]["state"] == "MERGED",
@@ -786,6 +800,8 @@ def check(sc, r):
         problems.append(f"final labels {r['final']}, want {sorted(sc['final'])}")
     if r["dispatch"] != sc["dispatch"]:
         problems.append(f"dispatched {r['dispatch']}, want {sc['dispatch']}")
+    if "created_issue_titles" in sc and r["created_issue_titles"] != sc["created_issue_titles"]:
+        problems.append(f"created issues {r['created_issue_titles']}, want {sc['created_issue_titles']}")
     if sc.get("merged_main") and not r["merged_main"]:
         problems.append("the fixer's commit doesn't have main in its history")
     if "merged" in sc and r["merged"] != sc["merged"]:

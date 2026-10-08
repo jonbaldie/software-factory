@@ -40,6 +40,7 @@ jobs:
             printf 'Found by the scout at %s/%s/blob/%s/%s#L%s. Delete that `TODO(factory):` comment as part of the change.\n' \
               "$GITHUB_SERVER_URL" "$GH_REPO" "$GITHUB_SHA" "$file" "$line" > "$RUNNER_TEMP/body.md"
             url=$(gh issue create --title "$title" --body-file "$RUNNER_TEMP/body.md" --label needs-triage)
+            existing="$existing"$'\n'"$title"
             echo "- Filed $url: $title" >> "$GITHUB_STEP_SUMMARY"
             # Labels added with GITHUB_TOKEN don't trigger workflows, so start triage explicitly.
             if ! gh workflow run factory-triage.yml -f issue="${url##*/}"; then
