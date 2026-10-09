@@ -170,12 +170,14 @@ jobs:
           branch="agent/issue-$ISSUE"
           title=$(gh issue view "$ISSUE" --json title -q .title)
 
-          if [ -n "$(git status --porcelain -- .github)" ]; then
+          git switch -q -C "$branch" # already on it when continuing from agent:wip
+          git add -A
+          # Compare with where the run started, so commits the agent made count too. Continuing from agent:wip, that's
+          # where the branch left the default branch, so the default branch's own .github/ changes since then don't count.
+          if ! git diff --cached --quiet "$(git merge-base HEAD "$GITHUB_SHA")" -- .github; then
             echo "::error::The agent changed files under .github/, which the factory owns"
             exit 1
           fi
-          git switch -q -C "$branch" # already on it when continuing from agent:wip
-          git add -A
           if git diff --cached --quiet && [ "$(git rev-parse HEAD)" = "$GITHUB_SHA" ]; then
             echo "::error::The agent finished without changing any files"
             exit 1
@@ -217,7 +219,8 @@ jobs:
           if [ -f "$RUNNER_TEMP/implementation.md" ]; then AGENT_SUMMARY=$(cat "$RUNNER_TEMP/implementation.md"); fi
           # Save what the agent wrote on the issue's branch, with why the run stopped, so a retry continues from it.
           case "$AGENT_OUTCOME" in success | failure | cancelled) agent_ran=true ;; *) agent_ran=false ;; esac
-          if $agent_ran && [ -n "$(git status --porcelain)" ] && [ -z "$(git status --porcelain -- .github)" ]; then
+          if $agent_ran && [ -n "$(git status --porcelain)" ] && [ -z "$(git status --porcelain -- .github)" ] &&
+            git diff --quiet "$(git merge-base HEAD "$GITHUB_SHA")" -- .github; then
             if [ "$JOB_STATUS" = cancelled ]; then reason="The run timed out or was cancelled."
             elif [ "$TESTS_OUTCOME" = failure ]; then reason="The tests failed."
             elif [ "$AGENT_OUTCOME" = failure ]; then reason="The agent stopped with an error."

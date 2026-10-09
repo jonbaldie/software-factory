@@ -13,7 +13,8 @@ head = subprocess.check_output(["git", "rev-parse", "HEAD"], env=env, text=True)
 if state.get("push_on_publish"):
     state["pr"]["headRefOid"] = "a" * 40
     state["push_on_publish"] = False
-rejected = state.get("push_fails") or subprocess.run(["git", "merge-base", "--is-ancestor", state["pr"]["headRefOid"], head],
+forced = "--force" in sys.argv
+rejected = state.get("push_fails") or not forced and subprocess.run(["git", "merge-base", "--is-ancestor", state["pr"]["headRefOid"], head],
                           env=env, capture_output=True).returncode != 0
 if not rejected:
     state["pr"]["headRefOid"] = head
