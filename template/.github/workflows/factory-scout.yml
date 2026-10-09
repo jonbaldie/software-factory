@@ -40,6 +40,10 @@ jobs:
             [[ $opener == *'/*'* ]] && title=${title%'*/'}
             [[ $opener == *'<!--'* ]] && title=${title%'-->'}
             title=${title%"${title##*[![:space:]]}"}
+            if [[ -z $title ]]; then
+              echo "- Skipped blank TODO at $file:$line (no text)." >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
             if grep -Fxq -- "$title" <<<"$existing"; then
               echo "- Already filed: $title" >> "$GITHUB_STEP_SUMMARY"
               continue
