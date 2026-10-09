@@ -32,7 +32,8 @@ jobs:
           { git grep -n -F 'TODO(factory):' -- ':!*.md' ':!.github' || true; } | while IFS= read -r hit; do
             file=${hit%%:*}
             line=$(cut -d: -f2 <<<"$hit")
-            title=${hit#*TODO(factory): }
+            title=${hit#*TODO(factory):}
+            title=${title#"${title%%[![:space:]]*}"}
             if grep -Fxq -- "$title" <<<"$existing"; then
               echo "- Already filed: $title" >> "$GITHUB_STEP_SUMMARY"
               continue
