@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""Fake the GNU date invocation used by the scout on ubuntu-latest."""
+import sys
+
+if sys.argv[1:] != ["-u", "-d", "7 days ago", "+%F"]:
+    sys.exit(f"fake date: unsupported arguments {sys.argv[1:]!r}")
+
+print("2026-10-02")

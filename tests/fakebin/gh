@@ -107,8 +107,11 @@ elif (kind, verb) == ("issue", "view"):
 elif (kind, verb) == ("issue", "list"):
     listed(st["issues"].values())
 elif (kind, verb) == ("issue", "create"):
+    title = flags["--title"][0]
+    if not title.strip():
+        fail("GraphQL: Title can't be blank (createIssue)")
     n = max([pr["number"], *map(int, st["issues"])]) + 1
-    st["issues"][str(n)] = {"number": n, "title": flags["--title"][0], "body": open(flags["--body-file"][0]).read(),
+    st["issues"][str(n)] = {"number": n, "title": title, "body": open(flags["--body-file"][0]).read(),
                             "author": {"login": "app/github-actions", "is_bot": True}, "state": "OPEN", "comments": [], "assignees": [],
                             "labels": [{"name": x} for x in split(flags.get("--label", []))]}
     print(f"https://github.com/o/sandbox/issues/{n}")
