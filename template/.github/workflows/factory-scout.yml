@@ -34,6 +34,12 @@ jobs:
             line=$(cut -d: -f2 <<<"$hit")
             title=${hit#*TODO(factory):}
             title=${title#"${title%%[![:space:]]*}"}
+            # Drop trailing whitespace (including CRLF's \r), then the closer of a block or HTML comment opened before the marker.
+            title=${title%"${title##*[![:space:]]}"}
+            opener=${hit%%TODO(factory):*}
+            [[ $opener == *'/*'* ]] && title=${title%'*/'}
+            [[ $opener == *'<!--'* ]] && title=${title%'-->'}
+            title=${title%"${title##*[![:space:]]}"}
             if grep -Fxq -- "$title" <<<"$existing"; then
               echo "- Already filed: $title" >> "$GITHUB_STEP_SUMMARY"
               continue
