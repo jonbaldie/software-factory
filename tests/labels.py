@@ -252,6 +252,7 @@ AUTO_FIX = "factory-fix.yml pr=40 automatic=true"
 # files: more files in the repo, such as a TODO for the scout.
 # queued: {label: n} adds n open issues with that label. queued_prs: {(state, label): n} adds n PRs besides #40.
 # summary_has: lines the job's step summary must contain.
+# created_issue_body_has: text some issue the scout creates must contain in its body.
 # main_files: files committed to main after the agent's branch, so the fixer has main to merge in.
 # merge_blocked: GitHub refuses the merge and reports this mergeable state.
 # merged_main: the fixer's commit has main in its history.
@@ -630,6 +631,14 @@ SCENARIOS = [
          event=None, start=[], files={"src/a.js": "/* TODO(factory): Add isEmpty */\r\n",
                                        "b.html": "<!-- TODO(factory): Add isEmpty -->\n"}, comments=[], agent=None,
          final=[], created_issue_titles=[], dispatch=[]),
+    dict(name="scout links a TODO in a file name with a colon", wf="factory-scout.yml", target="issue", event=None,
+         start=[], files={"src/a:b.py": "x = 1\n# TODO(factory): Treat tabs as blank\n"}, comments=[], agent=None,
+         final=[], created_issue_titles=["Treat tabs as blank"], dispatch=["factory-triage.yml issue=41"],
+         created_issue_body_has=[re.compile(r"/o/sandbox/blob/[0-9a-f]{40}/src/a:b\.py#L2\. ")]),
+    dict(name="scout reads a TODO after a binary file match", wf="factory-scout.yml", target="issue", event=None,
+         start=[], files={"src/a.bin": "\x00# TODO(factory): Not a ticket\n", "src/b:c.py": "# TODO(factory): Later one\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Later one"], dispatch=["factory-triage.yml issue=41"],
+         created_issue_body_has=[re.compile(r"/o/sandbox/blob/[0-9a-f]{40}/src/b:c\.py#L1\. ")]),
     dict(name="scout files distinct TODO titles once each", wf="factory-scout.yml", target="issue", event=None, start=[],
          files={"src/a.py": "# TODO(factory): Treat tabs as blank\n",
                 "src/b.py": "# TODO(factory): Add pagination to search\n"}, comments=[], agent=None, final=[],
@@ -740,6 +749,7 @@ def run_scenario(sc, trace):
                           for (pr_state, label), n in sc.get("queued_prs", {}).items() for k in range(n)]
     with open(state_path, "w") as f:
         json.dump(state, f)
+    issues_before = set(state["issues"])
 
     with open(os.path.join(ROOT, "template/.github/workflows", sc["wf"]), encoding="utf-8") as f:
         workflow = yaml.safe_load(f)
@@ -863,6 +873,7 @@ def run_scenario(sc, trace):
         "dispatch": [" ".join(d) for d in st["dispatches"]],
         "created_issue_titles": [call[call.index("--title") + 1] for call in st["calls"]
                                  if call[:2] == ["issue", "create"]],
+        "created_issue_bodies": [issue["body"] for n, issue in st["issues"].items() if n not in issues_before],
         "new_comments": [c["body"] for c in target(st)["comments"][before:]],
         "closed": target(st)["state"] == "CLOSED",
         "merged": st["pr"]["state"] == "MERGED",
@@ -900,6 +911,9 @@ def check(sc, r):
         problems.append(f"dispatched {r['dispatch']}, want {sc['dispatch']}")
     if "created_issue_titles" in sc and r["created_issue_titles"] != sc["created_issue_titles"]:
         problems.append(f"created issues {r['created_issue_titles']}, want {sc['created_issue_titles']}")
+    for text in sc.get("created_issue_body_has", []):
+        if not any(text.search(body) if isinstance(text, re.Pattern) else text in body for body in r["created_issue_bodies"]):
+            problems.append(f"created issue bodies {r['created_issue_bodies']} lack {getattr(text, 'pattern', text)!r}")
     if sc.get("merged_main") and not r["merged_main"]:
         problems.append("the fixer's commit doesn't have main in its history")
     if "merged" in sc and r["merged"] != sc["merged"]:

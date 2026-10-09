@@ -29,9 +29,10 @@ jobs:
           echo "## 🔭 Scouted TODOs" >> "$GITHUB_STEP_SUMMARY"
           existing=$(gh issue list --state all --limit 1000 --json title -q '.[].title')
           # Markdown and .github are skipped because docs and the factory itself mention the marker.
-          { git grep -n -F 'TODO(factory):' -- ':!*.md' ':!.github' || true; } | while IFS= read -r hit; do
-            file=${hit%%:*}
-            line=$(cut -d: -f2 <<<"$hit")
+          # -z ends the path and line number with NULs, so a path may contain colons. -I skips binary files, whose
+          # "Binary file X matches" line has no NULs and would throw the reads out of step.
+          { git grep -z -n -I -F 'TODO(factory):' -- ':!*.md' ':!.github' || true; } |
+          while IFS= read -r -d '' file && IFS= read -r -d '' line && IFS= read -r hit; do
             title=${hit#*TODO(factory):}
             title=${title#"${title%%[![:space:]]*}"}
             # Drop trailing whitespace (including CRLF's \r), then the closer of a block or HTML comment opened before the marker.
