@@ -1,0 +1,22 @@
+## npm test on PR head 6f84943
+✔ wordWrap rejects zero or negative widths (0.036291ms)
+ℹ tests 130
+ℹ suites 0
+ℹ pass 130
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 82.918125
+
+## new test file against base slugify (main src/textkit.js)
+  + actual - expected
+    actual: 'stra-e',
+    expected: 'strasse',
+
+## extra probes on PR head
+"STRASSE" → "strasse"
+"Fußball-Weltmeisterschaft" → "fussball-weltmeisterschaft"
+"ß" → "ss"
+"Maße & Gewichte" → "masse-gewichte"
+"Crème Brûlée!" → "creme-brulee"
