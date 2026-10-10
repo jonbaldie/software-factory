@@ -65,8 +65,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # agent:working means an implement run has claimed the ticket. A pause leaves ready-for-agent without it.
-          if gh issue view "$ISSUE" --json labels -q '.labels[].name' | grep -qx agent:working; then
+          # agent:working means an implement run has claimed the ticket, and a closed issue is done. A pause leaves ready-for-agent with neither.
+          if [ "$(gh issue view "$ISSUE" --json labels,state -q '.state == "CLOSED" or any(.labels[]; .name == "agent:working")')" = true ]; then
             echo "implementing=true" >> "$GITHUB_OUTPUT"
           fi
           gh issue edit "$ISSUE" --remove-label agent:failed # Report failure adds it back if this run fails too

@@ -72,7 +72,7 @@ jobs:
             echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
             exit 1
           fi
-          # ready-for-agent stays on. Adding a label an issue already has starts nothing, so a re-triage can't start a second run.
+          # ready-for-agent stays on. Re-triage sees agent:working and starts no second run.
           gh issue edit "$ISSUE" --remove-label agent:failed --add-label agent:working
           gh issue comment "$ISSUE" --body "🏭 The factory picked this up. [Watch the run]($RUN_URL)"
           labels=$(gh issue view "$ISSUE" --json labels -q '.labels[].name')
