@@ -1,0 +1,130 @@
+# Scout on main (installed with --ref main) in private scratch repo jonbaldie/sf-explore-2026-10-10
+
+## Fixtures (commit 1, run 38018671182)
+ca4fde3a15a779af4b6acacb03775c13905c636b Add factory and TODO fixtures
+
+ docs/notes.md                             |   1 +
+ src/a-long.js                             |   2 +
+ src/b-nospace.js                          |   2 +
+ src/c-block.js                            |   2 +
+ src/d-crlf.js                             |   2 +
+ src/e-page.html                           |   2 +
+ src/f-blank.js                            |   2 +
+ src/g:colon.js                            |   1 +
+ src/h-binary.bin                          | Bin 0 -> 44 bytes
+ src/i-component.jsx                       |   5 +
+ src/j my file.js                          |   1 +
+ src/k_server.py                           |   2 +
+ 25 files changed, 1289 insertions(+)
+--- src/a-long.js
+0000000    /   /       T   O   D   O   (   f   a   c   t   o   r   y   )
+0000020    :       R   e   p   l   a   c   e       t   h   e       h   a
+0000040    n   d   -   r   o   l   l   e   d       r   e   t   r   y    
+--- src/b-nospace.js
+0000000    /   /       T   O   D   O   (   f   a   c   t   o   r   y   )
+0000020    :   V   a   l   i   d   a   t   e       t   h   e       i   n
+0000040    p   u   t       t   y   p   e  \n   e   x   p   o   r   t    
+--- src/c-block.js
+0000000    /   *       T   O   D   O   (   f   a   c   t   o   r   y   )
+0000020    :       A   d   d       a       m   a   x   L   e   n   g   t
+0000040    h       o   p   t   i   o   n       t   o       s   l   u   g
+--- src/d-crlf.js
+0000000    /   /       T   O   D   O   (   f   a   c   t   o   r   y   )
+0000020    :       S   u   p   p   o   r   t       W   i   n   d   o   w
+0000040    s       l   i   n   e       e   n   d   i   n   g   s       i
+--- src/e-page.html
+0000000    <   !   -   -       T   O   D   O   (   f   a   c   t   o   r
+0000020    y   )   :       A   d   d       a       p   a   g   e       f
+0000040    o   o   t   e   r       -   -   >  \n   <   p   >   x   <   /
+--- src/f-blank.js
+0000000    /   /       T   O   D   O   (   f   a   c   t   o   r   y   )
+0000020    :  \n   e   x   p   o   r   t       c   o   n   s   t       f
+0000040        =       1   ;  \n                                        
+--- src/g:colon.js
+0000000    /   /       T   O   D   O   (   f   a   c   t   o   r   y   )
+0000020    :       H   a   n   d   l   e       c   o   l   o   n   s    
+0000040    i   n       p   a   t   h   s  \n                            
+--- src/i-component.jsx
+0000000    e   x   p   o   r   t       c   o   n   s   t       C       =
+0000020        (   )       =   >       (  \n           <   d   i   v   >
+0000040   \n                   {   /   *       T   O   D   O   (   f   a
+--- src/j my file.js
+0000000    /   /       T   O   D   O   (   f   a   c   t   o   r   y   )
+0000020    :       H   a   n   d   l   e       s   p   a   c   e   s    
+0000040    i   n       f   i   l   e       n   a   m   e   s  \n        
+--- src/k_server.py
+0000000    #       T   O   D   O   (   f   a   c   t   o   r   y   )   :
+0000020        R   e   a   d       t   h   e       p   o   r   t       f
+0000040    r   o   m       t   h   e       e   n   v   i   r   o   n   m
+--- docs/notes.md
+0000000    T   O   D   O   (   f   a   c   t   o   r   y   )   :       T
+0000020    h   i   s       M   a   r   k   d   o   w   n       n   o   t
+0000040    e       m   u   s   t       b   e       s   k   i   p   p   e
+--- src/h-binary.bin (contains NUL)
+0000000    b   i   n  \0   /   /       T   O   D   O   (   f   a   c   t
+0000020    o   r   y   )   :       B   i   n   a   r   y       p   a   y
+
+## Fixtures (commit 2, run 38018765055)
+9ecc0e7318d38572517b10de1afe5ce69decaf20 More TODOs
+
+ src/l upload client.js | 1 +
+ src/m-card.jsx         | 1 +
+ 2 files changed, 2 insertions(+)
+// TODO(factory): Retry failed uploads
+export const Card = () => <section>{/* TODO(factory): Add a card footer */}</section>;
+
+## Issues filed (title length, title, body)
+#1 [316] "Replace the hand-rolled retry loop in the payment client with exponential backoff and jitter, cap the total wait at thirty seconds, surface the final error to the caller with the attempt count, and log each retry at debug level so that operators can see why a checkout request took longer than expected in production"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/a-long.js#L1. Delete that `TODO(factory):` comment as part of the change.
+
+#2 [23] "Validate the input type"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/b-nospace.js#L1. Delete that `TODO(factory):` comment as part of the change.
+
+#3 [30] "Add a maxLength option to slug"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/c-block.js#L1. Delete that `TODO(factory):` comment as part of the change.
+
+#4 [36] "Support Windows line endings in slug"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/d-crlf.js#L1. Delete that `TODO(factory):` comment as part of the change.
+
+#5 [17] "Add a page footer"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/e-page.html#L1. Delete that `TODO(factory):` comment as part of the change.
+
+#6 [22] "Handle colons in paths"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/g:colon.js#L1. Delete that `TODO(factory):` comment as part of the change.
+
+#7 [32] "Show a spinner while loading */}"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/i-component.jsx#L3. Delete that `TODO(factory):` comment as part of the change.
+
+#8 [27] "Handle spaces in file names"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/j my file.js#L1. Delete that `TODO(factory):` comment as part of the change.
+
+#9 [34] "Read the port from the environment"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/k_server.py#L1. Delete that `TODO(factory):` comment as part of the change.
+
+#10 [20] "Retry failed uploads"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/9ecc0e7318d38572517b10de1afe5ce69decaf20/src/l upload client.js#L1. Delete that `TODO(factory):` comment as part of the change.
+
+#11 [32] "Add a card footer */}</section>;"
+   Found by the scout at https://github.com/jonbaldie/sf-explore-2026-10-10/blob/9ecc0e7318d38572517b10de1afe5ce69decaf20/src/m-card.jsx#L1. Delete that `TODO(factory):` comment as part of the change.
+
+
+## Rendered first link in each body (GitHub html)
+#1 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/a-long.js#L1"
+#2 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/b-nospace.js#L1"
+#3 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/c-block.js#L1"
+#4 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/d-crlf.js#L1"
+#5 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/e-page.html#L1"
+#6 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/g:colon.js#L1"
+#7 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/i-component.jsx#L3"
+#8 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/j"
+#9 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/ca4fde3a15a779af4b6acacb03775c13905c636b/src/k_server.py#L1"
+#10 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/9ecc0e7318d38572517b10de1afe5ce69decaf20/src/l"
+#11 href="https://github.com/jonbaldie/sf-explore-2026-10-10/blob/9ecc0e7318d38572517b10de1afe5ce69decaf20/src/m-card.jsx#L1"
+
+## Link checks
+src/j -> 404 (private repo: 404 is expected unauthenticated; see authenticated check below)
+src/j%20my%20file.js -> 404 (private repo: 404 is expected unauthenticated; see authenticated check below)
+src/l -> 404 (private repo: 404 is expected unauthenticated; see authenticated check below)
+Authenticated contents API:
+src/j -> {"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}gh: Not Found (HTTP 404)
+src/j%20my%20file.js -> j my file.js

@@ -1,0 +1,57 @@
+diff --git a/README.md b/README.md
+index 59365ec..44b6cb9 100644
+--- a/README.md
++++ b/README.md
+@@ -166,10 +166,11 @@ reverseWords('one  two three'); // "three two one"
+ 
+ ### `slugify(input)`
+ 
+-Turns a string into a URL-safe slug: lowercases it, strips accents, and replaces runs of other characters with `-`.
++Turns a string into a URL-safe slug: lowercases it, strips accents, converts German `ß` (including uppercase `ẞ`) to `ss`, and replaces runs of other characters with `-`.
+ 
+ ```js
+ slugify('Crème Brûlée!'); // "creme-brulee"
++slugify('Straße');        // "strasse"
+ ```
+ 
+ ### `snakeCase(input)`
+diff --git a/src/textkit.js b/src/textkit.js
+index 4437701..af0594b 100644
+--- a/src/textkit.js
++++ b/src/textkit.js
+@@ -81,8 +81,9 @@ export function pascalCase(input) {
+ }
+ 
+ /**
+- * Turn a string into a URL-safe slug.
++ * Turn a string into a URL-safe slug, transliterating German sharp S to "ss".
+  * @example slugify("Hello, World!") // "hello-world"
++ * @example slugify("Straße") // "strasse"
+  * @param {string} input
+  * @returns {string}
+  */
+@@ -91,6 +92,7 @@ export function slugify(input) {
+     .normalize('NFKD')
+     .replace(/[̀-ͯ]/g, '')
+     .toLowerCase()
++    .replace(/ß/g, 'ss')
+     .replace(/[^a-z0-9]+/g, '-')
+     .replace(/^-+|-+$/g, '');
+ }
+diff --git a/test/textkit.test.js b/test/textkit.test.js
+index 611cd6c..711657a 100644
+--- a/test/textkit.test.js
++++ b/test/textkit.test.js
+@@ -402,6 +402,12 @@ test('slugify handles an empty string', () => {
+   assert.equal(slugify(''), '');
+ });
+ 
++test('slugify transliterates German sharp S to ss', () => {
++  assert.equal(slugify('Straße'), 'strasse');
++  assert.equal(slugify('Großer Preis'), 'grosser-preis');
++  assert.equal(slugify('ẞ'), 'ss');
++});
++
+ test('titleCase capitalises each word', () => {
+   assert.equal(titleCase('hello world'), 'Hello World');
+ });
