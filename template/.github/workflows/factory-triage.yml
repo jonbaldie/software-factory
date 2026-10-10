@@ -65,9 +65,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # ready-for-agent without agent:failed means the implementer has the ticket already.
-          labels=$(gh issue view "$ISSUE" --json labels -q '.labels[].name')
-          if grep -qx ready-for-agent <<<"$labels" && ! grep -qx agent:failed <<<"$labels"; then
+          # agent:working means an implement run has claimed the ticket. A pause leaves ready-for-agent without it.
+          if gh issue view "$ISSUE" --json labels -q '.labels[].name' | grep -qx agent:working; then
             echo "implementing=true" >> "$GITHUB_OUTPUT"
           fi
           gh issue edit "$ISSUE" --remove-label agent:failed # Report failure adds it back if this run fails too
