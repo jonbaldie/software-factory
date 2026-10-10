@@ -49,8 +49,11 @@ jobs:
               echo "- Already filed: $title" >> "$GITHUB_STEP_SUMMARY"
               continue
             fi
+            # Percent-encode the path so a space doesn't end GitHub's autolink. Slashes and colons stay as they are;
+            # a literal "%2F" in a name is already "%252F" by then.
+            path=$(jq -rn --arg p "$file" '$p | @uri | gsub("%2F"; "/") | gsub("%3A"; ":")')
             printf 'Found by the scout at %s/%s/blob/%s/%s#L%s. Delete that `TODO(factory):` comment as part of the change.\n' \
-              "$GITHUB_SERVER_URL" "$GH_REPO" "$GITHUB_SHA" "$file" "$line" > "$RUNNER_TEMP/body.md"
+              "$GITHUB_SERVER_URL" "$GH_REPO" "$GITHUB_SHA" "$path" "$line" > "$RUNNER_TEMP/body.md"
             url=$(gh issue create --title "$title" --body-file "$RUNNER_TEMP/body.md" --label needs-triage)
             existing="$existing"$'\n'"$title"
             echo "- Filed $url: $title" >> "$GITHUB_STEP_SUMMARY"
