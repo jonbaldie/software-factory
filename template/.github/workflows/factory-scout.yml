@@ -35,11 +35,11 @@ jobs:
           while IFS= read -r -d '' file && IFS= read -r -d '' line && IFS= read -r hit; do
             title=${hit#*TODO(factory):}
             title=${title#"${title%%[![:space:]]*}"}
-            # Drop trailing whitespace (including CRLF's \r), then the closer of a block or HTML comment opened before the marker.
-            title=${title%"${title##*[![:space:]]}"}
+            # In a block or HTML comment opened before the marker, the first closer ends the title; code after it isn't
+            # part of it. Then drop trailing whitespace, including CRLF's \r.
             opener=${hit%%TODO(factory):*}
-            [[ $opener == *'/*'* ]] && title=${title%'*/'}
-            [[ $opener == *'<!--'* ]] && title=${title%'-->'}
+            [[ $opener == *'/*'* ]] && title=${title%%'*/'*}
+            [[ $opener == *'<!--'* ]] && title=${title%%'-->'*}
             title=${title%"${title##*[![:space:]]}"}
             if [[ -z $title ]]; then
               echo "- Skipped blank TODO at $file:$line (no text)." >> "$GITHUB_STEP_SUMMARY"
