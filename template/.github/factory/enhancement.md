@@ -32,11 +32,10 @@ Done when every behaviour on your list has a green test, with either its failure
 
 ### Done when
 
-Read the whole pull request description, including appended fix summaries. Evidence under **Seams:** and **Slices:** can be supplied there; a later correction supersedes an earlier statement. Judge whether the evidence is complete, without requiring the original section to be rewritten.
-
 - [ ] Every behaviour the ticket asks for has a test.
 - [ ] Every test calls only the seams listed under **Seams:** in the pull request description, and mocks only system boundaries.
 - [ ] Every expected value is a literal worked out independently of the code.
 - [ ] The code does what the tests demand, and nothing beyond the ticket.
-- [ ] The test command passes.
+- [ ] The test command passes (**Verification:**; see the implementer instructions).
+- [ ] **Cleanup:** and **Retained:** follow the implementer instructions, including their applicability rules.
 - [ ] The pull request description has a **Slices:** list after **Seams:**, one line per behaviour: its test name, then the failure line from its red run, or "green on arrival" and the slice that built it.
