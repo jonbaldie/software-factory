@@ -13,7 +13,7 @@ Return an `outcome` and a markdown `summary`:
 
 - `completed`: the ticket is implemented and the tests pass. The summary is the initial pull request description: start with a short paragraph on what changed (no heading), include the method's required sections, then the evidence below, and end with a **Decisions:** list.
   - **Verification:** commands and observed results for the required test command and any other checks or evidence required by `AGENTS.md` / `CLAUDE.md`. Include evidence links or short output where needed.
-  - **Cleanup:** the debug-marker search command, its scope and result, and the disposable files removed (throwaway harnesses, temporary fixtures and other artifacts). Run the search and remove disposable files before reporting completion; say explicitly when none were created.
+  - **Cleanup:** where applicable, the debug-marker search command, its scope and result, and the disposable files removed (throwaway harnesses, temporary fixtures and other artifacts). Perform applicable cleanup before reporting completion; say explicitly when no disposable files were created.
   - **Retained:** regression fixtures and durable evidence kept, with their paths and why they stay. Keep these separate from deleted disposable artifacts.
 
   Keep evidence concise: one line per item is enough. Report failed attempts and retries with their failure reason and subsequent result; a later pass does not erase an earlier failure. Claim a check ran only when its result is available in this run; otherwise report it as unverified, not passed. An item may say "not applicable" with a one-line reason, only when the method and repository do not require it. Required checks still have to pass for `completed`.
