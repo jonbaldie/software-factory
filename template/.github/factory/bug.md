@@ -48,6 +48,7 @@ If no correct seam exists, that is a finding in itself: the code's structure sto
 
 - [ ] The regression test drives the code path the fix changes and asserts the symptom the ticket reports, from the trigger it describes and at the severity it reports, so it goes red without the fix. Or **No seam:** in the pull request description explains why there is no regression test.
 - [ ] The fix changes the root cause, not just the place where the symptom shows.
-- [ ] The test command passes.
-- [ ] A grep for `[DEBUG-` finds nothing, and every throwaway harness and fixture is deleted. The regression test and its fixtures stay.
-- [ ] The pull request description has a **Root cause:** paragraph before **Decisions:**: the hypothesis that held, the probe that confirmed it, and the regression test's failure line from before the fix.
+- [ ] The test command passes, with its command and result under **Verification:** in the pull request description.
+- [ ] A grep for `[DEBUG-` finds nothing, and every throwaway harness and fixture is deleted. Report the search command, scope, result and deleted files under **Cleanup:**; list the regression fixtures and durable evidence that stay under **Retained:**.
+- [ ] The pull request description has a **Root cause:** paragraph before **Decisions:**: the hypothesis that held and the probe that confirmed it.
+- [ ] **Reproduction:** gives the original, unminimised command, its observed red symptom and its green result after the fix. **Regression:** gives the test command, its failure line before the fix and its green result, or points to **No seam:** explaining why there is no regression test.

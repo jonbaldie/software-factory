@@ -38,5 +38,6 @@ Read the whole pull request description, including appended fix summaries. Evide
 - [ ] Every test calls only the seams listed under **Seams:** in the pull request description, and mocks only system boundaries.
 - [ ] Every expected value is a literal worked out independently of the code.
 - [ ] The code does what the tests demand, and nothing beyond the ticket.
-- [ ] The test command passes.
+- [ ] The test command passes, with its command and result under **Verification:** in the pull request description.
+- [ ] **Cleanup:** reports the debug-marker search and disposable files removed; **Retained:** lists fixtures and durable evidence kept, as required by the implementer instructions.
 - [ ] The pull request description has a **Slices:** list after **Seams:**, one line per behaviour: its test name, then the failure line from its red run, or "green on arrival" and the slice that built it.
