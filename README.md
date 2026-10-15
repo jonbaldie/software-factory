@@ -230,7 +230,7 @@ It skips Markdown and `.github/`, checks existing issue titles to avoid duplicat
 
 ## Update the factory
 
-Rerun the installer, review `git diff`, and commit the changes. It overwrites the installed workflows and prompts, so restore any custom edits you want to keep.
+Rerun the installer, review `git diff`, and commit the changes. It overwrites the installed workflows and prompts, so restore any custom edits you want to keep. It stops without changing anything if one of those files, or a folder above it in `.github/`, is a symlink.
 
 Earlier versions merged approved PRs without `FACTORY_MERGE`. To keep that, run `gh variable set FACTORY_MERGE --body true`.
 

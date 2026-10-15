@@ -101,9 +101,20 @@ main() {
     src=$tmp
   fi
 
+  # cp and mkdir -p follow symlinks, so a linked destination or parent would write outside it. Refuse before writing anything.
+  local files file path
+  files=$(cd "$src/template" && find .github -type f | sort)
+  while IFS= read -r file; do
+    path=$file
+    while [ "$path" != . ]; do
+      [ ! -L "$path" ] || die "$path is a symlink, so installing would write through it. Replace it with a regular file or directory and rerun. Nothing was changed."
+      path=$(dirname "$path")
+    done
+  done <<<"$files"
+
   echo
   echo "Files"
-  (cd "$src/template" && find .github -type f) | sort | while IFS= read -r file; do
+  while IFS= read -r file; do
     local state=updated
     if [ ! -f "$file" ]; then
       state=added
@@ -113,7 +124,7 @@ main() {
     mkdir -p "$(dirname "$file")"
     cp "$src/template/$file" "$file"
     printf '  %-10s %s\n' "$state" "$file"
-  done
+  done <<<"$files"
 
   echo
   echo "Labels"
