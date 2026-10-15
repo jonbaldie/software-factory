@@ -123,6 +123,46 @@ code, output, variables, labels, wrote = run({})
 check("absent variables are detected from package.json",
       code == 0 and variables == {"FACTORY_TEST_COMMAND": "npm test", "FACTORY_SETUP_COMMAND": "npm ci"} and wrote, output)
 
+def package(text):
+    def prepare(repo):
+        with open(os.path.join(repo, "package.json"), "w") as f:
+            f.write(text)
+    return prepare
+
+
+for name, text, accepted in [
+    ("top-level test key", '{"test":{"fixtures":"cases.json"}}', False),
+    ("unrelated nested test key", '{"config":{"test":"true"}}', False),
+    ("null test", '{"scripts":{"test":null}}', False),
+    ("empty test", '{"scripts":{"test":""}}', False),
+    ("whitespace-only test", '{"scripts":{"test":" \\t\\n"}}', False),
+    ("numeric test", '{"scripts":{"test":1}}', False),
+    ("boolean test", '{"scripts":{"test":true}}', False),
+    ("object test", '{"scripts":{"test":{}}}', False),
+    ("array test", '{"scripts":{"test":[]}}', False),
+    ("missing scripts", '{}', False),
+    ("null scripts", '{"scripts":null}', False),
+    ("invalid JSON", '{"scripts":{"test":"true"}', False),
+    ("split test key", '{"scripts":{"test"\n:\n"true"}}', True),
+    ("escaped test key", r'{"scripts":{"\u0074est":"true"}}', True),
+]:
+    code, output, variables, labels, wrote = run({}, prepare=package(text))
+    if accepted:
+        ok = code == 0 and variables.get("FACTORY_TEST_COMMAND") == "npm test" and wrote
+    else:
+        ok = (code != 0 and not variables and not labels and not wrote
+              and "Rerun with --test-command" in output)
+    check(f"automatic detection {'accepts' if accepted else 'rejects'} {name}", ok, output)
+
+for name, saved, flags, expected in [
+    ("saved command", CUSTOM, (), CUSTOM),
+    ("explicit command", {}, ("--test-command", "just test", "--setup-command", ""),
+     {"FACTORY_TEST_COMMAND": "just test"}),
+]:
+    code, output, variables, labels, wrote = run(saved, flags, prepare=package("not JSON"))
+    check(f"{name} bypasses package parsing",
+          code == 0 and variables == expected and wrote, output)
+
 code, output, variables, labels, wrote = run(CUSTOM)
 check("saved custom commands are kept", code == 0 and variables == CUSTOM, output)
 
