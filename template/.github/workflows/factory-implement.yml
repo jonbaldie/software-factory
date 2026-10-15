@@ -38,6 +38,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Read live state: a queued label event or manual dispatch can target an already closed issue.
+          state=$(gh issue view "$ISSUE" --json state -q .state)
+          if [ "$state" != OPEN ]; then
+            echo "Issue #$ISSUE is $state; skipping implementation and leaving its labels alone."
+            exit 0
+          fi
           # An assignee owns the issue, so every later step is skipped and the labels stay as they are.
           owners=$(gh issue view "$ISSUE" --json assignees -q '.assignees[] | "@" + .login' | paste -sd' ' -)
           if [ -n "$owners" ]; then
@@ -186,6 +192,14 @@ jobs:
           # Continuing from agent:wip, the saved commits can be the whole change, so this commit may be empty.
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q --allow-empty -m "$title" -m "Closes #$ISSUE"
+          # The issue may have closed while the agent or tests ran. Check again at the publication boundary.
+          state=$(gh issue view "$ISSUE" --json state -q .state)
+          if [ "$state" != OPEN ]; then
+            echo "Issue #$ISSUE is $state; stopping before publication."
+            gh issue edit "$ISSUE" --remove-label agent:working
+            gh issue comment "$ISSUE" --body "⏹️ Issue #$ISSUE is closed, so nothing was published. [Implement run]($RUN_URL). To resume, reopen it, then remove and re-add \`ready-for-agent\`."
+            exit 0
+          fi
           git push --force "https://x-access-token:${PUBLISH_TOKEN}@github.com/${GH_REPO}.git" "$branch"
           git update-ref "refs/remotes/origin/$branch" HEAD # a push to a URL leaves it behind, and failure saving reads it
 
@@ -217,6 +231,14 @@ jobs:
           PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
           JOB_STATUS: ${{ job.status }}
         run: |
+          # Failure recovery can publish WIP too; closed work must stand down on this path as well.
+          state=$(gh issue view "$ISSUE" --json state -q .state)
+          if [ "$state" != OPEN ]; then
+            echo "Issue #$ISSUE is $state; stopping without saving unfinished work."
+            gh issue edit "$ISSUE" --remove-label agent:working
+            gh issue comment "$ISSUE" --body "⏹️ Issue #$ISSUE is closed, so nothing was published. [Implement run]($RUN_URL). To resume, reopen it, then remove and re-add \`ready-for-agent\`."
+            exit 0
+          fi
           branch="agent/issue-$ISSUE"
           add=agent:failed
           if [ -f "$RUNNER_TEMP/implementation.md" ]; then AGENT_SUMMARY=$(cat "$RUNNER_TEMP/implementation.md"); fi
