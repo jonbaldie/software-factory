@@ -212,6 +212,7 @@ jobs:
           if [ -z "$pr_url" ]; then
             pr_url=$(GH_TOKEN="$PUBLISH_TOKEN" gh pr create --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/body.md")
           fi
+          echo "$pr_url" > "$RUNNER_TEMP/pr-url" # from here, a failure is the PR's handoff to review
           # Keep labels on GITHUB_TOKEN: an App-authenticated label would start a second reviewer.
           gh pr edit "${pr_url##*/}" --add-label agent:review
 
@@ -231,6 +232,17 @@ jobs:
           PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
           JOB_STATUS: ${{ job.status }}
         run: |
+          # Once the PR exists, review is the stage to retry: an implementation retry leaves an open PR alone.
+          # agent:failed goes on the PR, where review's start clears it. Nothing is pushed again.
+          # The lookup catches a PR that GitHub created although `gh pr create` reported an error.
+          pr_url=$(cat "$RUNNER_TEMP/pr-url" 2>/dev/null ||
+            gh pr list --head "agent/issue-$ISSUE" --state open --json url -q '.[0].url // empty' || true)
+          if [ -n "$pr_url" ]; then
+            gh pr edit "${pr_url##*/}" --add-label agent:failed
+            gh issue edit "$ISSUE" --remove-label agent:working,agent:wip
+            gh issue comment "$ISSUE" --body "💥 The factory opened $pr_url, but couldn't hand it to review. [See the run]($RUN_URL). Add \`agent:review\` to the pull request (remove it first if it's there), or run **Factory 2 · Review** with PR number ${pr_url##*/}, to start its review."
+            exit 0
+          fi
           # Failure recovery can publish WIP too; closed work must stand down on this path as well.
           state=$(gh issue view "$ISSUE" --json state -q .state)
           if [ "$state" != OPEN ]; then
