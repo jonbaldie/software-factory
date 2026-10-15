@@ -162,6 +162,7 @@ jobs:
           permission-pull-requests: write
 
       - name: Open the pull request
+        id: publish
         if: steps.implementation.outputs.outcome == 'completed'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -186,6 +187,7 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q --allow-empty -m "$title" -m "Closes #$ISSUE"
           git push --force "https://x-access-token:${PUBLISH_TOKEN}@github.com/${GH_REPO}.git" "$branch"
+          git update-ref "refs/remotes/origin/$branch" HEAD # a push to a URL leaves it behind, and failure saving reads it
 
           {
             cat "$RUNNER_TEMP/implementation.md"
@@ -212,18 +214,25 @@ jobs:
           AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
           AGENT_OUTCOME: ${{ steps.agent.outcome }}
           TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
           JOB_STATUS: ${{ job.status }}
         run: |
           branch="agent/issue-$ISSUE"
           add=agent:failed
           if [ -f "$RUNNER_TEMP/implementation.md" ]; then AGENT_SUMMARY=$(cat "$RUNNER_TEMP/implementation.md"); fi
           # Save what the agent wrote on the issue's branch, with why the run stopped, so a retry continues from it.
+          # That includes commits nobody pushed, such as the publishing commit when its push failed.
           case "$AGENT_OUTCOME" in success | failure | cancelled) agent_ran=true ;; *) agent_ran=false ;; esac
-          if $agent_ran && [ -n "$(git status --porcelain)" ] && [ -z "$(git status --porcelain -- .github)" ] &&
+          unpushed=false
+          if [ "$(git rev-parse HEAD)" != "$GITHUB_SHA" ] && ! { git rev-parse -q --verify "origin/$branch" >/dev/null &&
+            git merge-base --is-ancestor HEAD "origin/$branch"; }; then unpushed=true; fi
+          saved=none
+          if $agent_ran && { [ -n "$(git status --porcelain)" ] || $unpushed; } && [ -z "$(git status --porcelain -- .github)" ] &&
             git diff --quiet "$(git merge-base HEAD "$GITHUB_SHA")" -- .github; then
             if [ "$JOB_STATUS" = cancelled ]; then reason="The run timed out or was cancelled."
             elif [ "$TESTS_OUTCOME" = failure ]; then reason="The tests failed."
             elif [ "$AGENT_OUTCOME" = failure ]; then reason="The agent stopped with an error."
+            elif [ "$PUBLISH_OUTCOME" = failure ]; then reason="Pushing the finished work failed."
             else reason="The run failed."
             fi
             {
@@ -235,12 +244,17 @@ jobs:
             } > "$RUNNER_TEMP/wip.txt"
             git switch -q -C "$branch"
             git add -A
-            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-              commit -q -F "$RUNNER_TEMP/wip.txt"
+            # A clean tree is saved as it is, so the branch keeps the exact commit. The failure comment gives the reason.
+            if ! git diff --cached --quiet; then
+              git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+                commit -q -F "$RUNNER_TEMP/wip.txt"
+            fi
             if git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "$branch"; then
               add+=,agent:wip
+              saved=true
             else
               echo "::warning::Couldn't save the agent's work to $branch"
+              saved=false
             fi
           fi
           gh issue edit "$ISSUE" --remove-label agent:working --add-label "$add"
@@ -249,6 +263,10 @@ jobs:
             if gh issue view "$ISSUE" --json labels -q '.labels[].name' | grep -qx agent:wip; then
               printf '\nThe unfinished work is saved on [`%s`](%s), and `agent:wip` makes a retry continue from it. Remove `agent:wip` first to start over.\n' \
                 "$branch" "$GITHUB_SERVER_URL/$GH_REPO/tree/$branch"
+            fi
+            if [ "$saved" = true ]; then printf '\n%s\n' "$reason"; fi
+            if [ "$saved" = false ]; then
+              printf "\nThe agent's work couldn't be saved to \`%s\`, so a retry starts over.\n" "$branch"
             fi
             # The agent's own account, such as why it couldn't reproduce a bug.
             if [ -n "$AGENT_SUMMARY" ]; then printf '\n**The agent said:**\n\n%s\n' "$AGENT_SUMMARY"; fi

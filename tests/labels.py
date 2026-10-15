@@ -241,6 +241,7 @@ AUTO_FIX = "factory-fix.yml pr=40 automatic=true"
 # pushed_mid_run: someone pushes a new PR commit while the agent runs.
 # push_on_publish: someone pushes after the fixer's head check, just before its git push.
 # push_fails: git push fails without a changed PR head.
+# push_fails_first: only the first git push fails.
 # push_on_merge: the PR head changes just as GitHub receives the merge request.
 # push_on_approval: the PR head changes while the approval is being published.
 # push_on_verdict: the PR head changes while the review comment is being published.
@@ -423,12 +424,12 @@ SCENARIOS = [
          publish_tokens=["fake-token", "fake-token"], metadata_token="fake-token"),
     dict(name="implement commits a .github edit, fails without opening a PR", wf="factory-implement.yml", target="issue",
          event="ready-for-agent", start=["enhancement", "ready-for-agent"], comments=[], agent=commits_factory_edit,
-         final=["enhancement", "ready-for-agent", "agent:failed"], dispatch=[], failed=True, pr_created=False,
+         final=["enhancement", "ready-for-agent", "agent:failed"], dispatch=[], failed=True, pr_created=False, publish_tokens=[],
          last_comment="💥 The factory failed on this ticket."),
     dict(name="implement commits a .github edit and the tests fail, doesn't save the work", wf="factory-implement.yml",
          target="issue", event="ready-for-agent", start=["enhancement", "ready-for-agent"], comments=[],
          agent=commits_factory_edit_then_more, vars={"FACTORY_TEST_COMMAND": "false"},
-         final=["enhancement", "ready-for-agent", "agent:failed"], dispatch=[], failed=True, pr_created=False),
+         final=["enhancement", "ready-for-agent", "agent:failed"], dispatch=[], failed=True, pr_created=False, publish_tokens=[]),
     dict(name="implement leaves a .github edit uncommitted, fails without opening a PR", wf="factory-implement.yml",
          target="issue", event="ready-for-agent", start=["enhancement", "ready-for-agent"], comments=[], agent=leaves_factory_edit,
          final=["enhancement", "ready-for-agent", "agent:failed"], dispatch=[], failed=True, pr_created=False,
@@ -449,6 +450,21 @@ SCENARIOS = [
          target="issue", event="ready-for-agent", start=["bug", "ready-for-agent"], comments=[], agent=implements,
          vars={"FACTORY_TEST_COMMAND": "false"}, final=["bug", "ready-for-agent", "agent:failed", "agent:wip"],
          dispatch=[], failed=True, pr_created=False, last_comment="💥 The factory failed on this ticket.", comment_has=[IMPLEMENTED]),
+    dict(name="implement completed, a failed publishing push saves the completed commit", wf="factory-implement.yml",
+         target="issue", event="ready-for-agent", start=["bug", "ready-for-agent"], comments=[], agent=implements,
+         push_fails_first=True, final=["bug", "ready-for-agent", "agent:failed", "agent:wip"], dispatch=[], failed=True,
+         pr_created=False, publish_tokens=["fake-token", "fake-token"], remote_head_has=["Add isBlank\n\nCloses #39"],
+         last_comment="💥 The factory failed on this ticket.", comment_has=["saved on [`agent/issue-39`]", "Pushing the finished work failed."]),
+    dict(name="implement completed, failed publishing and saving pushes report the work wasn't saved",
+         wf="factory-implement.yml", target="issue", event="ready-for-agent", start=["bug", "ready-for-agent"], comments=[],
+         agent=implements, push_fails=True, final=["bug", "ready-for-agent", "agent:failed"], dispatch=[], failed=True,
+         pr_created=False, publish_tokens=["fake-token", "fake-token"], last_comment="💥 The factory failed on this ticket.",
+         comment_has=["couldn't be saved"]),
+    dict(name="implement fails after its publishing push, doesn't mark the pushed work unfinished", wf="factory-implement.yml",
+         target="issue", event="ready-for-agent", start=["enhancement", "ready-for-agent"], comments=[], agent=implements,
+         repo_labels=[l for l in REPO_LABELS if l != "agent:review"], final=["enhancement", "ready-for-agent", "agent:failed"],
+         dispatch=[], failed=True, pr_created=True, publish_tokens=["fake-token", "fake-token"],
+         last_comment="💥 The factory failed on this ticket.", comment_lacks=["saved on", "couldn't be saved"]),
     dict(name="implement completed without changes, remains a failure", wf="factory-implement.yml", target="issue",
          event="ready-for-agent", start=["bug", "ready-for-agent"], comments=[], agent=completes,
          final=["bug", "ready-for-agent", "agent:failed"], dispatch=[], failed=True, pr_created=False),
@@ -754,10 +770,11 @@ def run_scenario(sc, trace):
     author = sc.get("author", {"login": "reporter"})
     assignees = [{"login": a} for a in sc.get("assignees", [])]
     state = {
-        "repo_labels": REPO_LABELS, "merge_ok": "merge_blocked" not in sc, "calls": [], "dispatches": [], "label_history": [],
+        "repo_labels": sc.get("repo_labels", REPO_LABELS), "merge_ok": "merge_blocked" not in sc, "calls": [], "dispatches": [], "label_history": [],
         "push_on_merge": sc.get("push_on_merge", False),
         "push_on_publish": sc.get("push_on_publish", False),
         "push_fails": sc.get("push_fails", False),
+        "push_fails_first": sc.get("push_fails_first", False),
         "push_on_approval": sc.get("push_on_approval", False),
         "push_on_verdict": sc.get("push_on_verdict", False),
         "push_on_handoff": sc.get("push_on_handoff", False),
@@ -898,6 +915,8 @@ def run_scenario(sc, trace):
         st = json.load(f)
     merged_main = subprocess.run(["git", "merge-base", "--is-ancestor", "main", "HEAD"], cwd=repo).returncode == 0
     head_unchanged = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip() == head
+    remote_head_message = subprocess.run(["git", "log", "-1", "--format=%B", st["pr"]["headRefOid"]], cwd=repo,
+                                         capture_output=True, text=True).stdout
     summary_path = os.path.join(root, "summary.md")
     summary = open(summary_path).read() if os.path.exists(summary_path) else ""
     shutil.rmtree(root)
@@ -921,6 +940,7 @@ def run_scenario(sc, trace):
         "merged": st["pr"]["state"] == "MERGED",
         "head": head,
         "remote_head": st["pr"]["headRefOid"],
+        "remote_head_message": remote_head_message,
         "prompt": prompt,
         "merged_main": merged_main,
         "head_unchanged": head_unchanged,
@@ -943,6 +963,9 @@ def check(sc, r):
     for key in ("failed", "pr_created", "head_unchanged", "remote_head"):
         if key in sc and r[key] != sc[key]:
             problems.append(f"{key} is {r[key]}, want {sc[key]}")
+    for text in sc.get("remote_head_has", []):
+        if text not in r["remote_head_message"]:
+            problems.append(f"remote head's message {r['remote_head_message']!r} lacks {text!r}")
     if r["during"] is not None and "agent:failed" in r["during"]:
         problems.append("agent:failed still on while the agent runs")
     if "during" in sc and r["during"] != (None if sc["during"] is None else sorted(sc["during"])):
