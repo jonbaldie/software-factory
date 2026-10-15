@@ -35,6 +35,12 @@ script_dir=""
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ -d "$(dirname "${BASH_SOURCE[0]}")/template" ]; then
   script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 fi
+# Prints a repo variable's value, or nothing when it isn't set. Exits when GitHub can't list the variables.
+read_variable() {
+  gh variable list --repo "$1" --json name,value -q "map(select(.name == \"$2\"))[0].value // \"\"" ||
+    die "couldn't read $2 with \`gh variable list --repo $1\`. Nothing was changed."
+}
+
 tmp=""
 trap '[ -z "$tmp" ] || rm -rf "$tmp"' EXIT
 
@@ -59,9 +65,12 @@ main() {
   repo=$(gh repo view --json nameWithOwner -q .nameWithOwner) || die "couldn't find this clone's GitHub repo"
 
   # Work out the variables before changing anything, so a missing test command stops the install cleanly.
-  local current_test current_setup
-  current_test=$(gh variable get FACTORY_TEST_COMMAND --repo "$repo" 2>/dev/null || true)
-  current_setup=$(gh variable get FACTORY_SETUP_COMMAND --repo "$repo" 2>/dev/null || true)
+  # A variable that isn't listed is unset. A failed read stops here, so an outage can't replace saved commands with detected ones.
+  local current_test current_setup current_merge current_harness
+  current_test=$(read_variable "$repo" FACTORY_TEST_COMMAND) || exit
+  current_setup=$(read_variable "$repo" FACTORY_SETUP_COMMAND) || exit
+  current_merge=$(read_variable "$repo" FACTORY_MERGE) || exit
+  current_harness=$(read_variable "$repo" FACTORY_HARNESS) || exit
   if [ -z "$test_command" ]; then
     if [ -n "$current_test" ]; then
       test_command=$current_test
@@ -171,9 +180,7 @@ EOF
     fi
     echo "  FACTORY_SETUP_COMMAND (none)"
   fi
-  local merge
-  merge=$(gh variable get FACTORY_MERGE --repo "$repo" 2>/dev/null || true)
-  if [ "$merge" = true ]; then
+  if [ "$current_merge" = true ]; then
     echo "  FACTORY_MERGE = true"
   else
     echo "  FACTORY_MERGE (off, so you merge approved PRs)"
@@ -181,10 +188,9 @@ EOF
 
   echo
   echo "Secrets"
-  local harness secrets secret_ok=false wanted=OPENROUTER_API_KEY
-  harness=$(gh variable get FACTORY_HARNESS --repo "$repo" 2>/dev/null || true)
+  local secrets secret_ok=false wanted=OPENROUTER_API_KEY
   secrets=$(gh secret list --repo "$repo" --json name -q '.[].name' 2>/dev/null || true)
-  if [ "$harness" = claude ]; then
+  if [ "$current_harness" = claude ]; then
     wanted=ANTHROPIC_API_KEY
     if grep -Eqx 'ANTHROPIC_API_KEY|CLAUDE_CODE_OAUTH_TOKEN' <<<"$secrets"; then secret_ok=true; fi
   elif grep -qx OPENROUTER_API_KEY <<<"$secrets"; then
