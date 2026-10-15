@@ -162,6 +162,7 @@ jobs:
           permission-pull-requests: write
 
       - name: Open the pull request
+        id: publish
         if: steps.implementation.outputs.outcome == 'completed'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -186,6 +187,7 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q --allow-empty -m "$title" -m "Closes #$ISSUE"
           git push --force "https://x-access-token:${PUBLISH_TOKEN}@github.com/${GH_REPO}.git" "$branch"
+          git update-ref "refs/remotes/origin/$branch" HEAD # a push to a URL leaves it behind, and failure saving reads it
 
           {
             cat "$RUNNER_TEMP/implementation.md"
@@ -212,6 +214,7 @@ jobs:
           AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
           AGENT_OUTCOME: ${{ steps.agent.outcome }}
           TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
           JOB_STATUS: ${{ job.status }}
         run: |
           branch="agent/issue-$ISSUE"
@@ -229,6 +232,7 @@ jobs:
             if [ "$JOB_STATUS" = cancelled ]; then reason="The run timed out or was cancelled."
             elif [ "$TESTS_OUTCOME" = failure ]; then reason="The tests failed."
             elif [ "$AGENT_OUTCOME" = failure ]; then reason="The agent stopped with an error."
+            elif [ "$PUBLISH_OUTCOME" = failure ]; then reason="Pushing the finished work failed."
             else reason="The run failed."
             fi
             {
