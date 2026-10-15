@@ -226,7 +226,7 @@ The scout workflow runs daily and creates `needs-triage` issues from code commen
 // TODO(factory): Add pagination to the search results
 ```
 
-It skips Markdown and `.github/`, checks existing issue titles to avoid duplicates, and writes a queue report in the run summary. The scout itself uses no model, but it starts a [triage](#triage-issues) run for each issue it creates. A TODO that triage marks `ready-for-agent` is then built, and with `FACTORY_MERGE` on it can merge with no human step.
+It skips Markdown (`.md` and `.markdown`, in any letter case) and `.github/`, but scans `.mdx` files, which often hold component code. It checks existing issue titles to avoid duplicates, and writes a queue report in the run summary. The scout itself uses no model, but it starts a [triage](#triage-issues) run for each issue it creates. A TODO that triage marks `ready-for-agent` is then built, and with `FACTORY_MERGE` on it can merge with no human step.
 
 ## Update the factory
 
