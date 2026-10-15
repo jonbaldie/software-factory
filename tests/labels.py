@@ -237,6 +237,7 @@ AUTO_FIX = "factory-fix.yml pr=40 automatic=true"
 # comments: the target's comments. A string is one the factory posted.
 # author, author_association: who opened issue #39. The default is an outsider, "reporter".
 # assignees: the target's assignees. issue_assignees: issue #39's, when the target is the PR.
+# closed_mid_run: someone closes issue #39 while the agent runs.
 # assigned_mid_run: someone assigns the target while the agent runs.
 # pushed_mid_run: someone pushes a new PR commit while the agent runs.
 # push_on_publish: someone pushes after the fixer's head check, just before its git push.
@@ -263,6 +264,23 @@ AUTO_FIX = "factory-fix.yml pr=40 automatic=true"
 # follow_up: another job on the same issue or PR, inheriting its final labels, comments and author.
 # The retries are issue #9: a retried review or fix clears agent:failed, and a failed retry puts it back.
 SCENARIOS = [
+    *[dict(name=f"implement, closed issue at entry via {event or 'dispatch'}", wf="factory-implement.yml",
+           target="issue", event=event, issue_state="CLOSED", start=["bug", "ready-for-agent", "agent:failed"],
+           comments=[], agent=implements, during=None, final=["bug", "ready-for-agent", "agent:failed"],
+           dispatch=[], failed=False, closed=True, pr_created=False, publish_tokens=[], last_comment=None,
+           follow_up=dict(wf="factory-implement.yml", event="ready-for-agent", issue_state="OPEN", agent=implements,
+                          final=["bug", "ready-for-agent"], dispatch=[AUTO_REVIEW], failed=False, pr_created=True))
+      for event in ("ready-for-agent", None)],
+    dict(name="implement, closed issue during the agent stops WIP publication after test failure", wf="factory-implement.yml",
+         target="issue", event="ready-for-agent", closed_mid_run=True, start=["bug", "ready-for-agent"],
+         comments=[], agent=implements, vars={"FACTORY_TEST_COMMAND": "false"},
+         final=["bug", "ready-for-agent"], dispatch=[], failed=True, closed=True, pr_created=False,
+         publish_tokens=[], last_comment="⏹️ Issue #39 is closed", comment_has=["nothing was published"]),
+    dict(name="implement, closed issue during the agent stops publication", wf="factory-implement.yml",
+         target="issue", event="ready-for-agent", closed_mid_run=True, start=["bug", "ready-for-agent"],
+         comments=[], agent=implements, during=["bug", "ready-for-agent", "agent:working"],
+         final=["bug", "ready-for-agent"], dispatch=[], failed=False, closed=True, pr_created=False,
+         publish_tokens=[], last_comment="⏹️ Issue #39 is closed", comment_has=["nothing was published"]),
     dict(name="fix, an unchanged head does not hide a publishing failure", wf="factory-fix.yml", event=None,
          start=["agent:changes-requested"], push_fails=True, comments=[REVIEW_ROUND_1], agent=fixes,
          final=["agent:failed"], dispatch=[], failed=True, last_comment="💥 The fix stage failed",
@@ -870,9 +888,11 @@ def run_scenario(sc, trace):
                     with open(interp(step["with"]["prompt-file"], ctx), encoding="utf-8") as f:
                         prompt = f.read()
                     ok, outputs = sc["agent"](repo)
-                    if sc.get("assigned_mid_run") or sc.get("pushed_mid_run"):
+                    if sc.get("assigned_mid_run") or sc.get("pushed_mid_run") or sc.get("closed_mid_run"):
                         with open(state_path) as f:
                             st = json.load(f)
+                        if sc.get("closed_mid_run"):
+                            st["issues"]["39"]["state"] = "CLOSED"
                         if sc.get("assigned_mid_run"):
                             target(st)["assignees"] = [{"login": "maintainer"}]
                         if sc.get("pushed_mid_run"):
