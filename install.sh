@@ -74,7 +74,11 @@ main() {
   if [ -z "$test_command" ]; then
     if [ -n "$current_test" ]; then
       test_command=$current_test
-    elif [ -f package.json ] && grep -Eq '"test"[[:space:]]*:' package.json; then
+    elif [ -f package.json ] && command -v node >/dev/null && node -e '
+      const pkg = JSON.parse(require("fs").readFileSync("package.json", "utf8"));
+      const test = pkg && pkg.scripts && pkg.scripts.test;
+      process.exit(typeof test === "string" && test.trim().length > 0 ? 0 : 1);
+    ' 2>/dev/null; then
       test_command="npm test"
     else
       die "couldn't detect how to run your tests. Rerun with --test-command 'your test command'."
