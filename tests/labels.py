@@ -463,7 +463,8 @@ SCENARIOS = [
          dispatch=[AUTO_REVIEW], failed=False, pr_created=True),
     dict(name="implement crashes, remains a failure", wf="factory-implement.yml", target="issue", event="ready-for-agent",
          start=["bug", "ready-for-agent"], comments=[], agent=crashes, final=["bug", "ready-for-agent", "agent:failed"],
-         dispatch=[], failed=True, pr_created=False, last_comment="💥 The factory failed on this ticket."),
+         pr_final=[], dispatch=[], failed=True, pr_created=False, last_comment="💥 The factory failed on this ticket.",
+         comment_has=["Remove and re-add `ready-for-agent` to retry."]),
     dict(name="implement completed, failing tests still save the work and report failure", wf="factory-implement.yml",
          target="issue", event="ready-for-agent", start=["bug", "ready-for-agent"], comments=[], agent=implements,
          vars={"FACTORY_TEST_COMMAND": "false"}, final=["bug", "ready-for-agent", "agent:failed", "agent:wip"],
@@ -478,11 +479,25 @@ SCENARIOS = [
          agent=implements, push_fails=True, final=["bug", "ready-for-agent", "agent:failed"], dispatch=[], failed=True,
          pr_created=False, publish_tokens=["fake-token", "fake-token"], last_comment="💥 The factory failed on this ticket.",
          comment_has=["couldn't be saved"]),
-    dict(name="implement fails after its publishing push, doesn't mark the pushed work unfinished", wf="factory-implement.yml",
+    dict(name="implement fails after opening the PR, doesn't mark the pushed work unfinished", wf="factory-implement.yml",
          target="issue", event="ready-for-agent", start=["enhancement", "ready-for-agent"], comments=[], agent=implements,
-         repo_labels=[l for l in REPO_LABELS if l != "agent:review"], final=["enhancement", "ready-for-agent", "agent:failed"],
-         dispatch=[], failed=True, pr_created=True, publish_tokens=["fake-token", "fake-token"],
-         last_comment="💥 The factory failed on this ticket.", comment_lacks=["saved on", "couldn't be saved"]),
+         repo_labels=[l for l in REPO_LABELS if l != "agent:review"], final=["enhancement", "ready-for-agent"],
+         pr_final=["agent:failed"], dispatch=[], failed=True, pr_created=True, publish_tokens=["fake-token", "fake-token"],
+         last_comment="💥 The factory opened https://github.com/o/sandbox/pull/40", comment_lacks=["saved on", "couldn't be saved"]),
+    # Issue #65: once the PR exists, a failed handoff is the PR's review to retry, not the issue's implementation.
+    dict(name="implement fails to dispatch review after opening the PR, reports a review retry on the PR",
+         wf="factory-implement.yml", target="issue", event="ready-for-agent", start=["bug", "ready-for-agent"], comments=[],
+         agent=implements, dispatch_fails=True, final=["bug", "ready-for-agent"], pr_final=["agent:review", "agent:failed"],
+         dispatch=[], failed=True, pr_created=True, last_comment="💥 The factory opened https://github.com/o/sandbox/pull/40",
+         comment_has=["Add `agent:review` to the pull request (remove it first", "**Factory 2 · Review**", "PR number 40"],
+         comment_lacks=["`ready-for-agent` to retry", "saved on", "couldn't be saved"],
+         follow_up=dict(wf="factory-review.yml", target="pr", event="agent:review", agent=approve, during=["agent:review"],
+                        final=["agent:approved"], dispatch=[], failed=False)),
+    dict(name="implement finds the PR GitHub opened despite an error, reports a review retry on the PR",
+         wf="factory-implement.yml", target="issue", event="ready-for-agent", start=["bug", "ready-for-agent"], comments=[],
+         agent=implements, pr_create_errors=True, final=["bug", "ready-for-agent"], pr_final=["agent:failed"], dispatch=[],
+         failed=True, pr_created=True, last_comment="💥 The factory opened https://github.com/o/sandbox/pull/40",
+         comment_lacks=["`ready-for-agent` to retry", "saved on", "couldn't be saved"]),
     dict(name="implement completed without changes, remains a failure", wf="factory-implement.yml", target="issue",
          event="ready-for-agent", start=["bug", "ready-for-agent"], comments=[], agent=completes,
          final=["bug", "ready-for-agent", "agent:failed"], dispatch=[], failed=True, pr_created=False),
@@ -797,6 +812,8 @@ def run_scenario(sc, trace):
         "push_on_verdict": sc.get("push_on_verdict", False),
         "push_on_handoff": sc.get("push_on_handoff", False),
         "fail_head_after_approval": sc.get("fail_head_after_approval", False),
+        "dispatch_fails": sc.get("dispatch_fails", False),
+        "pr_create_errors": sc.get("pr_create_errors", False),
         "checks_pending": sc.get("checks_pending", False),
         "checks_missing": sc.get("checks_missing", False),
         "push_during_checks": sc.get("push_during_checks", False),
@@ -950,6 +967,7 @@ def run_scenario(sc, trace):
         "pr_body": st["pr"]["body"],
         "during": during,
         "final": sorted(l["name"] for l in target(st)["labels"]),
+        "pr_final": sorted(l["name"] for l in st["pr"]["labels"]),
         "history": st["label_history"],
         "dispatch": [" ".join(d) for d in st["dispatches"]],
         "created_issue_titles": [call[call.index("--title") + 1] for call in st["calls"]
@@ -966,9 +984,14 @@ def run_scenario(sc, trace):
         "head_unchanged": head_unchanged,
         "log": log,
     }
-    if "follow_up" in sc:
+    if "follow_up" in sc and sc["follow_up"].get("target") == "pr":
+        # Continues on the PR this run opened, such as a review retry after implementation's handoff failed.
+        follow_up = {**sc["follow_up"], "target": None, "start": result["pr_final"], "comments": st["pr"]["comments"],
+                     "author": author, "author_association": sc.get("author_association", "NONE")}
+    elif "follow_up" in sc:
         follow_up = {**sc["follow_up"], "target": sc.get("target"), "start": result["final"], "comments": target(st)["comments"],
                      "author": author, "author_association": sc.get("author_association", "NONE")}
+    if "follow_up" in sc:
         result["follow_up"] = run_scenario(follow_up, trace)
         log.extend("follow-up: " + line for line in result["follow_up"]["log"])
     return result
@@ -992,6 +1015,8 @@ def check(sc, r):
         problems.append(f"labels while the agent runs {r['during']}, want {sc['during']}")
     if r["final"] != sorted(sc["final"]):
         problems.append(f"final labels {r['final']}, want {sorted(sc['final'])}")
+    if "pr_final" in sc and r["pr_final"] != sorted(sc["pr_final"]):
+        problems.append(f"PR labels {r['pr_final']}, want {sorted(sc['pr_final'])}")
     if r["dispatch"] != sc["dispatch"]:
         problems.append(f"dispatched {r['dispatch']}, want {sc['dispatch']}")
     if "created_issue_titles" in sc and r["created_issue_titles"] != sc["created_issue_titles"]:

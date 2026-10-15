@@ -120,6 +120,8 @@ elif (kind, verb) == ("pr", "list"):
 elif (kind, verb) == ("pr", "create"):
     pr.update(state="OPEN", title=flags["--title"][0], headRefName=flags["--head"][0],
               body=open(flags["--body-file"][0]).read(), labels=[{"name": x} for x in split(flags.get("--label", []))])
+    if st.get("pr_create_errors"):
+        fail("HTTP 502: the PR was created, but the response was lost")
     print(pr["url"])
 elif verb == "comment":
     body = flags["--body"][0] if "--body" in flags else open(flags["--body-file"][0]).read()
@@ -176,6 +178,9 @@ elif (kind, verb) == ("pr", "checks"):
     save()
     emit([{"bucket": "pending" if pending else "pass"}])
 elif (kind, verb) == ("workflow", "run"):
+    if st.get("dispatch_fails"):
+        st["dispatch_fails"] = False
+        fail("could not create workflow dispatch event: HTTP 500")
     st["dispatches"].append([pos[2]] + flags.get("-f", []))
 else:
     fail(f"fake gh: unsupported command {args}")

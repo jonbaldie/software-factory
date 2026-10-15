@@ -184,7 +184,7 @@ If you push while the fixer is working, it discards its unpublished changes and 
 
 To retry a failed triage, re-add `needs-triage`. To retry implementation, remove and re-add `ready-for-agent` on the issue. If the issue has `agent:wip`, the retry continues from the saved work; remove `agent:wip` first to start over. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.
 
-An implementation retry leaves an already-open `agent/issue-N` PR alone. Continue that PR through review or fix; close it first if you want a fresh implementation.
+An implementation retry leaves an already-open `agent/issue-N` PR alone. Continue that PR through review or fix; close it first if you want a fresh implementation. If implementation fails after opening its PR, such as when handing it to review fails, `agent:failed` goes on the PR rather than the issue, and the failure comment links the PR. Retry its review there: add `agent:review` to the PR (remove it first if it's there), or run **Factory 2 · Review** with the PR number.
 
 For a PR with merge conflicts, use **Actions → Factory 2 · Review** or **Factory 3 · Fix → Run workflow**, select the default branch and enter the PR number. Re-adding labels cannot start these jobs while the PR conflicts: [GitHub skips `pull_request` workflows in that state](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request). Manual dispatch works for both conflicting and clean PRs.
 
