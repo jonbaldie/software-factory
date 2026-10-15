@@ -179,7 +179,7 @@ If you push while the fixer is working, it discards its unpublished changes and 
 | `agent:changes-requested` | The PR needs fixes. You can add it with a comment explaining what to change. |
 | `agent:approved` | The agent approved the PR. Merge it. With `FACTORY_MERGE` on, check whether the factory merged it; GitHub may still block it. |
 | `agent:failed` | A stage failed, timed out, or was cancelled. Read the linked run, fix the cause, then retry as described below. |
-| `agent:wip` | Implementation failed after the agent changed files. The unfinished work and the reason it stopped are saved on the `agent/issue-N` branch. |
+| `agent:wip` | Implementation failed after the agent changed files. The unfinished work is saved on the `agent/issue-N` branch, including a finished commit whose push failed. The reason it stopped is in the failure comment, and in a WIP commit when uncommitted edits were saved. |
 | `ready-for-human` | You need to take over. On an issue, triage's comment names the decision, or asks a maintainer to approve an outsider's issue. On a PR, three reviews were rejected or GitHub blocked the merge; check the review comments and GitHub's merge status. |
 
 To retry a failed triage, re-add `needs-triage`. To retry implementation, remove and re-add `ready-for-agent` on the issue. If the issue has `agent:wip`, the retry continues from the saved work; remove `agent:wip` first to start over. To retry a failed review or fix, re-add `agent:review` or `agent:changes-requested` on the PR. Adding a label that is already present starts nothing.
