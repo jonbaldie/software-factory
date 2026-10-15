@@ -26,3 +26,6 @@ jobs:
 
       - name: pi harness
         run: uv run tests/pi.py
+
+      - name: Installer
+        run: uv run tests/install.py
