@@ -70,8 +70,9 @@ save()
 PACKAGE = {"name": "fixture", "scripts": {"test": "node --test"}}
 
 
-def run(variables, flags=(), fail_reads=False, secrets=()):
-    """Installs into a fresh npm repo. Returns (exit code, output, variables after, labels after, whether files were written)."""
+def run(variables, flags=(), fail_reads=False, secrets=(), prepare=None, inspect=None):
+    """Installs into a fresh npm repo, calling prepare(repo) before and inspect(repo) after.
+    Returns (exit code, output, variables after, labels after, whether files were written)."""
     with tempfile.TemporaryDirectory() as tmp:
         repo, fakebin = os.path.join(tmp, "repo"), os.path.join(tmp, "bin")
         os.makedirs(repo)
@@ -84,6 +85,8 @@ def run(variables, flags=(), fail_reads=False, secrets=()):
         with open(os.path.join(repo, "package-lock.json"), "w") as f:
             f.write("{}")
         subprocess.run(["git", "init", "-q", repo], check=True)
+        if prepare:
+            prepare(repo)
         state = os.path.join(tmp, "state.json")
         with open(state, "w") as f:
             json.dump({"variables": dict(variables), "labels": [], "calls": [], "fail_reads": fail_reads, "secrets": list(secrets)}, f)
@@ -91,6 +94,8 @@ def run(variables, flags=(), fail_reads=False, secrets=()):
         p = subprocess.run(["bash", os.path.join(ROOT, "install.sh"), *flags], cwd=repo, env=env, capture_output=True, text=True)
         with open(state) as f:
             st = json.load(f)
+        if inspect:
+            inspect(repo)
         return p.returncode, p.stdout + p.stderr, st["variables"], st["labels"], os.path.isdir(os.path.join(repo, ".github"))
 
 
@@ -131,6 +136,59 @@ check("a multi-line saved command is kept whole",
 code, output, variables, labels, wrote = run({**CUSTOM, "FACTORY_MERGE": "true", "FACTORY_HARNESS": "claude"}, secrets=["OPENROUTER_API_KEY"])
 check("FACTORY_MERGE and FACTORY_HARNESS are read",
       code == 0 and "FACTORY_MERGE = true" in output and "! ANTHROPIC_API_KEY is missing" in output, output)
+
+SHARED = "CUSTOM SHARED PROMPT\n"
+
+
+def write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text)
+
+
+def symlinked(link, target, shared):
+    """Makes .github/<link> a symlink to the repo's <target>, with SHARED in the repo's <shared> file."""
+    def prepare(repo):
+        write(os.path.join(repo, shared), SHARED)
+        path = os.path.join(repo, ".github", link)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        os.symlink(os.path.relpath(os.path.join(repo, target), os.path.dirname(path)), path)
+    return prepare
+
+
+for link, target, shared in [
+    ("factory/implement.md", "outside-github.txt", "outside-github.txt"),
+    ("factory", "shared", "shared/implement.md"),
+    ("workflows", "shared", "shared/factory-implement.yml"),
+]:
+    after = {}
+    def inspect(repo):
+        with open(os.path.join(repo, shared)) as f:
+            after["shared"] = f.read()
+        after["github"] = sorted(os.listdir(os.path.join(repo, ".github")))
+    code, output, variables, labels, _ = run(CUSTOM, prepare=symlinked(link, target, shared), inspect=inspect)
+    check(f"a symlink at .github/{link} stops the install before it changes anything",
+          code != 0 and after["shared"] == SHARED and after["github"] == [link.split("/")[0]]
+          and variables == CUSTOM and not labels and f".github/{link} is a symlink" in output, output)
+
+after = {}
+def inspect(repo):
+    with open(os.path.join(repo, "shared", "factory", "implement.md")) as f:
+        after["shared"] = f.read()
+code, output, variables, labels, _ = run(CUSTOM, prepare=lambda repo: (
+    write(os.path.join(repo, "shared", "factory", "implement.md"), SHARED), os.symlink("shared", os.path.join(repo, ".github"))), inspect=inspect)
+check("a symlinked .github stops the install before it changes anything",
+      code != 0 and after["shared"] == SHARED and variables == CUSTOM and not labels and ".github is a symlink" in output, output)
+
+after = {}
+def inspect(repo):
+    with open(os.path.join(repo, ".github", "factory", "implement.md")) as f:
+        after["prompt"] = f.read()
+    with open(os.path.join(ROOT, "template", ".github", "factory", "implement.md")) as f:
+        after["template"] = f.read()
+code, output, variables, labels, _ = run(CUSTOM, prepare=lambda repo: write(os.path.join(repo, ".github", "factory", "implement.md"), SHARED), inspect=inspect)
+check("an upgrade overwrites a regular installed file",
+      code == 0 and after["prompt"] == after["template"] and "updated    .github/factory/implement.md" in output, output)
 
 if failures:
     sys.exit(f"\n{len(failures)} failed")
