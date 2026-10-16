@@ -92,6 +92,17 @@ elif kind == "api" and flags.get("--method") == ["PATCH"] and "/issues/comments/
     c["body"] = flags["-f"][0].removeprefix("body=")
     save()
     emit(c)
+elif kind == "api" and verb.split("?")[0].endswith("/issues"):
+    # Like GitHub's REST issue list: issues and PRs, a page of per_page (default 30), and every page with --paginate.
+    query = dict(q.split("=", 1) for q in verb.partition("?")[2].split("&") if q)
+    state = query.get("state", "open")
+    items = [{"number": i["number"], "title": i["title"], "state": i["state"].lower()} for i in st["issues"].values()]
+    items += [{"number": p["number"], "title": p.get("title", f"PR {p['number']}"), "state": p["state"].lower(), "pull_request": {}}
+              for p in [pr, *st.get("other_prs", [])]]
+    items = [i for i in items if state in ("all", i["state"].replace("merged", "closed"))]
+    if "--paginate" not in flags:
+        items = items[:int(query.get("per_page", 30))]
+    emit(items)
 elif kind == "api":
     issue = st["issues"][pos[1].rsplit("/", 1)[1]]
     author = issue["author"]

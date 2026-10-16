@@ -252,7 +252,8 @@ AUTO_FIX = "factory-fix.yml pr=40 automatic=true"
 # inputs, pr_state: dispatch inputs and the PR's live state when a queued job starts.
 # vars: repository variables besides FACTORY_TEST_COMMAND, such as MERGE_ON to let the reviewer merge.
 # files: more files in the repo, such as a TODO for the scout.
-# queued: {label: n} adds n open issues with that label. queued_prs: {(state, label): n} adds n PRs besides #40.
+# queued: {label: n} adds n open issues with that label, or closed ones with queued_state="CLOSED".
+# queued_prs: {(state, label): n} adds n PRs besides #40. pr_title: PR #40's title.
 # summary_has: lines the job's step summary must contain.
 # created_issue_body_has: text some issue the scout creates must contain in its body.
 # main_files: files committed to main after the agent's branch, so the fixer has main to merge in.
@@ -649,6 +650,18 @@ SCENARIOS = [
     dict(name="scout skips an existing TODO title", wf="factory-scout.yml", target="issue", event=None, start=[],
          files={"src/text.py": "# TODO(factory): Add isEmpty\n"}, comments=[], agent=None, final=[],
          created_issue_titles=[], dispatch=[]),
+    dict(name="scout skips an existing TODO title beyond the 1000 newest issues", wf="factory-scout.yml", target="issue",
+         event=None, start=[], queued={"needs-triage": 1000},
+         files={"src/text.py": "# TODO(factory): Queued needs-triage 999\n"}, comments=[], agent=None, final=[],
+         created_issue_titles=[], dispatch=[]),
+    dict(name="scout skips a TODO title only a closed issue beyond the 1000 newest has", wf="factory-scout.yml",
+         target="issue", event=None, start=[], queued={"wontfix": 1000}, queued_state="CLOSED",
+         files={"src/text.py": "# TODO(factory): Queued wontfix 999\n"}, comments=[], agent=None, final=[],
+         created_issue_titles=[], dispatch=[]),
+    dict(name="scout files a TODO whose title only a PR has", wf="factory-scout.yml", target="issue", event=None,
+         start=[], pr_title="Treat tabs as blank", files={"src/text.py": "# TODO(factory): Treat tabs as blank\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Treat tabs as blank"],
+         dispatch=["factory-triage.yml issue=41"]),
     dict(name="scout skips a blank TODO and files later ones", wf="factory-scout.yml", target="issue", event=None,
          start=[], files={"src/e.py": "# TODO(factory): \n", "src/z.py": "# TODO(factory): Later one\n"},
          comments=[], agent=None, final=[], failed=False, created_issue_titles=["Later one"],
@@ -848,7 +861,9 @@ def run_scenario(sc, trace):
         for k in range(n):
             state["issues"][str(100 + len(state["issues"]))] = {
                 "number": 100 + len(state["issues"]), "title": f"Queued {label} {k}", "body": "", "author": {"login": "reporter"},
-                "state": "OPEN", "labels": [{"name": label}], "comments": [], "assignees": []}
+                "state": sc.get("queued_state", "OPEN"), "labels": [{"name": label}], "comments": [], "assignees": []}
+    if "pr_title" in sc:
+        state["pr"]["title"] = sc["pr_title"]
     state["other_prs"] = [{"number": 1000 + k, "state": pr_state, "labels": [{"name": label}]}
                           for (pr_state, label), n in sc.get("queued_prs", {}).items() for k in range(n)]
     with open(state_path, "w") as f:
