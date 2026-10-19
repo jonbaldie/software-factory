@@ -1,0 +1,34 @@
+Existing issues reviewed before filing (open and closed, limit 200; all 33 returned):
+#77 The fix stage always fails on a PR whose branch already changes .github/, after running the agent
+#76 The scout files a duplicate ticket once a TODO's issue falls past the 1000 newest
+#75 Hand off between stages through one helper that owns the label, the dispatch and the retry
+#67 Scout files Markdown documentation examples from .markdown and uppercase extensions
+#66 Installer test detection accepts non-scripts and rejects valid scripts.test JSON
+#65 Implementation failure comment prescribes a no-op retry when review dispatch fails
+#64 Implementation still runs and creates a PR for a closed issue
+#63 Installer overwrites a shared file through an installed prompt symlink
+#62 Reinstall silently overwrites saved commands when variable reads fail
+#61 Failure saving skips the workflow's own completed commit after a failed push
+#59 Unify failure diagnostics and WIP saving between implement and fix
+#58 Consolidate PR head validation and race invalidation into a shared guard
+#57 Extract scout TODO discovery and ticket formatting behind a dedicated helper
+#52 Scout titles keep the comment closer and code after a mid-line block comment, such as JSX {/* */}
+#51 Scout ticket links break when the file name contains a space
+#50 Re-triaging a paused ready-for-agent issue never starts implementation
+#43 The scout files a ticket titled 'Binary file X matches' for a binary file containing TODO(factory):
+#42 Scout ticket links break when the file name contains a colon
+#41 A TODO(factory): with no text stops the scout from filing every later TODO
+#40 The implement stage opens a PR when the agent commits its own edit under .github/
+#38 Scout ticket titles keep the comment's closing */ or -->, and a carriage return from CRLF files
+#37 The scout files a new ticket every time a TODO with no space after the colon moves
+#33 The scout's factory report shows at most 30 for each queue
+#32 The scout files a duplicate ticket when the same TODO text appears twice in one run
+#31 The pi harness rejects a valid answer when a string in it contains three backticks
+#30 Put the 'assigned work belongs to its assignee' check behind one helper
+#29 Define 'the factory's own review comments' once, instead of three drifting jq filters
+#28 Build every stage's prompt in one place, so the fixer gets the same method as the reviewer
+#26 Include verification and cleanup evidence in the initial implementation summary
+#9 A retried review or fix leaves agent:failed on the PR
+#6 Anyone can forge a factory review comment on a PR
+#3 A cancelled or timed-out stage leaves its labels in place
+#2 Review and fix read their prompts from the PR branch, not the base

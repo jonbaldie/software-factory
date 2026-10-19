@@ -1,0 +1,229 @@
+scout	Set up job	﻿2026-10-19T19:43:18.9690534Z Current runner version: '2.337.0'
+scout	Set up job	2026-10-19T19:43:18.9742566Z ##[group]Runner Image Provisioner
+scout	Set up job	2026-10-19T19:43:18.9743693Z Hosted Compute Agent
+scout	Set up job	2026-10-19T19:43:18.9765086Z Version: 20261012.601
+scout	Set up job	2026-10-19T19:43:18.9765977Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+scout	Set up job	2026-10-19T19:43:18.9766923Z Build Date: 2026-10-12T17:48:21Z
+scout	Set up job	2026-10-19T19:43:18.9767771Z Worker ID: {58f1f3d4-7f98-40b0-9eb5-1f990a1d118a}
+scout	Set up job	2026-10-19T19:43:18.9768592Z Region: centralus
+scout	Set up job	2026-10-19T19:43:18.9769320Z Cloud: Azure
+scout	Set up job	2026-10-19T19:43:18.9770024Z ##[endgroup]
+scout	Set up job	2026-10-19T19:43:18.9771998Z ##[group]Operating System
+scout	Set up job	2026-10-19T19:43:18.9772744Z Ubuntu
+scout	Set up job	2026-10-19T19:43:18.9773339Z 24.04.5
+scout	Set up job	2026-10-19T19:43:18.9774002Z LTS
+scout	Set up job	2026-10-19T19:43:18.9774868Z ##[endgroup]
+scout	Set up job	2026-10-19T19:43:18.9775549Z ##[group]Runner Image
+scout	Set up job	2026-10-19T19:43:18.9776253Z Image: ubuntu-24.04
+scout	Set up job	2026-10-19T19:43:18.9776915Z Version: 20261012.334.1
+scout	Set up job	2026-10-19T19:43:18.9778276Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+scout	Set up job	2026-10-19T19:43:18.9780358Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+scout	Set up job	2026-10-19T19:43:18.9781511Z ##[endgroup]
+scout	Set up job	2026-10-19T19:43:18.9783191Z ##[group]GITHUB_TOKEN Permissions
+scout	Set up job	2026-10-19T19:43:18.9801541Z Actions: write
+scout	Set up job	2026-10-19T19:43:18.9802362Z Contents: read
+scout	Set up job	2026-10-19T19:43:18.9803135Z Issues: write
+scout	Set up job	2026-10-19T19:43:18.9803739Z Metadata: read
+scout	Set up job	2026-10-19T19:43:18.9805130Z PullRequests: read
+scout	Set up job	2026-10-19T19:43:18.9805849Z ##[endgroup]
+scout	Set up job	2026-10-19T19:43:18.9808490Z Secret source: Actions
+scout	Set up job	2026-10-19T19:43:18.9809601Z Cache mode: write
+scout	Set up job	2026-10-19T19:43:18.9810691Z Prepare workflow directory
+scout	Set up job	2026-10-19T19:43:19.0448564Z Prepare all required actions
+scout	Set up job	2026-10-19T19:43:19.0512264Z Getting action download info
+scout	Set up job	2026-10-19T19:43:19.3395518Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+scout	Set up job	2026-10-19T19:43:19.5259337Z Complete job name: scout
+scout	Run actions/checkout@v7	﻿2026-10-19T19:43:19.5814878Z ##[group]Run actions/checkout@v7
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5815776Z with:
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5816313Z   repository: jonbaldie/sf-explore-2026-10-19
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5819723Z   token: ***
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5820178Z   ssh-strict: true
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5820651Z   ssh-user: git
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5821135Z   persist-credentials: true
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5821630Z   clean: true
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5822128Z   sparse-checkout-cone-mode: true
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5822655Z   fetch-depth: 1
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5823120Z   fetch-tags: false
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5823592Z   show-progress: true
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5824043Z   lfs: false
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5824762Z   submodules: false
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5825269Z   set-safe-directory: true
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5825800Z   allow-unsafe-pr-checkout: false
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5826516Z env:
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5829760Z   GH_TOKEN: ***
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5830239Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.5830810Z ##[endgroup]
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.6890883Z Syncing repository: jonbaldie/sf-explore-2026-10-19
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.6894433Z ##[group]Getting Git version info
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.6896300Z Working directory is '/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19'
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.6911146Z [command]/usr/bin/git version
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7056016Z git version 2.55.0
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7097045Z ##[endgroup]
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7125880Z Temporarily overriding HOME='/home/runner/work/_temp/6511130f-2bc6-4433-95a7-51cedd629dfe' before making global git config changes
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7136159Z Adding repository directory to the temporary git global config as a safe directory
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7155962Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7168803Z Deleting the contents of '/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19'
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7170457Z ##[group]Determining repository object format
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7171639Z ##[endgroup]
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7172994Z ##[group]Initializing the repository
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7174617Z [command]/usr/bin/git init /home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7305277Z hint: Using 'master' as the name for the initial branch. This default branch name
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7310378Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7313919Z hint: to use in all of your new repositories, which will suppress this warning,
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7317016Z hint: call:
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7318360Z hint:
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7321867Z hint: 	git config --global init.defaultBranch <name>
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7324581Z hint:
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7325901Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7330758Z hint: 'development'. The just-created branch can be renamed via this command:
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7350733Z hint:
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7399239Z hint: 	git branch -m <name>
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7400331Z hint:
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7401531Z hint: Disable this message with "git config set advice.defaultBranchName false"
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7403171Z Initialized empty Git repository in /home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7406630Z [command]/usr/bin/git remote add origin https://github.com/jonbaldie/sf-explore-2026-10-19
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7409439Z ##[endgroup]
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7410787Z ##[group]Disabling automatic garbage collection
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7415579Z [command]/usr/bin/git config --local gc.auto 0
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7418426Z ##[endgroup]
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7419752Z ##[group]Setting up auth
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7420604Z Removing SSH command configuration
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7421826Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7459727Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7896968Z Removing HTTP extra header
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7898326Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.7924360Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8105335Z Removing includeIf entries pointing to credentials config files
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8106745Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8127930Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8316182Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8347290Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git.path /home/runner/work/_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8373601Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8403015Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8434530Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8466651Z ##[endgroup]
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8468138Z ##[group]Fetching the repository
+scout	Run actions/checkout@v7	2026-10-19T19:43:19.8469979Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +733a87f349d7fca8af29eb36682dd92ca3ea4dc8:refs/remotes/origin/main
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3070283Z From https://github.com/jonbaldie/sf-explore-2026-10-19
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3071500Z  * [new ref]         733a87f349d7fca8af29eb36682dd92ca3ea4dc8 -> origin/main
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3084512Z [command]/usr/bin/git branch --list --remote origin/main
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3106020Z   origin/main
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3109479Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3136186Z 733a87f349d7fca8af29eb36682dd92ca3ea4dc8
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3148233Z ##[endgroup]
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3149717Z ##[group]Determining the checkout info
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3151253Z ##[endgroup]
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3152237Z [command]/usr/bin/git sparse-checkout disable
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3196310Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3224630Z ##[group]Checking out the ref
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3230273Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3285446Z Switched to a new branch 'main'
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3290253Z branch 'main' set up to track 'origin/main'.
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3296632Z ##[endgroup]
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3337412Z [command]/usr/bin/git log -1 --format=%H
+scout	Run actions/checkout@v7	2026-10-19T19:43:20.3355487Z 733a87f349d7fca8af29eb36682dd92ca3ea4dc8
+scout	File tickets for new TODOs	﻿2026-10-19T19:43:20.3552254Z ##[group]Run echo "## 🔭 Scouted TODOs" >> "$GITHUB_STEP_SUMMARY"
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3553306Z [36;1mecho "## 🔭 Scouted TODOs" >> "$GITHUB_STEP_SUMMARY"[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3554289Z [36;1mexisting=$(gh issue list --state all --limit 1000 --json title -q '.[].title')[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3555384Z [36;1m# Markdown (.md and .markdown, in any case) and .github are skipped because docs and the factory itself[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3556381Z [36;1m# mention the marker. MDX is scanned, since it often holds component code.[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3557411Z [36;1m# -z ends the path and line number with NULs, so a path may contain colons. -I skips binary files, whose[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3558493Z [36;1m# "Binary file X matches" line has no NULs and would throw the reads out of step.[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3559529Z [36;1m{ git grep -z -n -I -F 'TODO(factory):' -- ':(exclude,icase)*.md' ':(exclude,icase)*.markdown' ':!.github' || true; } |[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3560570Z [36;1mwhile IFS= read -r -d '' file && IFS= read -r -d '' line && IFS= read -r hit; do[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3561368Z [36;1m  title=${hit#*TODO(factory):}[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3561964Z [36;1m  title=${title#"${title%%[![:space:]]*}"}[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3562877Z [36;1m  # In a block or HTML comment opened before the marker, the first closer ends the title; code after it isn't[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3563849Z [36;1m  # part of it. Then drop trailing whitespace, including CRLF's \r.[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3564957Z [36;1m  opener=${hit%%TODO(factory):*}[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3565598Z [36;1m  [[ $opener == *'/*'* ]] && title=${title%%'*/'*}[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3566289Z [36;1m  [[ $opener == *'<!--'* ]] && title=${title%%'-->'*}[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3566919Z [36;1m  title=${title%"${title##*[![:space:]]}"}[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3567494Z [36;1m  if [[ -z $title ]]; then[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3568207Z [36;1m    echo "- Skipped blank TODO at $file:$line (no text)." >> "$GITHUB_STEP_SUMMARY"[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3568931Z [36;1m    continue[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3569387Z [36;1m  fi[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3569895Z [36;1m  if grep -Fxq -- "$title" <<<"$existing"; then[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3570602Z [36;1m    echo "- Already filed: $title" >> "$GITHUB_STEP_SUMMARY"[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3571234Z [36;1m    continue[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3571677Z [36;1m  fi[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3572454Z [36;1m  # Percent-encode the path so a space doesn't end GitHub's autolink. Slashes and colons stay as they are;[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3573369Z [36;1m  # a literal "%2F" in a name is already "%252F" by then.[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3574362Z [36;1m  path=$(jq -rn --arg p "$file" '$p | @uri | gsub("%2F"; "/") | gsub("%3A"; ":")')[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3575429Z [36;1m  printf 'Found by the scout at %s/%s/blob/%s/%s#L%s. Delete that `TODO(factory):` comment as part of the change.\n' \[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3576540Z [36;1m    "$GITHUB_SERVER_URL" "$GH_REPO" "$GITHUB_SHA" "$path" "$line" > "$RUNNER_TEMP/body.md"[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3577586Z [36;1m  url=$(gh issue create --title "$title" --body-file "$RUNNER_TEMP/body.md" --label needs-triage)[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3578402Z [36;1m  existing="$existing"$'\n'"$title"[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3579025Z [36;1m  echo "- Filed $url: $title" >> "$GITHUB_STEP_SUMMARY"[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3579890Z [36;1m  # Labels added with GITHUB_TOKEN don't trigger workflows, so start triage explicitly.[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3580788Z [36;1m  if ! gh workflow run factory-triage.yml -f issue="${url##*/}"; then[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3581892Z [36;1m    echo "- Couldn't start triage for $url. Remove and re-add \`needs-triage\` there to start it." >> "$GITHUB_STEP_SUMMARY"[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3582786Z [36;1m    exit 1[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3583212Z [36;1m  fi[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3583655Z [36;1mdone[0m
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3760574Z shell: /usr/bin/bash -e {0}
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3761145Z env:
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3764818Z   GH_TOKEN: ***
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3765336Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+scout	File tickets for new TODOs	2026-10-19T19:43:20.3766069Z ##[endgroup]
+scout	File tickets for new TODOs	2026-10-19T19:43:24.9275355Z https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313337515
+scout	Factory report	﻿2026-10-19T19:43:24.9405813Z ##[group]Run # gh lists 30 items unless told otherwise. Fetch one past the cap to tell a full count from a capped one.
+scout	Factory report	2026-10-19T19:43:24.9406661Z [36;1m# gh lists 30 items unless told otherwise. Fetch one past the cap to tell a full count from a capped one.[0m
+scout	Factory report	2026-10-19T19:43:24.9407284Z [36;1mcount() {[0m
+scout	Factory report	2026-10-19T19:43:24.9407628Z [36;1m  local n[0m
+scout	Factory report	2026-10-19T19:43:24.9408017Z [36;1m  n=$(gh "$@" --limit 1001 --json number -q length)[0m
+scout	Factory report	2026-10-19T19:43:24.9408469Z [36;1m  if [ "$n" -gt 1000 ]; then echo "1000+"; else echo "$n"; fi[0m
+scout	Factory report	2026-10-19T19:43:24.9408857Z [36;1m}[0m
+scout	Factory report	2026-10-19T19:43:24.9409176Z [36;1m{[0m
+scout	Factory report	2026-10-19T19:43:24.9409491Z [36;1m  echo[0m
+scout	Factory report	2026-10-19T19:43:24.9409819Z [36;1m  echo "## 🏭 Factory report"[0m
+scout	Factory report	2026-10-19T19:43:24.9410210Z [36;1m  echo[0m
+scout	Factory report	2026-10-19T19:43:24.9410511Z [36;1m  echo "| Queue | Open |"[0m
+scout	Factory report	2026-10-19T19:43:24.9410910Z [36;1m  echo "|---|---|"[0m
+scout	Factory report	2026-10-19T19:43:24.9411366Z [36;1m  for label in needs-triage ready-for-agent agent:working agent:failed; do[0m
+scout	Factory report	2026-10-19T19:43:24.9412081Z [36;1m    echo "| Issues labelled \`$label\` | $(count issue list --label "$label") |"[0m
+scout	Factory report	2026-10-19T19:43:24.9412546Z [36;1m  done[0m
+scout	Factory report	2026-10-19T19:43:24.9413027Z [36;1m  for label in agent:review agent:changes-requested agent:approved ready-for-human agent:failed; do[0m
+scout	Factory report	2026-10-19T19:43:24.9413703Z [36;1m    echo "| PRs labelled \`$label\` | $(count pr list --label "$label") |"[0m
+scout	Factory report	2026-10-19T19:43:24.9414283Z [36;1m  done[0m
+scout	Factory report	2026-10-19T19:43:24.9414820Z [36;1m  since=$(date -u -d '7 days ago' +%F)[0m
+scout	Factory report	2026-10-19T19:43:24.9415432Z [36;1m  echo "| Approved PRs merged since $since | $(count pr list --state merged --label agent:approved --search "merged:>=$since") |"[0m
+scout	Factory report	2026-10-19T19:43:24.9416045Z [36;1m} >> "$GITHUB_STEP_SUMMARY"[0m
+scout	Factory report	2026-10-19T19:43:24.9454040Z shell: /usr/bin/bash -e {0}
+scout	Factory report	2026-10-19T19:43:24.9454726Z env:
+scout	Factory report	2026-10-19T19:43:24.9457932Z   GH_TOKEN: ***
+scout	Factory report	2026-10-19T19:43:24.9458354Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+scout	Factory report	2026-10-19T19:43:24.9458858Z ##[endgroup]
+scout	Post Run actions/checkout@v7	﻿2026-10-19T19:43:30.1968837Z Post job cleanup.
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.2869505Z [command]/usr/bin/git version
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.2895586Z git version 2.55.0
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.2971250Z Temporarily overriding HOME='/home/runner/work/_temp/18cbc313-c607-4f3e-a5e8-a85a1a74d34b' before making global git config changes
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.2973422Z Adding repository directory to the temporary git global config as a safe directory
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.2975334Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.2990339Z Removing SSH command configuration
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.2991608Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3294752Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3555211Z Removing HTTP extra header
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3587305Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3589885Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3610822Z Removing includeIf entries pointing to credentials config files
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3629852Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3673544Z includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git.path
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3675529Z includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/worktrees/*.path
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3738304Z includeif.gitdir:/github/workspace/.git.path
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3739509Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3788270Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git.path
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3789481Z /home/runner/work/_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3791794Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-bd6a1f54\-d554\-4b36\-8626\-f6863bd5b643\.config
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3794515Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/worktrees/*.path
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3796232Z /home/runner/work/_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.3842245Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-bd6a1f54\-d554\-4b36\-8626\-f6863bd5b643\.config
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.4073479Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.4074723Z /github/runner_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.4076892Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-bd6a1f54\-d554\-4b36\-8626\-f6863bd5b643\.config
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.4078774Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.4079757Z /github/runner_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.4426758Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-bd6a1f54\-d554\-4b36\-8626\-f6863bd5b643\.config
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.4496300Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+scout	Post Run actions/checkout@v7	2026-10-19T19:43:30.4535400Z Removing credentials config '/home/runner/work/_temp/git-credentials-bd6a1f54-d554-4b36-8626-f6863bd5b643.config'
+scout	Complete job	﻿2026-10-19T19:43:30.4628788Z Cleaning up orphan processes

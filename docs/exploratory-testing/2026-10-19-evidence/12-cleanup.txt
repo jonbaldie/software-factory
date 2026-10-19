@@ -1,0 +1,6 @@
+All 17 workflow runs completed before cleanup.
+Disposable private repository jonbaldie/sf-explore-2026-10-19 deleted with gh repo delete --yes (exit 0).
+Its nine fixture issues, workflow runs and main branch were removed with it; no PRs existed.
+Local scratch clone /tmp/sf-explore-20261019.C0ifub removed after fixtures and logs were copied.
+Existing sandbox, .bugrun/ and tests/__pycache__/ left untouched.
+No model credentials were installed; no model calls completed.

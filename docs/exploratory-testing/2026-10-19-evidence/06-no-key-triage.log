@@ -1,0 +1,399 @@
+triage	Set up job	﻿2026-10-19T19:42:06.0372946Z Current runner version: '2.337.0'
+triage	Set up job	2026-10-19T19:42:06.0404061Z ##[group]Runner Image Provisioner
+triage	Set up job	2026-10-19T19:42:06.0405288Z Hosted Compute Agent
+triage	Set up job	2026-10-19T19:42:06.0406015Z Version: 20261012.601
+triage	Set up job	2026-10-19T19:42:06.0406829Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+triage	Set up job	2026-10-19T19:42:06.0407745Z Build Date: 2026-10-12T17:48:21Z
+triage	Set up job	2026-10-19T19:42:06.0408955Z Worker ID: {94f32ba0-0b8e-4953-9df5-cbfb5ecff63d}
+triage	Set up job	2026-10-19T19:42:06.0409967Z Region: westus3
+triage	Set up job	2026-10-19T19:42:06.0410605Z Cloud: Azure
+triage	Set up job	2026-10-19T19:42:06.0411249Z ##[endgroup]
+triage	Set up job	2026-10-19T19:42:06.0413022Z ##[group]Operating System
+triage	Set up job	2026-10-19T19:42:06.0413791Z Ubuntu
+triage	Set up job	2026-10-19T19:42:06.0414541Z 24.04.5
+triage	Set up job	2026-10-19T19:42:06.0415196Z LTS
+triage	Set up job	2026-10-19T19:42:06.0416244Z ##[endgroup]
+triage	Set up job	2026-10-19T19:42:06.0417006Z ##[group]Runner Image
+triage	Set up job	2026-10-19T19:42:06.0417817Z Image: ubuntu-24.04
+triage	Set up job	2026-10-19T19:42:06.0418732Z Version: 20261012.334.1
+triage	Set up job	2026-10-19T19:42:06.0420080Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+triage	Set up job	2026-10-19T19:42:06.0422268Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+triage	Set up job	2026-10-19T19:42:06.0423592Z ##[endgroup]
+triage	Set up job	2026-10-19T19:42:06.0425273Z ##[group]GITHUB_TOKEN Permissions
+triage	Set up job	2026-10-19T19:42:06.0427731Z Actions: write
+triage	Set up job	2026-10-19T19:42:06.0428807Z Contents: read
+triage	Set up job	2026-10-19T19:42:06.0429508Z Issues: write
+triage	Set up job	2026-10-19T19:42:06.0430214Z Metadata: read
+triage	Set up job	2026-10-19T19:42:06.0430891Z ##[endgroup]
+triage	Set up job	2026-10-19T19:42:06.0433239Z Secret source: Actions
+triage	Set up job	2026-10-19T19:42:06.0434470Z Cache mode: write
+triage	Set up job	2026-10-19T19:42:06.0435578Z Prepare workflow directory
+triage	Set up job	2026-10-19T19:42:06.1091693Z Prepare all required actions
+triage	Set up job	2026-10-19T19:42:06.1213635Z Getting action download info
+triage	Set up job	2026-10-19T19:42:06.4583112Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+triage	Set up job	2026-10-19T19:42:06.8571683Z Download action repository 'actions/setup-node@v7' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+triage	Set up job	2026-10-19T19:42:08.7651527Z Download action repository 'jonbaldie/software-factory@v1' (SHA:683a2e8752bc7b0f86f2a1e2176c48483dad17bc)
+triage	Set up job	2026-10-19T19:42:09.9387548Z Getting action download info
+triage	Set up job	2026-10-19T19:42:10.1003788Z Download action repository 'actions/upload-artifact@v7' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+triage	Set up job	2026-10-19T19:42:11.2544381Z Complete job name: triage
+triage	Leave assigned work to its assignee	﻿2026-10-19T19:42:11.3031441Z ##[group]Run # An assignee owns the issue, so every later step is skipped and the labels stay as they are.
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3032164Z [36;1m# An assignee owns the issue, so every later step is skipped and the labels stay as they are.[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3032722Z [36;1mowners=$(gh issue view "$ISSUE" --json assignees -q '.assignees[] | "@" + .login' | paste -sd' ' -)[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3033112Z [36;1mif [ -n "$owners" ]; then[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3033354Z [36;1m  echo "owners=$owners" >> "$GITHUB_OUTPUT"[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3033699Z [36;1m  # A reply on an assigned issue is for the assignee, so the factory stays quiet.[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3034079Z [36;1m  if [ "$GITHUB_EVENT_NAME" != issue_comment ]; then[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3034685Z [36;1m    gh issue comment "$ISSUE" --body "⏸️ This issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`needs-triage\`."[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3035243Z [36;1m  fi[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3035455Z [36;1mfi[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3256660Z shell: /usr/bin/bash -e {0}
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3257270Z env:
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3257453Z   ISSUE: 2
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3257647Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3258020Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3260613Z   GH_TOKEN: ***
+triage	Leave assigned work to its assignee	2026-10-19T19:42:11.3260819Z ##[endgroup]
+triage	Clear an earlier failure	﻿2026-10-19T19:42:14.3254897Z ##[group]Run # agent:working means an implement run has claimed the ticket, and a closed issue is done. A pause leaves ready-for-agent with neither.
+triage	Clear an earlier failure	2026-10-19T19:42:14.3255695Z [36;1m# agent:working means an implement run has claimed the ticket, and a closed issue is done. A pause leaves ready-for-agent with neither.[0m
+triage	Clear an earlier failure	2026-10-19T19:42:14.3256586Z [36;1mif [ "$(gh issue view "$ISSUE" --json labels,state -q '.state == "CLOSED" or any(.labels[]; .name == "agent:working")')" = true ]; then[0m
+triage	Clear an earlier failure	2026-10-19T19:42:14.3257090Z [36;1m  echo "implementing=true" >> "$GITHUB_OUTPUT"[0m
+triage	Clear an earlier failure	2026-10-19T19:42:14.3257339Z [36;1mfi[0m
+triage	Clear an earlier failure	2026-10-19T19:42:14.3257716Z [36;1mgh issue edit "$ISSUE" --remove-label agent:failed # Report failure adds it back if this run fails too[0m
+triage	Clear an earlier failure	2026-10-19T19:42:14.3313415Z shell: /usr/bin/bash -e {0}
+triage	Clear an earlier failure	2026-10-19T19:42:14.3313647Z env:
+triage	Clear an earlier failure	2026-10-19T19:42:14.3313836Z   ISSUE: 2
+triage	Clear an earlier failure	2026-10-19T19:42:14.3314043Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Clear an earlier failure	2026-10-19T19:42:14.3314415Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Clear an earlier failure	2026-10-19T19:42:14.3316583Z   GH_TOKEN: ***
+triage	Clear an earlier failure	2026-10-19T19:42:14.3316771Z ##[endgroup]
+triage	Clear an earlier failure	2026-10-19T19:42:15.8249521Z https://github.com/jonbaldie/sf-explore-2026-10-19/issues/2
+triage	Run actions/checkout@v7	﻿2026-10-19T19:42:15.8417082Z ##[group]Run actions/checkout@v7
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8417381Z with:
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8417563Z   persist-credentials: false
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8417801Z   repository: jonbaldie/sf-explore-2026-10-19
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8420096Z   token: ***
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8420292Z   ssh-strict: true
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8420472Z   ssh-user: git
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8420647Z   clean: true
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8420831Z   sparse-checkout-cone-mode: true
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8421044Z   fetch-depth: 1
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8421210Z   fetch-tags: false
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8421388Z   show-progress: true
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8421561Z   lfs: false
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8421715Z   submodules: false
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8421889Z   set-safe-directory: true
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8422097Z   allow-unsafe-pr-checkout: false
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8422298Z env:
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8422447Z   ISSUE: 2
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8422621Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8422993Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.8423351Z ##[endgroup]
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9310851Z Syncing repository: jonbaldie/sf-explore-2026-10-19
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9312451Z ##[group]Getting Git version info
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9313023Z Working directory is '/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19'
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9313818Z [command]/usr/bin/git version
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9439559Z git version 2.55.0
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9484919Z ##[endgroup]
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9491940Z Temporarily overriding HOME='/home/runner/work/_temp/e86981a4-fc09-4521-9cb2-ae9bf394c5f1' before making global git config changes
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9493132Z Adding repository directory to the temporary git global config as a safe directory
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9494215Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9556327Z Deleting the contents of '/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19'
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9574508Z ##[group]Determining repository object format
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9581864Z ##[endgroup]
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9599064Z ##[group]Initializing the repository
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9599900Z [command]/usr/bin/git init /home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9690857Z hint: Using 'master' as the name for the initial branch. This default branch name
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9693239Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9694106Z hint: to use in all of your new repositories, which will suppress this warning,
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9696116Z hint: call:
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9696363Z hint:
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9696713Z hint: 	git config --global init.defaultBranch <name>
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9697114Z hint:
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9697480Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9698661Z hint: 'development'. The just-created branch can be renamed via this command:
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9699113Z hint:
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9699356Z hint: 	git branch -m <name>
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9699644Z hint:
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9700056Z hint: Disable this message with "git config set advice.defaultBranchName false"
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9701973Z Initialized empty Git repository in /home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9718561Z [command]/usr/bin/git remote add origin https://github.com/jonbaldie/sf-explore-2026-10-19
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9858864Z ##[endgroup]
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9925895Z ##[group]Disabling automatic garbage collection
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9926898Z [command]/usr/bin/git config --local gc.auto 0
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9930645Z ##[endgroup]
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9931289Z ##[group]Setting up auth
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9932179Z Removing SSH command configuration
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9938798Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+triage	Run actions/checkout@v7	2026-10-19T19:42:15.9956490Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0293048Z Removing HTTP extra header
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0312558Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0347137Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0562276Z Removing includeIf entries pointing to credentials config files
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0563402Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0614172Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0822170Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0860544Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git.path /home/runner/work/_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0893010Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0935633Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0963279Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0992709Z ##[endgroup]
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0993538Z ##[group]Fetching the repository
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.0998697Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +599af70605c929630a87e219483f8350010905a0:refs/remotes/origin/main
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5503950Z From https://github.com/jonbaldie/sf-explore-2026-10-19
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5508020Z  * [new ref]         599af70605c929630a87e219483f8350010905a0 -> origin/main
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5511070Z [command]/usr/bin/git branch --list --remote origin/main
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5559928Z   origin/main
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5562307Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5648502Z 599af70605c929630a87e219483f8350010905a0
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5650836Z ##[endgroup]
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5651310Z ##[group]Determining the checkout info
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5651906Z ##[endgroup]
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5653370Z [command]/usr/bin/git sparse-checkout disable
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5817641Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5838940Z ##[group]Checking out the ref
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5839721Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5840297Z Switched to a new branch 'main'
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5848762Z branch 'main' set up to track 'origin/main'.
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5851628Z ##[endgroup]
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5896353Z [command]/usr/bin/git log -1 --format=%H
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5959250Z 599af70605c929630a87e219483f8350010905a0
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.5998916Z ##[group]Removing auth
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6058967Z Removing SSH command configuration
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6059911Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6182094Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6320281Z Removing HTTP extra header
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6321247Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6354880Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6621969Z Removing includeIf entries pointing to credentials config files
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6622750Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6623842Z includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git.path
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6625439Z includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/worktrees/*.path
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6626399Z includeif.gitdir:/github/workspace/.git.path
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6627369Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6630021Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git.path
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6653895Z /home/runner/work/_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6754258Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-cebd2848\-7180\-49db\-acb7\-a319bf688a52\.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6782916Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/worktrees/*.path
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6798283Z /home/runner/work/_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6822261Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-cebd2848\-7180\-49db\-acb7\-a319bf688a52\.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6824311Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6881459Z /github/runner_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6885456Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-cebd2848\-7180\-49db\-acb7\-a319bf688a52\.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6909311Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6933264Z /github/runner_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.6938838Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-cebd2848\-7180\-49db\-acb7\-a319bf688a52\.config
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.7886361Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.8100516Z Removing credentials config '/home/runner/work/_temp/git-credentials-cebd2848-7180-49db-acb7-a319bf688a52.config'
+triage	Run actions/checkout@v7	2026-10-19T19:42:16.8120379Z ##[endgroup]
+triage	Run actions/setup-node@v7	﻿2026-10-19T19:42:16.8265952Z ##[group]Run actions/setup-node@v7
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8266184Z with:
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8266348Z   node-version: 22
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8266522Z   check-latest: false
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8268628Z   token: ***
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8268812Z   package-manager-cache: true
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8269019Z env:
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8269172Z   ISSUE: 2
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8269350Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8269691Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.8270013Z ##[endgroup]
+triage	Run actions/setup-node@v7	2026-10-19T19:42:16.9353185Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+triage	Run actions/setup-node@v7	2026-10-19T19:42:18.0686474Z ##[group]Environment details
+triage	Run actions/setup-node@v7	2026-10-19T19:42:20.2038478Z node: v22.23.3
+triage	Run actions/setup-node@v7	2026-10-19T19:42:20.2039225Z npm: 10.9.9
+triage	Run actions/setup-node@v7	2026-10-19T19:42:20.2039850Z yarn: 1.22.22
+triage	Run actions/setup-node@v7	2026-10-19T19:42:20.2040641Z ##[endgroup]
+triage	Build the triage prompt	﻿2026-10-19T19:42:20.2154227Z ##[group]Run # The reporter wrote the body, so reading their replies to triage's questions trusts no one new.
+triage	Build the triage prompt	2026-10-19T19:42:20.2154811Z [36;1m# The reporter wrote the body, so reading their replies to triage's questions trusts no one new.[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2155262Z [36;1mreporter=$(gh issue view "$ISSUE" --json author -q .author.login)[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2155563Z [36;1m{[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2155739Z [36;1m  cat .github/factory/triage.md[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2155958Z [36;1m  echo[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2156339Z [36;1m  gh issue view "$ISSUE" --json number,title,body,comments | jq -r --arg reporter "$reporter" -f .github/factory/ticket.jq[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2156796Z [36;1m  echo "## Other open tickets"[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2157009Z [36;1m  echo[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2157238Z [36;1m  gh issue list --state open --limit 500 --json number,title \[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2157626Z [36;1m    | jq -r --argjson n "$ISSUE" '.[] | select(.number != $n) | "- #\(.number) \(.title)"'[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2158011Z [36;1m} > "$RUNNER_TEMP/prompt.md"[0m
+triage	Build the triage prompt	2026-10-19T19:42:20.2277364Z shell: /usr/bin/bash -e {0}
+triage	Build the triage prompt	2026-10-19T19:42:20.2277601Z env:
+triage	Build the triage prompt	2026-10-19T19:42:20.2277763Z   ISSUE: 2
+triage	Build the triage prompt	2026-10-19T19:42:20.2277944Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Build the triage prompt	2026-10-19T19:42:20.2278516Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Build the triage prompt	2026-10-19T19:42:20.2280956Z   GH_TOKEN: ***
+triage	Build the triage prompt	2026-10-19T19:42:20.2281144Z ##[endgroup]
+triage	Agent triages the ticket	﻿2026-10-19T19:42:21.7987430Z ##[group]Run jonbaldie/software-factory/run-agent@v1
+triage	Agent triages the ticket	2026-10-19T19:42:21.7987716Z with:
+triage	Agent triages the ticket	2026-10-19T19:42:21.7987886Z   name: triage-issue-2
+triage	Agent triages the ticket	2026-10-19T19:42:21.7988256Z   prompt-file: /home/runner/work/_temp/prompt.md
+triage	Agent triages the ticket	2026-10-19T19:42:21.7988526Z   max-budget-usd: 0.50
+triage	Agent triages the ticket	2026-10-19T19:42:21.7988710Z   permission-mode: default
+triage	Agent triages the ticket	2026-10-19T19:42:21.7988904Z   allowed-tools: Read,Glob,Grep
+triage	Agent triages the ticket	2026-10-19T19:42:21.7989647Z   json-schema: {"type": "object", "required": ["category", "state", "comment"], "properties": {
+triage	Agent triages the ticket	  "category": {"type": "string", "enum": ["bug", "enhancement"]},
+triage	Agent triages the ticket	  "state": {"type": "string", "enum": ["ready-for-agent", "ready-for-human", "needs-info", "wontfix"]},
+triage	Agent triages the ticket	  "comment": {"type": "string"}}}
+triage	Agent triages the ticket	2026-10-19T19:42:21.7990388Z env:
+triage	Agent triages the ticket	2026-10-19T19:42:21.7990540Z   ISSUE: 2
+triage	Agent triages the ticket	2026-10-19T19:42:21.7990723Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Agent triages the ticket	2026-10-19T19:42:21.7991075Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Agent triages the ticket	2026-10-19T19:42:21.7991411Z ##[endgroup]
+triage	Agent triages the ticket	2026-10-19T19:42:21.8043131Z ##[start-action display=Install pi;id=agent.__run]
+triage	Agent triages the ticket	2026-10-19T19:42:21.8063862Z ##[group]Run case "$HARNESS" in
+triage	Agent triages the ticket	2026-10-19T19:42:21.8064121Z [36;1mcase "$HARNESS" in[0m
+triage	Agent triages the ticket	2026-10-19T19:42:21.8064580Z [36;1m  pi) npm install --global --silent @earendil-works/pi-coding-agent@1.0.0 ;;[0m
+triage	Agent triages the ticket	2026-10-19T19:42:21.8064997Z [36;1m  claude) npm install --global --silent @anthropic-ai/claude-code ;;[0m
+triage	Agent triages the ticket	2026-10-19T19:42:21.8065384Z [36;1m  *) echo "::error::Unknown harness '$HARNESS'. Use pi or claude."; exit 1 ;;[0m
+triage	Agent triages the ticket	2026-10-19T19:42:21.8065681Z [36;1mesac[0m
+triage	Agent triages the ticket	2026-10-19T19:42:21.8123166Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+triage	Agent triages the ticket	2026-10-19T19:42:21.8123445Z env:
+triage	Agent triages the ticket	2026-10-19T19:42:21.8123604Z   ISSUE: 2
+triage	Agent triages the ticket	2026-10-19T19:42:21.8123780Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Agent triages the ticket	2026-10-19T19:42:21.8124150Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Agent triages the ticket	2026-10-19T19:42:21.8124496Z   HARNESS: pi
+triage	Agent triages the ticket	2026-10-19T19:42:21.8124671Z ##[endgroup]
+triage	Agent triages the ticket	2026-10-19T19:42:29.4433735Z ##[end-action id=agent.__run;outcome=success;conclusion=success;duration_ms=7638]
+triage	Agent triages the ticket	2026-10-19T19:42:29.4438740Z ##[start-action display=Run the agent;id=agent.run]
+triage	Agent triages the ticket	2026-10-19T19:42:29.4455455Z ##[group]Run set -euo pipefail
+triage	Agent triages the ticket	2026-10-19T19:42:29.4455770Z [36;1mset -euo pipefail[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4455965Z [36;1m[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4456249Z [36;1m# Keep the raw transcript for the artifact; print a readable version to the log.[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4456629Z [36;1mtranscript="$RUNNER_TEMP/$NAME.jsonl"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4456857Z [36;1m[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4457033Z [36;1mif [ "$HARNESS" = pi ]; then[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4457273Z [36;1m  if [ -z "$IN_OPENROUTER_API_KEY" ]; then[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4457647Z [36;1m    echo "::error::No OpenRouter credential. Add an OPENROUTER_API_KEY repository secret."[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4457991Z [36;1m    exit 1[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4458433Z [36;1m  fi[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4458654Z [36;1m  export OPENROUTER_API_KEY="$IN_OPENROUTER_API_KEY"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4458993Z [36;1m  export MODEL="${MODEL:-openrouter/openai/gpt-6-luna:max}"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4459353Z [36;1m  TRANSCRIPT="$transcript" node "$GITHUB_ACTION_PATH/pi.mjs" || true[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4459654Z [36;1melse[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4459903Z [36;1m  if [ -n "$IN_API_KEY" ]; then export ANTHROPIC_API_KEY="$IN_API_KEY"; fi[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4460300Z [36;1m  if [ -n "$IN_OAUTH_TOKEN" ]; then export CLAUDE_CODE_OAUTH_TOKEN="$IN_OAUTH_TOKEN"; fi[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4460663Z [36;1m  if [ -z "$IN_API_KEY" ] && [ -z "$IN_OAUTH_TOKEN" ]; then[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4461090Z [36;1m    echo "::error::No Claude credential. Add an ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN repository secret."[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4461478Z [36;1m    exit 1[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4461649Z [36;1m  fi[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4461816Z [36;1m  MODEL="${MODEL:-sonnet}"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4462017Z [36;1m[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4462319Z [36;1m  args=(-p --model "$MODEL" --max-budget-usd "$BUDGET" --permission-mode "$PERMISSION_MODE"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4462922Z [36;1m        --output-format stream-json --verbose)[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4463254Z [36;1m  if [ -n "$ALLOWED_TOOLS" ]; then args+=(--allowedTools "$ALLOWED_TOOLS"); fi[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4463627Z [36;1m  if [ -n "$JSON_SCHEMA" ]; then args+=(--json-schema "$JSON_SCHEMA"); fi[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4463903Z [36;1m[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4464161Z [36;1m  claude "${args[@]}" < "$PROMPT_FILE" | tee "$transcript" | jq --unbuffered -r '[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4464479Z [36;1m    if .type == "assistant" then[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4464711Z [36;1m      .message.content[]? |[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4464957Z [36;1m        if .type == "text" then "💬 " + .text[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4465307Z [36;1m        elif .type == "tool_use" then "🔧 " + .name + " " + (.input | tostring | .[0:200])[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4465648Z [36;1m        else empty end[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4465869Z [36;1m    elif .type == "result" then[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4466215Z [36;1m      "🏁 " + .subtype + " · " + (.num_turns | tostring) + " turns · $" + (.total_cost_usd | tostring)[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4466695Z [36;1m    else empty end' || true[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4466900Z [36;1mfi[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4467060Z [36;1m[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4467324Z [36;1m# Both harnesses end the transcript with a Claude Code-style result line.[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4467763Z [36;1mresult_line=$(jq -c -R 'fromjson? | select(.type == "result")' "$transcript" | tail -n 1)[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4468553Z [36;1mif [ -z "$result_line" ]; then[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4468894Z [36;1m  echo "::error::The agent exited without a result. See the transcript artifact."[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4469210Z [36;1m  exit 1[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4469374Z [36;1mfi[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4469526Z [36;1m[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4469767Z [36;1mcost=$(printf '%.2f' "$(jq -r '.total_cost_usd // 0' <<<"$result_line")")[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4470109Z [36;1mturns=$(jq -r '.num_turns' <<<"$result_line")[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4470377Z [36;1moutcome=$(jq -r '.subtype' <<<"$result_line")[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4470632Z [36;1mdelim="EOF_$(openssl rand -hex 8)"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4470849Z [36;1m{[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4471016Z [36;1m  echo "cost-usd=$cost"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4471219Z [36;1m  echo "turns=$turns"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4471521Z [36;1m  echo "structured-output=$(jq -c '.structured_output // {}' <<<"$result_line")"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4471840Z [36;1m  echo "result<<$delim"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4472061Z [36;1m  jq -r '.result // ""' <<<"$result_line"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4472297Z [36;1m  echo "$delim"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4472491Z [36;1m} >> "$GITHUB_OUTPUT"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4472687Z [36;1m[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4472835Z [36;1m{[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4473005Z [36;1m  echo "## 🤖 Agent: $NAME"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4473211Z [36;1m  echo[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4473432Z [36;1m  echo "| Harness | Model | Turns | Cost | Outcome |"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4473784Z [36;1m  echo "|---|---|---|---|---|"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4474047Z [36;1m  echo "| $HARNESS | $MODEL | $turns | \$$cost | $outcome |"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4474307Z [36;1m  echo[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4474478Z [36;1m  echo "### Final message"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4474675Z [36;1m  echo[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4475063Z [36;1m  jq -r 'if .structured_output then "```json\n" + (.structured_output | tostring) + "\n```" else .result // "(none)" end' <<<"$result_line"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4475491Z [36;1m  echo[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4475660Z [36;1m} >> "$GITHUB_STEP_SUMMARY"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4475852Z [36;1m[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4476064Z [36;1mif [ "$(jq -r '.is_error' <<<"$result_line")" = "true" ]; then[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4476391Z [36;1m  echo "::error::The agent ended with an error: $outcome"[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4476655Z [36;1m  exit 1[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4476809Z [36;1mfi[0m
+triage	Agent triages the ticket	2026-10-19T19:42:29.4536866Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+triage	Agent triages the ticket	2026-10-19T19:42:29.4537166Z env:
+triage	Agent triages the ticket	2026-10-19T19:42:29.4537327Z   ISSUE: 2
+triage	Agent triages the ticket	2026-10-19T19:42:29.4537518Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Agent triages the ticket	2026-10-19T19:42:29.4537875Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Agent triages the ticket	2026-10-19T19:42:29.4538462Z   NAME: triage-issue-2
+triage	Agent triages the ticket	2026-10-19T19:42:29.4538683Z   PROMPT_FILE: /home/runner/work/_temp/prompt.md
+triage	Agent triages the ticket	2026-10-19T19:42:29.4538920Z   HARNESS: pi
+triage	Agent triages the ticket	2026-10-19T19:42:29.4539092Z   IN_OPENROUTER_API_KEY:
+triage	Agent triages the ticket	2026-10-19T19:42:29.4539270Z   IN_API_KEY:
+triage	Agent triages the ticket	2026-10-19T19:42:29.4539428Z   IN_OAUTH_TOKEN:
+triage	Agent triages the ticket	2026-10-19T19:42:29.4539584Z   MODEL:
+triage	Agent triages the ticket	2026-10-19T19:42:29.4539731Z   BUDGET: 0.50
+triage	Agent triages the ticket	2026-10-19T19:42:29.4539890Z   PERMISSION_MODE: default
+triage	Agent triages the ticket	2026-10-19T19:42:29.4540081Z   ALLOWED_TOOLS: Read,Glob,Grep
+triage	Agent triages the ticket	2026-10-19T19:42:29.4540823Z   JSON_SCHEMA: {"type": "object", "required": ["category", "state", "comment"], "properties": {
+triage	Agent triages the ticket	  "category": {"type": "string", "enum": ["bug", "enhancement"]},
+triage	Agent triages the ticket	  "state": {"type": "string", "enum": ["ready-for-agent", "ready-for-human", "needs-info", "wontfix"]},
+triage	Agent triages the ticket	  "comment": {"type": "string"}}}
+triage	Agent triages the ticket	2026-10-19T19:42:29.4541819Z ##[endgroup]
+triage	Agent triages the ticket	2026-10-19T19:42:29.4641713Z ##[error]No OpenRouter credential. Add an OPENROUTER_API_KEY repository secret.
+triage	Agent triages the ticket	2026-10-19T19:42:29.4643867Z ##[error]Process completed with exit code 1.
+triage	Agent triages the ticket	2026-10-19T19:42:29.4650355Z ##[end-action id=agent.run;outcome=failure;conclusion=failure;duration_ms=21]
+triage	Agent triages the ticket	2026-10-19T19:42:29.4653480Z ##[start-action display=Upload transcript;id=agent.__actions_upload-artifact]
+triage	Agent triages the ticket	2026-10-19T19:42:29.4686681Z ##[group]Run actions/upload-artifact@v7
+triage	Agent triages the ticket	2026-10-19T19:42:29.4686917Z with:
+triage	Agent triages the ticket	2026-10-19T19:42:29.4687093Z   name: transcript-triage-issue-2
+triage	Agent triages the ticket	2026-10-19T19:42:29.4687347Z   path: /home/runner/work/_temp/triage-issue-2.jsonl
+triage	Agent triages the ticket	2026-10-19T19:42:29.4687606Z   if-no-files-found: ignore
+triage	Agent triages the ticket	2026-10-19T19:42:29.4687801Z   compression-level: 6
+triage	Agent triages the ticket	2026-10-19T19:42:29.4687982Z   overwrite: false
+triage	Agent triages the ticket	2026-10-19T19:42:29.4688373Z   include-hidden-files: false
+triage	Agent triages the ticket	2026-10-19T19:42:29.4688568Z   archive: true
+triage	Agent triages the ticket	2026-10-19T19:42:29.4688732Z env:
+triage	Agent triages the ticket	2026-10-19T19:42:29.4688879Z   ISSUE: 2
+triage	Agent triages the ticket	2026-10-19T19:42:29.4689066Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Agent triages the ticket	2026-10-19T19:42:29.4689413Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Agent triages the ticket	2026-10-19T19:42:29.4689729Z ##[endgroup]
+triage	Agent triages the ticket	2026-10-19T19:42:29.5875051Z No files were found with the provided path: /home/runner/work/_temp/triage-issue-2.jsonl. No artifacts will be uploaded.
+triage	Agent triages the ticket	2026-10-19T19:42:29.6006778Z ##[end-action id=agent.__actions_upload-artifact;outcome=success;conclusion=success;duration_ms=135]
+triage	Report failure	﻿2026-10-19T19:42:29.6113753Z ##[group]Run gh issue edit "$ISSUE" --remove-label needs-triage --add-label agent:failed
+triage	Report failure	2026-10-19T19:42:29.6114526Z [36;1mgh issue edit "$ISSUE" --remove-label needs-triage --add-label agent:failed[0m
+triage	Report failure	2026-10-19T19:42:29.6115413Z [36;1mgh issue comment "$ISSUE" --body "💥 The triage stage failed. [See the run]($RUN_URL). Re-add \`needs-triage\` to retry."[0m
+triage	Report failure	2026-10-19T19:42:29.6200617Z shell: /usr/bin/bash -e {0}
+triage	Report failure	2026-10-19T19:42:29.6200986Z env:
+triage	Report failure	2026-10-19T19:42:29.6201257Z   ISSUE: 2
+triage	Report failure	2026-10-19T19:42:29.6201517Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Report failure	2026-10-19T19:42:29.6202049Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313151141
+triage	Report failure	2026-10-19T19:42:29.6205816Z   GH_TOKEN: ***
+triage	Report failure	2026-10-19T19:42:29.6206097Z ##[endgroup]
+triage	Report failure	2026-10-19T19:42:31.3326093Z https://github.com/jonbaldie/sf-explore-2026-10-19/issues/2
+triage	Report failure	2026-10-19T19:42:32.3495172Z https://github.com/jonbaldie/sf-explore-2026-10-19/issues/2#issuecomment-6275751656
+triage	Post Run actions/checkout@v7	﻿2026-10-19T19:42:32.5513200Z Post job cleanup.
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.6436010Z [command]/usr/bin/git version
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.6483385Z git version 2.55.0
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.6542694Z Temporarily overriding HOME='/home/runner/work/_temp/100a6a51-47a9-4c89-b8c7-629d7bf6f88b' before making global git config changes
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.6543977Z Adding repository directory to the temporary git global config as a safe directory
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.6559736Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/sf-explore-2026-10-19/sf-explore-2026-10-19
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.7910847Z Removing SSH command configuration
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.7911852Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.7951997Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.8160248Z Removing HTTP extra header
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.8171143Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.8204415Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.8410551Z Removing includeIf entries pointing to credentials config files
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.8419254Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+triage	Post Run actions/checkout@v7	2026-10-19T19:42:32.8454498Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+triage	Complete job	﻿2026-10-19T19:42:32.8897972Z Cleaning up orphan processes

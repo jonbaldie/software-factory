@@ -1,0 +1,12 @@
+Validation of the documentation publication on 2026-10-19:
+
+uv run tests/labels.py: exit 0; 0 failed, 130 passed.
+uv run tests/pi.py: exit 0; all 22 cases passed.
+uv run tests/install.py: exit 0; all passed.
+Report local links and final run/issue/PR counts: verified.
+git diff --cached --check: passed after trimming trailing whitespace in saved Actions logs.
+
+Final staged diff reviewed: README pointer, exploratory report, raw observations and replay fixtures only.
+Checked findings against saved observations, counts, duplicate inventory and issue URLs.
+No product changes or unresolved review findings.
+No live smoke required: no workflow, queue or trigger behavior was changed.

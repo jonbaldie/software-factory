@@ -1,0 +1,71 @@
+implement	Set up job	﻿2026-10-19T19:42:29.4678373Z Current runner version: '2.337.0'
+implement	Set up job	2026-10-19T19:42:29.4709963Z ##[group]Runner Image Provisioner
+implement	Set up job	2026-10-19T19:42:29.4711225Z Hosted Compute Agent
+implement	Set up job	2026-10-19T19:42:29.4711912Z Version: 20261012.601
+implement	Set up job	2026-10-19T19:42:29.4712837Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+implement	Set up job	2026-10-19T19:42:29.4713810Z Build Date: 2026-10-12T17:48:21Z
+implement	Set up job	2026-10-19T19:42:29.4714743Z Worker ID: {7ea2fa67-b31b-459a-825b-70d88f99bcd6}
+implement	Set up job	2026-10-19T19:42:29.4715608Z Region: westus3
+implement	Set up job	2026-10-19T19:42:29.4716234Z Cloud: Azure
+implement	Set up job	2026-10-19T19:42:29.4716974Z ##[endgroup]
+implement	Set up job	2026-10-19T19:42:29.4718636Z ##[group]Operating System
+implement	Set up job	2026-10-19T19:42:29.4719479Z Ubuntu
+implement	Set up job	2026-10-19T19:42:29.4720467Z 24.04.5
+implement	Set up job	2026-10-19T19:42:29.4721101Z LTS
+implement	Set up job	2026-10-19T19:42:29.4721796Z ##[endgroup]
+implement	Set up job	2026-10-19T19:42:29.4722536Z ##[group]Runner Image
+implement	Set up job	2026-10-19T19:42:29.4723369Z Image: ubuntu-24.04
+implement	Set up job	2026-10-19T19:42:29.4724068Z Version: 20261012.334.1
+implement	Set up job	2026-10-19T19:42:29.4725429Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+implement	Set up job	2026-10-19T19:42:29.4727712Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+implement	Set up job	2026-10-19T19:42:29.4729033Z ##[endgroup]
+implement	Set up job	2026-10-19T19:42:29.4731014Z ##[group]GITHUB_TOKEN Permissions
+implement	Set up job	2026-10-19T19:42:29.4733279Z Actions: write
+implement	Set up job	2026-10-19T19:42:29.4734055Z Contents: write
+implement	Set up job	2026-10-19T19:42:29.4734741Z Issues: write
+implement	Set up job	2026-10-19T19:42:29.4735500Z Metadata: read
+implement	Set up job	2026-10-19T19:42:29.4736176Z PullRequests: write
+implement	Set up job	2026-10-19T19:42:29.4736847Z ##[endgroup]
+implement	Set up job	2026-10-19T19:42:29.4739357Z Secret source: Actions
+implement	Set up job	2026-10-19T19:42:29.4740728Z Cache mode: write
+implement	Set up job	2026-10-19T19:42:29.4741945Z Prepare workflow directory
+implement	Set up job	2026-10-19T19:42:29.5516811Z Prepare all required actions
+implement	Set up job	2026-10-19T19:42:29.5576226Z Getting action download info
+implement	Set up job	2026-10-19T19:42:29.9093856Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+implement	Set up job	2026-10-19T19:42:30.0922779Z Download action repository 'actions/setup-node@v7' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+implement	Set up job	2026-10-19T19:42:30.9867760Z Download action repository 'jonbaldie/software-factory@v1' (SHA:683a2e8752bc7b0f86f2a1e2176c48483dad17bc)
+implement	Set up job	2026-10-19T19:42:31.4209170Z Download action repository 'actions/create-github-app-token@v3' (SHA:64ab729a6294000f5aa4a4bc0b73d1f32bc45510)
+implement	Set up job	2026-10-19T19:42:32.2506182Z Getting action download info
+implement	Set up job	2026-10-19T19:42:32.3704146Z Download action repository 'actions/upload-artifact@v7' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+implement	Set up job	2026-10-19T19:42:33.2464043Z Complete job name: implement
+implement	Check whether implementation is needed	﻿2026-10-19T19:42:33.3008199Z ##[group]Run # Read live state: a queued label event or manual dispatch can target an already closed issue.
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3008912Z [36;1m# Read live state: a queued label event or manual dispatch can target an already closed issue.[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3009369Z [36;1mstate=$(gh issue view "$ISSUE" --json state -q .state)[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3009661Z [36;1mif [ "$state" != OPEN ]; then[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3010009Z [36;1m  echo "Issue #$ISSUE is $state; skipping implementation and leaving its labels alone."[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3010704Z [36;1m  exit 0[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3010874Z [36;1mfi[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3011186Z [36;1m# An assignee owns the issue, so every later step is skipped and the labels stay as they are.[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3011695Z [36;1mowners=$(gh issue view "$ISSUE" --json assignees -q '.assignees[] | "@" + .login' | paste -sd' ' -)[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3012071Z [36;1mif [ -n "$owners" ]; then[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3012671Z [36;1m  gh issue comment "$ISSUE" --body "⏸️ This issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`ready-for-agent\`."[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3013258Z [36;1m  exit 0[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3013421Z [36;1mfi[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3013699Z [36;1m# A duplicate label event or manual retry must not force-push over an open PR.[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3014173Z [36;1mexisting=$(gh pr list --head "agent/issue-$ISSUE" --state open --json number -q 'length')[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3014743Z [36;1mif [ "$existing" -gt 0 ]; then[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3015234Z [36;1m  echo "An open PR already exists for issue #$ISSUE; leaving it alone."[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3015581Z [36;1m  exit 0[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3015751Z [36;1mfi[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3015938Z [36;1mecho "run=true" >> "$GITHUB_OUTPUT"[0m
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3584048Z shell: /usr/bin/bash -e {0}
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3584799Z env:
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3585064Z   ISSUE: 1
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3585351Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3585996Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313204459
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3586584Z   SETUP_COMMAND: npm ci
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3586896Z   TEST_COMMAND: node --test
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3595187Z   GH_TOKEN: ***
+implement	Check whether implementation is needed	2026-10-19T19:42:33.3595495Z ##[endgroup]
+implement	Check whether implementation is needed	2026-10-19T19:42:33.8891277Z Issue #1 is CLOSED; skipping implementation and leaving its labels alone.
+implement	Complete job	﻿2026-10-19T19:42:33.9078740Z Cleaning up orphan processes
