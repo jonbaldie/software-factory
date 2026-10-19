@@ -4,6 +4,8 @@ Check each of these:
 
 1. Does the change do everything the ticket asks, and nothing unrelated?
 2. Does it follow every coding standard in `AGENTS.md` (or `CLAUDE.md`)? Read it. Read the changed files in full if the diff isn't enough.
+   - At the root of the repository under review, check for `CODING_STANDARDS.md` and `CONTRIBUTING.md`. Read each file that is present. Does the proposed diff have any issues with its applicable rules?
+   - In your `summary`, name each of these optional files you checked. For each file, report concrete issues or state that no issues were found. Missing optional files do not block approval.
 3. Are the edge cases tested?
 4. Is the implementation evidence complete?
    - Read the `completed` summary requirements in `.github/factory/implement.md` and check them against the pull request description and available results. If a **Method** section follows, also check every box on its closing **Done when** checklist against the diff, the test output and the description. That checklist is the method's whole bar for review: it names the evidence each step leaves behind. Require additional investigation logs only when the ticket or repository explicitly requires them.
