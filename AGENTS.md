@@ -14,6 +14,8 @@ A pushed branch, an open PR or a handoff is unfinished work. If a required step 
 
 ## Tests
 
+Live GitHub tests, including exploratory passes and installer checks, use the existing [jonbaldie/software-factory-sandbox](https://github.com/jonbaldie/software-factory-sandbox) repository. Read [tests/smoke.md](tests/smoke.md) for setup and exclusive use before starting. Preserve the sandbox repository and restore settings changed for the run.
+
 `uv run tests/labels.py` runs the triage, scout, implement, review and fix jobs against a fake `gh` and checks the labels they leave. Run it after changing any of those workflows or `ticket.jq`, and add a scenario for each new label change. CI runs it on every PR.
 
 `uv run tests/pi.py` runs `run-agent/pi.mjs` against a fake `pi` and checks how it reads the agent's final JSON answer. Run it after changing `pi.mjs`. CI runs it on every PR.
