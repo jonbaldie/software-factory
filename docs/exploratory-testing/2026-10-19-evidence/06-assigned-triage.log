@@ -1,0 +1,57 @@
+triage	Set up job	﻿2026-10-19T19:42:01.1891457Z Current runner version: '2.337.0'
+triage	Set up job	2026-10-19T19:42:01.1917867Z ##[group]Runner Image Provisioner
+triage	Set up job	2026-10-19T19:42:01.1918728Z Hosted Compute Agent
+triage	Set up job	2026-10-19T19:42:01.1919142Z Version: 20261012.601
+triage	Set up job	2026-10-19T19:42:01.1919592Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+triage	Set up job	2026-10-19T19:42:01.1920072Z Build Date: 2026-10-12T17:48:21Z
+triage	Set up job	2026-10-19T19:42:01.1920523Z Worker ID: {a377d7cc-1fa2-4e79-9130-bf7e92df0a76}
+triage	Set up job	2026-10-19T19:42:01.1921031Z Region: centralus
+triage	Set up job	2026-10-19T19:42:01.1921421Z Cloud: Azure
+triage	Set up job	2026-10-19T19:42:01.1921794Z ##[endgroup]
+triage	Set up job	2026-10-19T19:42:01.1922693Z ##[group]Operating System
+triage	Set up job	2026-10-19T19:42:01.1923080Z Ubuntu
+triage	Set up job	2026-10-19T19:42:01.1923487Z 24.04.5
+triage	Set up job	2026-10-19T19:42:01.1923850Z LTS
+triage	Set up job	2026-10-19T19:42:01.1924211Z ##[endgroup]
+triage	Set up job	2026-10-19T19:42:01.1924603Z ##[group]Runner Image
+triage	Set up job	2026-10-19T19:42:01.1924980Z Image: ubuntu-24.04
+triage	Set up job	2026-10-19T19:42:01.1925385Z Version: 20261012.334.1
+triage	Set up job	2026-10-19T19:42:01.1926081Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+triage	Set up job	2026-10-19T19:42:01.1927483Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+triage	Set up job	2026-10-19T19:42:01.1928102Z ##[endgroup]
+triage	Set up job	2026-10-19T19:42:01.1929025Z ##[group]GITHUB_TOKEN Permissions
+triage	Set up job	2026-10-19T19:42:01.1930616Z Actions: write
+triage	Set up job	2026-10-19T19:42:01.1931052Z Contents: read
+triage	Set up job	2026-10-19T19:42:01.1931407Z Issues: write
+triage	Set up job	2026-10-19T19:42:01.1931755Z Metadata: read
+triage	Set up job	2026-10-19T19:42:01.1932227Z ##[endgroup]
+triage	Set up job	2026-10-19T19:42:01.1934251Z Secret source: Actions
+triage	Set up job	2026-10-19T19:42:01.1934883Z Cache mode: read
+triage	Set up job	2026-10-19T19:42:01.1935375Z Prepare workflow directory
+triage	Set up job	2026-10-19T19:42:01.2991474Z Prepare all required actions
+triage	Set up job	2026-10-19T19:42:01.3043259Z Getting action download info
+triage	Set up job	2026-10-19T19:42:01.6081773Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+triage	Set up job	2026-10-19T19:42:01.9699691Z Download action repository 'actions/setup-node@v7' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+triage	Set up job	2026-10-19T19:42:02.6123031Z Download action repository 'jonbaldie/software-factory@v1' (SHA:683a2e8752bc7b0f86f2a1e2176c48483dad17bc)
+triage	Set up job	2026-10-19T19:42:03.0159255Z Getting action download info
+triage	Set up job	2026-10-19T19:42:03.1209853Z Download action repository 'actions/upload-artifact@v7' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+triage	Set up job	2026-10-19T19:42:03.6347430Z Complete job name: triage
+triage	Leave assigned work to its assignee	﻿2026-10-19T19:42:03.6818081Z ##[group]Run # An assignee owns the issue, so every later step is skipped and the labels stay as they are.
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.6819202Z [36;1m# An assignee owns the issue, so every later step is skipped and the labels stay as they are.[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.6820158Z [36;1mowners=$(gh issue view "$ISSUE" --json assignees -q '.assignees[] | "@" + .login' | paste -sd' ' -)[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.6820908Z [36;1mif [ -n "$owners" ]; then[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.6821480Z [36;1m  echo "owners=$owners" >> "$GITHUB_OUTPUT"[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.6822191Z [36;1m  # A reply on an assigned issue is for the assignee, so the factory stays quiet.[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.6822965Z [36;1m  if [ "$GITHUB_EVENT_NAME" != issue_comment ]; then[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.6823993Z [36;1m    gh issue comment "$ISSUE" --body "⏸️ This issue is assigned to $owners, so the factory left it alone. To hand it back, unassign them, then remove and re-add \`needs-triage\`."[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.6824980Z [36;1m  fi[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.6825460Z [36;1mfi[0m
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.7055016Z shell: /usr/bin/bash -e {0}
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.7055968Z env:
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.7056438Z   ISSUE: 1
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.7057073Z   GH_REPO: jonbaldie/sf-explore-2026-10-19
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.7057838Z   RUN_URL: https://github.com/jonbaldie/sf-explore-2026-10-19/actions/runs/39313142069
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.7061403Z   GH_TOKEN: ***
+triage	Leave assigned work to its assignee	2026-10-19T19:42:03.7062002Z ##[endgroup]
+triage	Leave assigned work to its assignee	2026-10-19T19:42:05.5201948Z https://github.com/jonbaldie/sf-explore-2026-10-19/issues/1#issuecomment-6275743507
+triage	Complete job	﻿2026-10-19T19:42:05.5421132Z Cleaning up orphan processes
