@@ -11,7 +11,7 @@ The default agent is pi, using OpenRouter. Claude Code is also supported. Each s
 See the [example repository](https://github.com/jonbaldie/software-factory-sandbox)
 and the [real-repository pilot report](tests/database-pilot.md).
 
-Exploratory feedback: [install, scout and issue pause (2026-10-19)](docs/exploratory-testing/2026-10-19-install-scout-pause.md), with replay steps, evidence and filed bugs.
+See the [exploratory testing reports](docs/exploratory-testing/README.md) for replay steps, evidence and filed bugs.
 
 ## How it works
 
