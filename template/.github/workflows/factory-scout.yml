@@ -31,17 +31,56 @@ jobs:
           # so the oldest tickets would drop out. The REST list includes PRs, which have a pull_request key.
           existing=$(gh api --paginate "repos/$GH_REPO/issues?state=all&per_page=100" \
             --jq '.[] | select(.pull_request | not) | .title')
+          # Whether JavaScript text ends inside a string literal, so a marker after it is data, not a comment.
+          # A quote straight after a letter or digit, as in JSX text like "Don't", starts no string. A line is read on
+          # its own, so a template literal opened on an earlier line isn't seen.
+          in_js_string() {
+            local s=$1 quote= prev= c rest i
+            for ((i = 0; i < ${#s}; i++)); do
+              c=${s:i:1}
+              if [[ -n $quote ]]; then
+                if [[ $c == '\' ]]; then
+                  i=$((i + 1))
+                elif [[ $c == "$quote" ]]; then
+                  quote=
+                fi
+              elif [[ $c$prev == '//' ]]; then
+                return 1
+              elif [[ $c == / && ${s:i+1:1} == '*' ]]; then
+                rest=${s:i+2}
+                [[ $rest == *'*/'* ]] || return 1
+                rest=${rest#*'*/'}
+                i=$((${#s} - ${#rest} - 1))
+                c=
+              elif [[ $c == '`' || ( $c == [\"\'] && $prev != [[:alnum:]_\$] ) ]]; then
+                quote=$c
+              fi
+              prev=$c
+            done
+            [[ -n $quote ]]
+          }
           # Markdown (.md and .markdown, in any case) and .github are skipped because docs and the factory itself
           # mention the marker. MDX is scanned, since it often holds component code.
           # -z ends the path and line number with NULs, so a path may contain colons. -I skips binary files, whose
           # "Binary file X matches" line has no NULs and would throw the reads out of step.
           { git grep -z -n -I -F 'TODO(factory):' -- ':(exclude,icase)*.md' ':(exclude,icase)*.markdown' ':!.github' || true; } |
           while IFS= read -r -d '' file && IFS= read -r -d '' line && IFS= read -r hit; do
+            opener=${hit%%TODO(factory):*}
             title=${hit#*TODO(factory):}
+            # In JavaScript and TypeScript, skip markers inside strings and take the first one in a comment.
+            if [[ $file =~ \.[cCmM]?[jJtT][sS][xX]?$ ]]; then
+              while in_js_string "$opener" && [[ $title == *'TODO(factory):'* ]]; do
+                opener+="TODO(factory):${title%%TODO(factory):*}"
+                title=${title#*TODO(factory):}
+              done
+              if in_js_string "$opener"; then
+                echo "- Skipped TODO in a string at $file:$line." >> "$GITHUB_STEP_SUMMARY"
+                continue
+              fi
+            fi
             title=${title#"${title%%[![:space:]]*}"}
             # In a block or HTML comment opened before the marker, the first closer ends the title; code after it isn't
             # part of it. Then drop trailing whitespace, including CRLF's \r.
-            opener=${hit%%TODO(factory):*}
             [[ $opener == *'/*'* ]] && title=${title%%'*/'*}
             [[ $opener == *'<!--'* ]] && title=${title%%'-->'*}
             title=${title%"${title##*[![:space:]]}"}
