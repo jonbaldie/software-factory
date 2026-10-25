@@ -1,0 +1,300 @@
+Sandbox: https://github.com/jonbaldie/software-factory-sandbox
+Open PRs: []
+Original configuration: {"FACTORY_TEST_COMMAND": "npm test"}
+COMMAND: bash install.sh () (cwd: sandbox clone)
+Installing the software factory into jonbaldie/software-factory-sandbox from /Users/jonathanbaldie/.fleet/worktrees/software-factory-79
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = node --test
+  FACTORY_SETUP_COMMAND = npm ci
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  the agent's API key is set
+
+Next
+  1. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  2. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+Fresh/legacy autodetection: {"FACTORY_SETUP_COMMAND": "npm ci", "FACTORY_TEST_COMMAND": "node --test"}
+COMMAND: bash install.sh ('--setup-command', '') (cwd: sandbox clone)
+Installing the software factory into jonbaldie/software-factory-sandbox from /Users/jonathanbaldie/.fleet/worktrees/software-factory-79
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = node --test
+  FACTORY_SETUP_COMMAND (none)
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  the agent's API key is set
+
+Next
+  1. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  2. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+Explicit clear: {"FACTORY_SETUP_DISABLED": "true", "FACTORY_TEST_COMMAND": "node --test"}
+COMMAND: bash install.sh () (cwd: sandbox clone)
+Installing the software factory into jonbaldie/software-factory-sandbox from /Users/jonathanbaldie/.fleet/worktrees/software-factory-79
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = node --test
+  FACTORY_SETUP_COMMAND (none)
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  the agent's API key is set
+
+Next
+  1. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  2. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+Ordinary reinstall 1: {"FACTORY_SETUP_DISABLED": "true", "FACTORY_TEST_COMMAND": "node --test"}
+COMMAND: bash install.sh () (cwd: sandbox clone)
+Installing the software factory into jonbaldie/software-factory-sandbox from /Users/jonathanbaldie/.fleet/worktrees/software-factory-79
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = node --test
+  FACTORY_SETUP_COMMAND (none)
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  the agent's API key is set
+
+Next
+  1. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  2. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+Ordinary reinstall 2: {"FACTORY_SETUP_DISABLED": "true", "FACTORY_TEST_COMMAND": "node --test"}
+COMMAND: bash install.sh ('--setup-command', 'printf setup-enabled') (cwd: sandbox clone)
+Installing the software factory into jonbaldie/software-factory-sandbox from /Users/jonathanbaldie/.fleet/worktrees/software-factory-79
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = node --test
+  FACTORY_SETUP_COMMAND = printf setup-enabled
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  the agent's API key is set
+
+Next
+  1. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  2. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+Explicit re-enable: {"FACTORY_SETUP_COMMAND": "printf setup-enabled", "FACTORY_TEST_COMMAND": "node --test"}
+COMMAND: bash install.sh () (cwd: sandbox clone)
+Installing the software factory into jonbaldie/software-factory-sandbox from /Users/jonathanbaldie/.fleet/worktrees/software-factory-79
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = node --test
+  FACTORY_SETUP_COMMAND = printf setup-enabled
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  the agent's API key is set
+
+Next
+  1. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  2. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+Reinstall after re-enable: {"FACTORY_SETUP_COMMAND": "printf setup-enabled", "FACTORY_TEST_COMMAND": "node --test"}
+PASS: autodetection, clear, two reinstalls, re-enable, custom-command reinstall; test command preserved throughout.
+Restored configuration: {"FACTORY_TEST_COMMAND": "npm test"}
+PASS: all repository variables, labels and workflow permissions restored exactly. No remote branches, PRs, issues, workflows or Docker resources created.

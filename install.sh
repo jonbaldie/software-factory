@@ -19,7 +19,7 @@ Run it from a clone of your GitHub repo. When piping from curl, pass options aft
                        package.json has a test script.
   --setup-command CMD  Command to run before the agent and the tests, such as
                        `npm ci`. Detected as `npm ci` when package-lock.json exists.
-                       Pass '' to clear it.
+                       Pass '' to disable it, including on future reinstalls.
   --ref REF            software-factory version to install. Defaults to the
                        copy next to this script, or v1.
 EOF
@@ -66,9 +66,10 @@ main() {
 
   # Work out the variables before changing anything, so a missing test command stops the install cleanly.
   # A variable that isn't listed is unset. A failed read stops here, so an outage can't replace saved commands with detected ones.
-  local current_test current_setup current_merge current_harness
+  local current_test current_setup current_setup_disabled current_merge current_harness
   current_test=$(read_variable "$repo" FACTORY_TEST_COMMAND) || exit
   current_setup=$(read_variable "$repo" FACTORY_SETUP_COMMAND) || exit
+  current_setup_disabled=$(read_variable "$repo" FACTORY_SETUP_DISABLED) || exit
   current_merge=$(read_variable "$repo" FACTORY_MERGE) || exit
   current_harness=$(read_variable "$repo" FACTORY_HARNESS) || exit
   if [ -z "$test_command" ]; then
@@ -87,7 +88,7 @@ main() {
   if ! $setup_given; then
     if [ -n "$current_setup" ]; then
       setup_command=$current_setup
-    elif [ -f package-lock.json ]; then
+    elif [ "$current_setup_disabled" != true ] && [ -f package-lock.json ]; then
       setup_command="npm ci"
     fi
   fi
@@ -188,8 +189,16 @@ EOF
     if [ "$setup_command" != "$current_setup" ]; then
       gh variable set FACTORY_SETUP_COMMAND --repo "$repo" --body "$setup_command" </dev/null
     fi
+    if [ -n "$current_setup_disabled" ]; then
+      gh variable delete FACTORY_SETUP_DISABLED --repo "$repo" </dev/null
+    fi
     echo "  FACTORY_SETUP_COMMAND = $setup_command"
   else
+    # GitHub cannot distinguish an empty Actions variable from an absent one.
+    # Remember an explicit clear separately; workflows still see no setup command.
+    if $setup_given && [ "$current_setup_disabled" != true ]; then
+      gh variable set FACTORY_SETUP_DISABLED --repo "$repo" --body true </dev/null
+    fi
     if [ -n "$current_setup" ]; then
       gh variable delete FACTORY_SETUP_COMMAND --repo "$repo" </dev/null
     fi

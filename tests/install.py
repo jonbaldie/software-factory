@@ -6,7 +6,8 @@ import json, os, subprocess, sys, tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Keeps the repo's variables in $FAKE_GH_STATE. $FAKE_GH_STATE's "fail_reads" makes every variable read fail like a GitHub outage.
+# Keeps the repo's variables in $FAKE_GH_STATE. "fail_reads" is True for an outage,
+# or a variable name to fail only that configuration read.
 FAKE_GH = r"""#!/usr/bin/env python3
 import json, os, subprocess, sys
 path = os.environ["FAKE_GH_STATE"]
@@ -40,7 +41,8 @@ if kind == "auth":
 elif kind == "repo":
     save()
     out({"nameWithOwner": "owner/repo"})
-elif kind == "variable" and verb == "list" and st["fail_reads"]:
+elif kind == "variable" and verb == "list" and (st["fail_reads"] is True or
+        (st["fail_reads"] and st["fail_reads"] in (flag("-q") or flag("--jq") or ""))):
     fail("HTTP 503: unavailable (https://api.github.com/repos/owner/repo/actions/variables)")
 elif kind == "variable" and verb == "list":
     fields = flag("--json").split(",")
@@ -157,7 +159,7 @@ for name, text, accepted in [
 for name, saved, flags, expected in [
     ("saved command", CUSTOM, (), CUSTOM),
     ("explicit command", {}, ("--test-command", "just test", "--setup-command", ""),
-     {"FACTORY_TEST_COMMAND": "just test"}),
+     {"FACTORY_TEST_COMMAND": "just test", "FACTORY_SETUP_DISABLED": "true"}),
 ]:
     code, output, variables, labels, wrote = run(saved, flags, prepare=package("not JSON"))
     check(f"{name} bypasses package parsing",
@@ -166,8 +168,29 @@ for name, saved, flags, expected in [
 code, output, variables, labels, wrote = run(CUSTOM)
 check("saved custom commands are kept", code == 0 and variables == CUSTOM, output)
 
+# Carry the actual installer's saved state forward, not a hand-built disabled fixture.
+code, output, saved, _, _ = run(CUSTOM, ["--setup-command", ""])
+check("explicit clear removes the setup command and remembers the choice",
+      code == 0 and saved == {"FACTORY_TEST_COMMAND": "make test", "FACTORY_SETUP_DISABLED": "true"}, output)
+code, output, variables, labels, wrote = run(saved, fail_reads="FACTORY_SETUP_DISABLED")
+check("a failed disabled-state read stops before any changes",
+      code != 0 and variables == saved and not labels and not wrote and "couldn't read FACTORY_SETUP_DISABLED" in output, output)
+code, output, variables, labels, wrote = run(saved, ["--setup-command", "just deps"], fail_reads="FACTORY_SETUP_DISABLED")
+check("a failed disabled-state read stops even with an explicit override",
+      code != 0 and variables == saved and not labels and not wrote, output)
+for attempt in range(2):
+    code, output, saved, _, _ = run(saved)
+    check(f"ordinary reinstall {attempt + 1} preserves disabled setup and test command",
+          code == 0 and saved == {"FACTORY_TEST_COMMAND": "make test", "FACTORY_SETUP_DISABLED": "true"},
+          output + "\nsaved: " + repr(saved))
+code, output, saved, _, _ = run(saved, ["--setup-command", "just deps"])
+check("explicit setup re-enables setup and removes disabled metadata",
+      code == 0 and saved == {"FACTORY_TEST_COMMAND": "make test", "FACTORY_SETUP_COMMAND": "just deps"}, output)
+code, output, saved, _, _ = run(saved)
+check("reinstall preserves re-enabled setup", code == 0 and saved.get("FACTORY_SETUP_COMMAND") == "just deps", output)
+
 code, output, variables, labels, wrote = run(CUSTOM, ["--test-command", "just test", "--setup-command", ""])
-check("flags override saved commands", code == 0 and variables == {"FACTORY_TEST_COMMAND": "just test"}, output)
+check("flags override saved commands", code == 0 and variables == {"FACTORY_TEST_COMMAND": "just test", "FACTORY_SETUP_DISABLED": "true"}, output)
 
 code, output, variables, labels, wrote = run({"FACTORY_TEST_COMMAND": "make test\nmake lint"})
 check("a multi-line saved command is kept whole",
