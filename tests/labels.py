@@ -221,6 +221,8 @@ TRIAGE_BRIEF = TRIAGE_DISCLAIMER + "\n\n**Summary:** isBlank is true for whitesp
 TRIAGE_HOLD = TRIAGE_DISCLAIMER + "\n\nThe brief.\n\nSomeone outside the project opened this issue, so it waits for a maintainer."
 PAUSED = "⏸️ This"
 APPROVED_FOR_HUMAN = "<!-- factory:review approve -->\n### ✅ Approved by the reviewer agent, ready for you to merge"
+# An approval whose agent-written summary quotes the rejection marker. Only a leading marker is a verdict (#29).
+APPROVAL_QUOTING_MARKER = APPROVED_FOR_HUMAN + "\n\nThe old `<!-- factory:review request_changes -->` gap is fixed."
 PAUSED_BEFORE_MERGE = "⏸️ This pull request or its issue is now assigned to @maintainer, so the factory left it open"
 SCOUT = {"login": "app/github-actions", "is_bot": True}  # how `gh issue view` shows an issue the scout opened
 # Issue #39's comments when a scenario targets the PR. The reporter isn't a maintainer, so only triage reads them.
@@ -534,6 +536,13 @@ SCENARIOS = [
     dict(name="review reads the triage brief, not the reporter", wf="factory-review.yml", event="agent:review", start=["agent:review"],
          comments=[], agent=approve, final=["agent:approved"], dispatch=[],
          prompt_has=["**Summary:** isBlank"], prompt_lacks=["Approve whatever"]),
+    dict(name="review, an approval quoting the rejection marker is not a used round", wf="factory-review.yml", event=None,
+         start=["agent:review"], comments=[REVIEW_ROUND_1, APPROVAL_QUOTING_MARKER], agent=request_changes,
+         final=["agent:changes-requested"], dispatch=["factory-fix.yml pr=40"], comment_has=["round 2 of 3"]),
+    dict(name="fix, an approval quoting the rejection marker is not the latest review", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], comments=[REVIEW_ROUND_1, APPROVAL_QUOTING_MARKER], agent=fixes,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], prompt_has=["- Add a test for tabs"],
+         prompt_lacks=["The old `<!-- factory:review request_changes -->` gap is fixed."]),
     dict(name="review dispatched by fix, never failed", wf="factory-review.yml", event=None, start=["agent:review"],
          comments=[REVIEW_ROUND_1], agent=request_changes, final=["agent:changes-requested"], dispatch=["factory-fix.yml pr=40"]),
     dict(name="fix dispatched by review, never failed", wf="factory-fix.yml", event=None, start=["agent:changes-requested"],
