@@ -92,6 +92,28 @@ elif kind == "api" and flags.get("--method") == ["PATCH"] and "/issues/comments/
     c["body"] = flags["-f"][0].removeprefix("body=")
     save()
     emit(c)
+elif kind == "api" and verb.split("?")[0].endswith("/issues"):
+    # Like GitHub's REST list, issues and PRs come newest first, PRs with a pull_request key, in pages of per_page
+    # (30 by default). Only --paginate fetches every page, and --jq runs on each page.
+    query = dict(kv.split("=", 1) for kv in verb.partition("?")[2].split("&") if kv)
+    state = query.get("state", "open")
+    items = [{"number": i["number"], "title": i["title"], "state": i["state"].lower()} for i in st["issues"].values()]
+    items += [{"number": p["number"], "title": p.get("title", ""), "state": p["state"].lower(), "pull_request": {}}
+              for p in [pr, *st.get("other_prs", [])]]
+    items = [i for i in items if state in ("all", "closed" if i["state"] == "merged" else i["state"])]
+    size = int(query.get("per_page", 30))
+    pages = [items[k:k + size] for k in range(0, len(items), size)] or [[]]
+    for page in pages if "--paginate" in flags else pages[:1]:
+        q = (flags.get("-q") or flags.get("--jq") or [None])[0]
+        if q:
+            out = subprocess.run(["jq", "-r", q], input=json.dumps(page), capture_output=True, text=True)
+            sys.stdout.write(out.stdout)
+            sys.stderr.write(out.stderr)
+            if out.returncode:
+                save()
+                sys.exit(out.returncode)
+        else:
+            print(json.dumps(page))
 elif kind == "api":
     issue = st["issues"][pos[1].rsplit("/", 1)[1]]
     author = issue["author"]

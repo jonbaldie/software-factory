@@ -27,7 +27,10 @@ jobs:
       - name: File tickets for new TODOs
         run: |
           echo "## 🔭 Scouted TODOs" >> "$GITHUB_STEP_SUMMARY"
-          existing=$(gh issue list --state all --limit 1000 --json title -q '.[].title')
+          # Every issue title, open or closed, however old. `gh issue list` caps at a limit and lists newest first,
+          # so the oldest tickets would drop out. The REST list includes PRs, which have a pull_request key.
+          existing=$(gh api --paginate "repos/$GH_REPO/issues?state=all&per_page=100" \
+            --jq '.[] | select(.pull_request | not) | .title')
           # Markdown (.md and .markdown, in any case) and .github are skipped because docs and the factory itself
           # mention the marker. MDX is scanned, since it often holds component code.
           # -z ends the path and line number with NULs, so a path may contain colons. -I skips binary files, whose
