@@ -61,6 +61,8 @@ curl -fsSL https://raw.githubusercontent.com/jonbaldie/software-factory/v1/insta
 
 It copies workflows and prompts into `.github/`, creates labels, sets the test and setup commands, and tries to enable Actions to create and approve PRs. It preserves existing `bug` and `enhancement` labels.
 
+Pass `--setup-command ''` to disable setup, including on future reinstalls. Pass a nonempty `--setup-command` to re-enable it. The installer records the disabled choice in `FACTORY_SETUP_DISABLED=true` and removes `FACTORY_SETUP_COMMAND`, so agent stages skip setup. Re-enabling setup removes that metadata. Leave this installer-managed variable alone; removing it allows autodetection again. Older installs with no saved setup choice still use autodetection.
+
 ### 2. Add the model key
 
 For the default agent, run this and paste your OpenRouter key when prompted:
