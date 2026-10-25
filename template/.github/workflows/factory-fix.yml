@@ -104,6 +104,17 @@ jobs:
               exit 1
             fi
           fi
+          if [ -n "$(git diff --name-only --diff-filter=U -- .github)" ]; then
+            echo "::error::The branch conflicts with $BASE under .github/. The factory owns that folder."
+            exit 1
+          fi
+          # Snapshot only .github/ from the merged index. Other paths may still be unmerged.
+          index="$RUNNER_TEMP/github-index"
+          GIT_INDEX_FILE="$index" git read-tree --empty
+          git ls-files --stage -- .github | GIT_INDEX_FILE="$index" git update-index --index-info
+          github_tree=$(GIT_INDEX_FILE="$index" git write-tree)
+          echo "github_tree=$github_tree" >> "$GITHUB_OUTPUT"
+          rm "$index"
 
       - name: Build the fix prompt
         if: steps.eligible.outputs.run == 'true'
@@ -177,7 +188,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PUBLISH_TOKEN: ${{ steps.publisher.outputs.token || github.token }}
           BRANCH: ${{ steps.pr.outputs.branch }}
-          BASE: ${{ steps.pr.outputs.base }}
+          GITHUB_TREE: ${{ steps.revision.outputs.github_tree }}
           AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
           STARTED_SHA: ${{ steps.revision.outputs.sha }}
         run: |
@@ -196,9 +207,9 @@ jobs:
           }
           require_current_head
           git add -A
-          # The merge brings in the base branch's .github/, so any other difference there came from the agent.
-          if ! git diff --cached --quiet "origin/$BASE" -- .github; then
-            echo "::error::Files under .github/ differ from $BASE's. The factory owns that folder."
+          # Preserve pre-existing branch and base changes; reject only the agent's changes, including its commits.
+          if ! git diff --cached --quiet "$GITHUB_TREE" -- .github; then
+            echo "::error::The agent changed files under .github/. The factory owns that folder."
             exit 1
           fi
           while IFS= read -r file; do
