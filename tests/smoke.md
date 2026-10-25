@@ -70,6 +70,24 @@ Still not covered live: a push in the narrow interval between the final head che
 
 ## Runs
 
+### 2026-10-25, issue #77: pre-existing `.github/` branch changes
+
+Focused live guard check; triggers and queues were unchanged, so the full push suite was not rerun.
+Candidate installed by [sandbox #133](https://github.com/jonbaldie/software-factory-sandbox/pull/133)
+at [`efa94c8`](https://github.com/jonbaldie/software-factory-sandbox/commit/efa94c81246cd510a4a5f4101111d159e39e9aea).
+No sandbox settings were changed; `FACTORY_MERGE` stayed unset.
+
+- [Fixture #135](https://github.com/jonbaldie/software-factory-sandbox/pull/135), closing fixture issue #134,
+  started with a deliberately wrong JSON marker, a failing test, and a human-authored `.github/issue77-human.txt` absent from `main`.
+- Before: local `npm test` failed with `actual: 'wrong', expected: 'correct'`.
+- [Fix run](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/40171873007) passed both the real agent and publication steps, then handed back with `agent:review`.
+- Fixed head [`81b7e1e`](https://github.com/jonbaldie/software-factory-sandbox/commit/81b7e1e24d981aab01bfe11a7e91bfb670473721)
+  changed the marker to `correct`, retained the original test and human `.github/` file exactly, and passed all 130 local sandbox tests.
+  [App-triggered CI](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/40171961117) passed on that head.
+- Local regression suite: 140 passed, 0 failed, including branch-change preservation, uncommitted and committed agent edits, pre-agent `.github/` conflict refusal, and a snapshot with unrelated merge conflicts.
+- The downstream [review](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/40171959323) requested clearer pre/post artifact accounting in the agent's summary; this focused run does not claim reviewer approval. Direct Git comparison verified preservation from fixture head `ed37ede` to fixed head `81b7e1e`.
+- Cleanup: fixture PR #135 and issue #134 closed without merging, `agent/issue-134` deleted, installation branch deleted, all jobs finished. The queued follow-up [fix](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/40172187802) skipped its agent after closure. No Docker resources were created.
+
 The concurrent-push candidate was installed by [sandbox#106](https://github.com/jonbaldie/software-factory-sandbox/pull/106). All 15 checks passed in m5: the stale fixer queued one retry, the human commit survived, only the initial rejection used a review round, and [#108](https://github.com/jonbaldie/software-factory-sandbox/pull/108) merged after fresh review and required App CI. The merge setting was restored and the temporary branch was deleted.
 
 ### 2026-10-04 07:57 UTC, run 20261004-075114

@@ -566,6 +566,30 @@ SCENARIOS = [
     dict(name="fix brings in main's factory changes", wf="factory-fix.yml", event=None, start=["agent:changes-requested"],
          comments=[REVIEW_ROUND_1], main_files={".github/factory/style.md": "Use tabs.\n"}, agent=fixes, final=["agent:review"],
          dispatch=[AUTO_REVIEW], merged_main=True, prompt_lacks=["## Merge conflicts"]),
+    dict(name="fix preserves existing branch .github changes", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], comments=[REVIEW_ROUND_1],
+         branch_files={".github/workflows/ci.yml": "on: push\n"}, agent=fixes,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False,
+         remote_files={".github/workflows/ci.yml": "on: push\n"}),
+    dict(name="fix rejects agent .github edits despite existing branch changes", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], comments=[REVIEW_ROUND_1],
+         branch_files={".github/workflows/ci.yml": "on: push\n"}, agent=edits_factory,
+         final=["agent:failed"], dispatch=[], failed=True, publish_tokens=[], head_unchanged=True),
+    dict(name="fix rejects committed agent .github edits despite existing branch changes", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], comments=[REVIEW_ROUND_1],
+         branch_files={".github/workflows/ci.yml": "on: push\n"}, agent=commits_factory_edit,
+         final=["agent:failed"], dispatch=[], failed=True, publish_tokens=[]),
+    dict(name="fix refuses .github conflicts before the agent", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], comments=[REVIEW_ROUND_1],
+         main_files={".github/workflows/ci.yml": "on: push\n"},
+         branch_files={".github/workflows/ci.yml": "on: pull_request\n"}, agent=fixes, during=None,
+         final=["agent:failed"], dispatch=[], failed=True, publish_tokens=[], head_unchanged=True),
+    dict(name="fix snapshots .github despite unrelated conflicts", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], comments=[MERGE_CONFLICTS],
+         main_files={"README.md": "textkit\nisEmpty\n", ".github/factory/style.md": "Use tabs.\n"},
+         branch_files={".github/workflows/ci.yml": "on: push\n"}, agent=resolves,
+         final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False, merged_main=True,
+         remote_files={".github/workflows/ci.yml": "on: push\n", ".github/factory/style.md": "Use tabs.\n"}),
     dict(name="fix edits .github, fails", wf="factory-fix.yml", event=None, start=["agent:changes-requested"],
          comments=[REVIEW_ROUND_1], agent=edits_factory, final=["agent:failed"], dispatch=[],
          last_comment="💥 The fix stage failed"),
@@ -989,11 +1013,14 @@ def run_scenario(sc, trace):
     head_unchanged = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip() == head
     remote_head_message = subprocess.run(["git", "log", "-1", "--format=%B", st["pr"]["headRefOid"]], cwd=repo,
                                          capture_output=True, text=True).stdout
+    remote_files = {path: subprocess.check_output(["git", "show", f"{st['pr']['headRefOid']}:{path}"], cwd=repo, text=True)
+                    for path in sc.get("remote_files", {})}
     summary_path = os.path.join(root, "summary.md")
     summary = open(summary_path).read() if os.path.exists(summary_path) else ""
     shutil.rmtree(root)
     result = {
         "summary": summary,
+        "remote_files": remote_files,
         "failed": failed,
         "publish_tokens": st.get("push_tokens", []) + [call["token"] for call in st.get("auth_calls", [])
                                                        if call["args"][:2] == ["pr", "create"]],
@@ -1038,7 +1065,7 @@ def check(sc, r):
         problems.append(f"publish tokens {r['publish_tokens']}, want {sc['publish_tokens']}")
     if "metadata_token" in sc and any(token != sc["metadata_token"] for token in r["metadata_tokens"]):
         problems.append("metadata and handoffs used the publishing credential")
-    for key in ("failed", "pr_created", "head_unchanged", "remote_head"):
+    for key in ("failed", "pr_created", "head_unchanged", "remote_head", "remote_files"):
         if key in sc and r[key] != sc[key]:
             problems.append(f"{key} is {r[key]}, want {sc[key]}")
     for text in sc.get("remote_head_has", []):
