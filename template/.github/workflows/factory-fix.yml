@@ -129,9 +129,9 @@ jobs:
             gh pr view "$PR" --json body -q .body
             echo
             echo "## Latest review"
-            # Only the factory's own reviews: anyone can post a comment with the marker.
+            # Only the factory's own reviews: anyone can post a comment with the marker, and a summary can quote it.
             gh pr view "$PR" --json comments \
-              -q '[.comments[] | select(.author.login == "github-actions" and (.body | contains("<!-- factory:review request_changes -->")))] | last | .body'
+              -q '[.comments[] | select(.author.login == "github-actions" and (.body | startswith("<!-- factory:review request_changes -->")))] | last | .body'
             echo
             if [ -s "$RUNNER_TEMP/conflicts.txt" ]; then
               printf '## Merge conflicts\n\n`%s` is merged into the working tree. These files have conflict markers:\n\n' "$BASE"
