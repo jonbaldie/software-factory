@@ -122,20 +122,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BASE: ${{ steps.pr.outputs.base }}
         run: |
-          if [ -z "$TEST_COMMAND" ]; then
-            echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
-            exit 1
-          fi
-          # The prompts come from the base branch, so a PR opened before a prompt change still gets the new one.
-          # They're unpacked outside the checkout, where the agent's commit can't pick them up.
-          prompts="$RUNNER_TEMP/factory"
-          mkdir "$prompts" && git archive "origin/$BASE:.github/factory" | tar -x -C "$prompts"
+          # Bootstrap only from the trusted base, outside the agent's checkout.
+          git show "origin/$BASE:.github/factory/prompt.sh" > "$RUNNER_TEMP/prompt.sh"
+          bash "$RUNNER_TEMP/prompt.sh" fix "$PR" > "$RUNNER_TEMP/prompt.md"
           {
-            cat "$prompts/fix.md"
-            printf '\n## Test command\n\n```sh\n%s\n```\n\n' "$TEST_COMMAND"
-            for n in $(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number'); do
-              gh issue view "$n" --json number,title,body,comments | jq -r -f "$prompts/ticket.jq"
-            done
             printf '\n## Current PR description\n\n'
             gh pr view "$PR" --json body -q .body
             echo
@@ -152,7 +142,7 @@ jobs:
             echo "## Comments from maintainers"
             gh pr view "$PR" --json comments \
               -q '.comments[] | select(.authorAssociation | IN("OWNER", "MEMBER", "COLLABORATOR")) | "- @\(.author.login): \(.body)"'
-          } > "$RUNNER_TEMP/prompt.md"
+          } >> "$RUNNER_TEMP/prompt.md"
 
       - name: Set up the project
         if: steps.eligible.outputs.run == 'true' && env.SETUP_COMMAND != ''

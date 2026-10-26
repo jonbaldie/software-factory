@@ -74,10 +74,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -z "$TEST_COMMAND" ]; then
-            echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
-            exit 1
-          fi
+          bash .github/factory/prompt.sh implement "$ISSUE" > "$RUNNER_TEMP/prompt.md"
           # ready-for-agent stays on. Re-triage sees agent:working and starts no second run.
           gh issue edit "$ISSUE" --remove-label agent:failed --add-label agent:working
           gh issue comment "$ISSUE" --body "🏭 The factory picked this up. [Watch the run]($RUN_URL)"
@@ -89,18 +86,11 @@ jobs:
             wip_base=$(git merge-base HEAD "origin/$branch")
           fi
           {
-            cat .github/factory/implement.md
-            # The category label picks the method: a bug is diagnosed before it's fixed, an enhancement is built test-first.
-            for category in bug enhancement; do
-              if grep -qix "$category" <<<"$labels"; then echo; cat ".github/factory/$category.md"; break; fi
-            done
-            printf '\n## Test command\n\n```sh\n%s\n```\n\n' "$TEST_COMMAND"
-            gh issue view "$ISSUE" --json number,title,body,comments | jq -r -f .github/factory/ticket.jq
             if [ -n "$wip_base" ]; then
               printf '\n## Previous attempt\n\nAn earlier run on this ticket stopped before it opened a pull request. Its work is committed on the branch you are on, and `git diff %s` shows it. Its notes, oldest first:\n\n' "$wip_base"
               git log --reverse --format=%B "$wip_base..origin/$branch"
             fi
-          } > "$RUNNER_TEMP/prompt.md"
+          } >> "$RUNNER_TEMP/prompt.md"
           # The prompt is built from the default branch, so the prompts are current. The agent then works on the saved branch.
           if [ -n "$wip_base" ]; then git switch -q -c "$branch" "origin/$branch"; fi
 
