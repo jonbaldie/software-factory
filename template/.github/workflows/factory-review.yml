@@ -94,16 +94,13 @@ jobs:
         if: steps.eligible.outputs.run == 'true' && env.SETUP_COMMAND != ''
         run: eval "$SETUP_COMMAND"
 
-      - name: Build the shared prompt and run the tests
+      - name: Run the tests
         id: tests
         if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           base=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
-          # Bootstrap only from the trusted base, outside the agent's checkout.
-          git show "origin/$base:.github/factory/prompt.sh" > "$RUNNER_TEMP/prompt.sh"
-          bash "$RUNNER_TEMP/prompt.sh" review "$PR" > "$RUNNER_TEMP/prompt.md"
           # The PR's copy is untrusted; use the same executor from its base branch.
           git show "origin/$base:.github/factory/test-command.sh" > "$RUNNER_TEMP/test-command.sh"
           if bash "$RUNNER_TEMP/test-command.sh" "$TEST_COMMAND" "$RUNNER_TEMP/tests.txt"; then passed=true; else passed=false; fi
@@ -115,6 +112,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           base=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
+          # Bootstrap only from the trusted base, outside the agent's checkout.
+          git show "origin/$base:.github/factory/prompt.sh" > "$RUNNER_TEMP/prompt.sh"
+          bash "$RUNNER_TEMP/prompt.sh" review "$PR" > "$RUNNER_TEMP/prompt.md"
           {
             echo "## Pull request description"
             echo
