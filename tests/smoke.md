@@ -70,6 +70,29 @@ Still not covered live: a push in the narrow interval between the final head che
 
 ## Runs
 
+### 2026-10-26, issue #28: shared trusted prompt builder
+
+Focused live helper checks; triggers and queues are unchanged, so the event/merge suites were not rerun.
+[Reservation](https://github.com/jonbaldie/software-factory/issues/28#issuecomment-6415722188).
+[Results](https://github.com/jonbaldie/software-factory/issues/28#issuecomment-6415880209).
+Initial installation [sandbox #141](https://github.com/jonbaldie/software-factory-sandbox/pull/141)
+passed CI; the final workflow ordering was installed by
+[sandbox #144](https://github.com/jonbaldie/software-factory-sandbox/pull/144), merged at
+[`9638032`](https://github.com/jonbaldie/software-factory-sandbox/commit/96380322d459fa3361e3fc0b2d3dc283d2574f9c)
+after [CI passed](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/40321792580).
+
+- Actual `prompt.sh` invocations used real [enhancement issue #142](https://github.com/jonbaldie/software-factory-sandbox/issues/142)
+  and its [closing PR #143](https://github.com/jonbaldie/software-factory-sandbox/pull/143).
+  Implement, review and fix all rendered the method heading, test command and ticket.
+- Review/fix bootstrapped the helper from `origin/main` outside the checkout. Deliberately replacing the checkout's
+  helper with `exit 73` and its method with an untrusted marker did not affect the resulting prompts.
+  Removing the issue's category label omitted the fix method without dropping the ticket.
+- These are helper/real-GitHub checks, not live agent verdicts or end-to-end workflow dispatches.
+  The helper is unchanged in the final installation. Local workflow scenarios additionally cover post-test prompt replacement.
+- Cleanup: fixture issue/PR closed without merging; both installation branches and the fixture branch deleted.
+  Sandbox variables matched the original snapshot; no settings were intentionally changed. No Docker resources were created.
+
+
 ### 2026-10-26, issue #89: shared fail-fast test executor
 
 Focused live implementation/review checks; triggers and queues were unchanged, so the full push suite was not rerun.
