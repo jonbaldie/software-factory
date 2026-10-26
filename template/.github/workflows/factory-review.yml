@@ -94,17 +94,16 @@ jobs:
         if: steps.eligible.outputs.run == 'true' && env.SETUP_COMMAND != ''
         run: eval "$SETUP_COMMAND"
 
-      - name: Run the tests
+      - name: Build the shared prompt and run the tests
         id: tests
         if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -z "$TEST_COMMAND" ]; then
-            echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
-            exit 1
-          fi
           base=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
+          # Bootstrap only from the trusted base, outside the agent's checkout.
+          git show "origin/$base:.github/factory/prompt.sh" > "$RUNNER_TEMP/prompt.sh"
+          bash "$RUNNER_TEMP/prompt.sh" review "$PR" > "$RUNNER_TEMP/prompt.md"
           # The PR's copy is untrusted; use the same executor from its base branch.
           git show "origin/$base:.github/factory/test-command.sh" > "$RUNNER_TEMP/test-command.sh"
           if bash "$RUNNER_TEMP/test-command.sh" "$TEST_COMMAND" "$RUNNER_TEMP/tests.txt"; then passed=true; else passed=false; fi
@@ -116,21 +115,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           base=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
-          # The prompts come from the base branch, so a PR opened before a prompt change still gets the new one.
-          prompts="$RUNNER_TEMP/factory"
-          mkdir "$prompts" && git archive "origin/$base:.github/factory" | tar -x -C "$prompts"
-          issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
-          labels=$(for n in $issues; do gh issue view "$n" --json labels -q '.labels[].name'; done)
           {
-            cat "$prompts/review.md"
-            # The same method the implementer was given, so the reviewer checks its evidence.
-            for category in bug enhancement; do
-              if grep -qix "$category" <<<"$labels"; then echo; cat "$prompts/$category.md"; break; fi
-            done
-            echo
-            for n in $issues; do
-              gh issue view "$n" --json number,title,body,comments | jq -r -f "$prompts/ticket.jq"
-            done
             echo "## Pull request description"
             echo
             gh pr view "$PR" --json body -q .body
@@ -143,7 +128,7 @@ jobs:
             echo '````'
             tail -n 40 "$RUNNER_TEMP/tests.txt"
             echo '````'
-          } > "$RUNNER_TEMP/prompt.md"
+          } >> "$RUNNER_TEMP/prompt.md"
 
       - name: Agent reviews the change
         id: agent
