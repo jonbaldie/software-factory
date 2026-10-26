@@ -154,8 +154,9 @@ jobs:
         id: tests
         if: steps.implementation.outputs.outcome == 'completed'
         run: |
-          set -o pipefail
-          eval "$TEST_COMMAND" 2>&1 | tee "$RUNNER_TEMP/tests.txt" # a failure is saved with the agent's work
+          # Read the default-branch version that started this run, never an agent edit or saved WIP helper.
+          git show "$GITHUB_SHA:.github/factory/test-command.sh" > "$RUNNER_TEMP/test-command.sh"
+          bash "$RUNNER_TEMP/test-command.sh" "$TEST_COMMAND" "$RUNNER_TEMP/tests.txt"
 
       - name: Create a publishing token
         id: publisher

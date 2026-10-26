@@ -116,7 +116,7 @@ Set repository variables under **Settings → Secrets and variables → Actions 
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `FACTORY_TEST_COMMAND` | Command that must pass before a PR opens or merges. | Required; installer detects `npm test` where available. |
+| `FACTORY_TEST_COMMAND` | Command that must pass before a PR opens or merges. Runs in a fresh Bash with `errexit` and `pipefail`: an unhandled failure stops a command sequence; handled failures (conditionals, OR lists, etc.) retain normal Bash semantics. Combined stdout/stderr is logged. | Required; installer detects `npm test` where available. |
 | `FACTORY_SETUP_COMMAND` | Installs dependencies before each agent stage. | None; installer detects `npm ci` when `package-lock.json` exists. |
 | `FACTORY_HARNESS` | Chooses the agent: `pi` or `claude`. | `pi` |
 | `FACTORY_MODEL` | Chooses the model for all agent stages. | See below. |

@@ -97,13 +97,17 @@ jobs:
       - name: Run the tests
         id: tests
         if: steps.eligible.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ -z "$TEST_COMMAND" ]; then
             echo "::error::Set the FACTORY_TEST_COMMAND repository variable to the command that runs your tests."
             exit 1
           fi
-          if eval "$TEST_COMMAND" > "$RUNNER_TEMP/tests.txt" 2>&1; then passed=true; else passed=false; fi
-          cat "$RUNNER_TEMP/tests.txt"
+          base=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
+          # The PR's copy is untrusted; use the same executor from its base branch.
+          git show "origin/$base:.github/factory/test-command.sh" > "$RUNNER_TEMP/test-command.sh"
+          if bash "$RUNNER_TEMP/test-command.sh" "$TEST_COMMAND" "$RUNNER_TEMP/tests.txt"; then passed=true; else passed=false; fi
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
 
       - name: Build the review prompt
