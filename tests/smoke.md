@@ -70,6 +70,39 @@ Still not covered live: a push in the narrow interval between the final head che
 
 ## Runs
 
+### 2026-10-26, issue #89: shared fail-fast test executor
+
+Focused live implementation/review checks; triggers and queues were unchanged, so the full push suite was not rerun.
+[Reservation](https://github.com/jonbaldie/software-factory/issues/89#issuecomment-6414165865).
+[Sandbox #137](https://github.com/jonbaldie/software-factory-sandbox/pull/137) installed the candidate at
+[`8e788ba`](https://github.com/jonbaldie/software-factory-sandbox/commit/8e788ba), after required CI passed.
+
+- Temporarily set `FACTORY_TEST_COMMAND` to `printf 'issue89 stdout\n'; printf 'issue89 stderr\n' >&2; false; printf 'cleanup reached\n'`.
+- [Implementation fixture #138](https://github.com/jonbaldie/software-factory-sandbox/issues/138):
+  [run](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/40311536477) completed its agent,
+  then the production test step printed both streams and exited 1 without reaching cleanup. Publishing was skipped;
+  no PR existed for `agent/issue-138`. The issue gained `agent:failed` and `agent:wip`; the failure comment confirmed WIP was saved.
+  The agent's own command invocation reported success after cleanup, demonstrating why its summary is not the workflow's test authority.
+- [Review fixture #140](https://github.com/jonbaldie/software-factory-sandbox/pull/140), for [#139](https://github.com/jonbaldie/software-factory-sandbox/issues/139):
+  [run](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/40311611460) printed both streams without cleanup,
+  continued through the agent, and supplied `TESTS_PASSED: false` to the verdict step.
+  The [request-changes comment](https://github.com/jonbaldie/software-factory-sandbox/pull/140#issuecomment-6414397998)
+  includes the combined diagnostic tail; the PR gained `agent:changes-requested` and dispatched the fixer.
+  The real agent also requested changes; approving-agent override is covered deterministically in the local harness, not claimed live.
+- [Dispatched fix](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/40311907422) stood down after fixture closure,
+  skipping its agent and publication. All live jobs finished; the implementation failure was intentional.
+- Local regression result: **155 passed, 0 failed**, including 13 executor scenarios. They assert production step output,
+  `tests.txt`, `passed`, WIP diagnostics, labels and dispatches. Agent/PR/saved-WIP helper replacements are ignored;
+  ordinary success/failure, pipeline failure and handled failures are covered. All 22 pi parser cases and 35 installer checks passed.
+  Evidence audit: all 13 new scenarios are production-grounded (0 test-local, test-layer-only or unclear);
+  the YAML harness executes real Bash blocks and the real helper, while GitHub and the agent are faked.
+- Diagnosis: conditional `eval` suppressed `errexit`. Before the fix, the compound review regression wrote `passed=true`,
+  reached cleanup and approved without dispatch. A fresh fail-fast child Bash fixes that boundary; the same command now
+  writes `passed=false`, omits cleanup and requests changes even with an approving fake agent.
+- Cleanup: fixtures #138/#139/#140 closed without merging; `agent/issue-138`, `test/issue89-review` and the installation branch deleted.
+  Restored `FACTORY_TEST_COMMAND=npm test`; fresh variable readback matched the original two-variable configuration exactly.
+  No Docker containers, images or volumes were created. The candidate installation remains for future sandbox tests.
+
 ### 2026-10-25, issue #77: pre-existing `.github/` branch changes
 
 Focused live guard check; triggers and queues were unchanged, so the full push suite was not rerun.
