@@ -761,6 +761,14 @@ SCENARIOS = [
     dict(name="scout files a ticket and starts its triage", wf="factory-scout.yml", target="issue", event=None, start=[],
          files={"src/text.py": "# TODO(factory): Treat tabs as blank\n"}, comments=[], agent=None, final=[],
          dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout runs with a non-executable helper", wf="factory-scout.yml", target="issue", event=None, start=[],
+         file_modes={".github/factory/scout.sh": 0o644},
+         files={"src/text.py": "# TODO(factory): Treat tabs as blank\n"}, comments=[], agent=None, final=[],
+         failed=False, created_issue_titles=["Treat tabs as blank"], dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout fails when triage dispatch fails", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/text.py": "# TODO(factory): Treat tabs as blank\n"}, comments=[], agent=None, final=[],
+         dispatch_fails=True, failed=True, created_issue_titles=["Treat tabs as blank"], dispatch=[],
+         summary_has=["Couldn't start triage for https://github.com/o/sandbox/issues/41"]),
     dict(name="scout files repeated TODO titles once", wf="factory-scout.yml", target="issue", event=None, start=[],
          files={"src/a.py": "# TODO(factory): Treat tabs as blank\n",
                 "src/b.py": "# TODO(factory): Treat tabs as blank\n"}, comments=[], agent=None, final=[],
@@ -948,6 +956,8 @@ def make_repo(root, files, main_files, branch_files):
 def run_scenario(sc, trace):
     root = tempfile.mkdtemp(prefix="labels-")
     repo = make_repo(root, sc.get("files", {}), sc.get("main_files", {}), sc.get("branch_files", {}))
+    for path, mode in sc.get("file_modes", {}).items():
+        os.chmod(os.path.join(repo, path), mode)
     if sc["wf"] == "factory-implement.yml":
         sh("git", "update-ref", "refs/remotes/origin/agent/issue-39", "agent/issue-39", cwd=repo)
         sh("git", "switch", "-q", "main", cwd=repo)
