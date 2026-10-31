@@ -17,4 +17,4 @@ At 01:38:44 UTC:
   in_progress: 41156292781 Factory 3 · Fix
   open PRs: 150, 151
 
-These observations describe other users' resources. This run did not cancel or modify them.
+These observations describe other users' resources. This run did not cancel the listed runs or change the listed PRs. The cleanup trap's effect on a pre-existing branch with the planned name is unknown.
