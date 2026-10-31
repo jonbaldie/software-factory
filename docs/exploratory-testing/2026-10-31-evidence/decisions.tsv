@@ -6,3 +6,4 @@ ts	phase	decision	why	evidence	result
 2026-10-31T01:39:41Z	filing	File the remaining multiline case separately from closed issue 78	The prior report noted the limitation but no separate ticket covered it	https://github.com/jonbaldie/software-factory/issues/97	needs triage
 2026-10-31T01:39:41Z	validation	Rerun the workflow suite after its initial timeout	An interrupted command is not a passing suite	labels-suite.log	164 passed
 2026-10-31T01:40:57Z	review	Add the preflight evidence and replay prerequisites after independent review	The initial report omitted evidence and described cleanup before it happened	sandbox-preflight.txt	corrected; scratch removed
+2026-10-31T01:42:32Z	review	Discard unsafe live driver and isolate replay cleanup	Independent review found cleanup could delete unowned paths	../2026-10-31-installer-scout.md#cleanup	corrected; live sandbox branch confirmed absent

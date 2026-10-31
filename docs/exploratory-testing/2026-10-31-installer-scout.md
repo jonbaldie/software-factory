@@ -7,7 +7,7 @@ The installer journey used the real `install.sh` with a simulated GitHub CLI. Th
 - Factory source: [`ecfd93c`](https://github.com/jonbaldie/software-factory/commit/ecfd93c7ad9e17cdd06bde5fedd381c73c59f432), checked out from `origin/main` in a separate worktree.
 - Installer data: a fresh local Git repository with a minimal npm project and a lockfile. `npm ci --ignore-scripts` installed the locked, dependency-free fixture. A stateful fake `gh` recorded variables and labels without changing a GitHub repository.
 - Scout data: fresh fixture repositories created by `tests/labels.py`. The driver ran the production workflow's shell steps and scout helper with a fake `gh`. URLs under `o/sandbox` in the logs are simulated and are not GitHub evidence.
-- The sandbox had no open PRs or running jobs at the first read. Before dispatch, [two implementation runs](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/41155791343) and [41155789432](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/41155789432) were in progress. Later, [PR #150](https://github.com/jonbaldie/software-factory-sandbox/pull/150), [PR #151](https://github.com/jonbaldie/software-factory-sandbox/pull/151), and [a fix run](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/41156292781) were active. The exclusive-use preflight stopped the live test before any branch, run, issue, or setting was created or changed. The [preflight observations](2026-10-31-evidence/sandbox-preflight.txt) are transcribed from the session, and the [driver](2026-10-31-evidence/live-scout-driver.sh) preserves the planned trap and checks. Do not run the driver without reserving the sandbox.
+- The sandbox had no open PRs or running jobs at the first read. Before dispatch, [two implementation runs](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/41155791343) and [41155789432](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/41155789432) were in progress. Later, [PR #150](https://github.com/jonbaldie/software-factory-sandbox/pull/150), [PR #151](https://github.com/jonbaldie/software-factory-sandbox/pull/151), and [a fix run](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/41156292781) were active. The exclusive-use preflight stopped the live test before any branch, run, issue, or setting was created or changed. The [preflight observations](2026-10-31-evidence/sandbox-preflight.txt) are transcribed from the session.
 
 ## Install and update the factory
 
@@ -23,10 +23,10 @@ The [replay script](2026-10-31-evidence/installer-journey.py) and [output](2026-
 To replay both local drivers from the repository root, use Python with PyYAML, Node, npm, Git, and jq installed:
 
 ```sh
-mkdir -p .scratch
-TMPDIR="$PWD/.scratch" PYTHONDONTWRITEBYTECODE=1 python3 docs/exploratory-testing/2026-10-31-evidence/installer-journey.py
-TMPDIR="$PWD/.scratch" PYTHONDONTWRITEBYTECODE=1 python3 docs/exploratory-testing/2026-10-31-evidence/scout-diagnostic.py
-rm -rf .scratch
+scratch=$(mktemp -d "$PWD/.explore-replay.XXXXXXXX")
+trap 'rm -rf -- "$scratch"' EXIT
+TMPDIR="$scratch" PYTHONDONTWRITEBYTECODE=1 python3 docs/exploratory-testing/2026-10-31-evidence/installer-journey.py
+TMPDIR="$scratch" PYTHONDONTWRITEBYTECODE=1 python3 docs/exploratory-testing/2026-10-31-evidence/scout-diagnostic.py
 ```
 
 ## Scout comments into issues
@@ -46,6 +46,6 @@ As a diagnostic, the [local driver](2026-10-31-evidence/scout-diagnostic.py) ran
 
 ## Cleanup
 
-The live driver registered a trap before any planned sandbox mutation and stopped at the exclusive-use preflight. It created no sandbox resources. The local fixture clone, npm cache, test temporary files, and Python bytecode were removed before the report commit. The planned sandbox branch was absent on a fresh remote check. No server, browser, container, image, or volume was started by this pass. The report and evidence remain in this directory.
+The live driver registered a trap before any planned sandbox mutation and stopped at the exclusive-use preflight. Its cleanup would have deleted a pre-existing branch with the planned name, even though the driver had not created it. A fresh remote check showed that branch was absent, so this flaw did not delete another user's branch. The unsafe driver was discarded. The run created no sandbox resources. The local fixture clone, npm cache, test temporary files, and Python bytecode were removed before the report commit. No server, browser, container, image, or volume was started by this pass. The report and evidence remain in this directory.
 
 The [decision trail](2026-10-31-evidence/decisions.tsv) was written retrospectively. Its timestamps record when each row was entered, not when the decision occurred.

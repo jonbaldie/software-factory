@@ -9,7 +9,7 @@ root = Path(__file__).resolve().parents[3]
 source = ast.parse((root / 'tests/install.py').read_text())
 fake = next(ast.literal_eval(n.value) for n in source.body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'FAKE_GH' for t in n.targets))
 
-with tempfile.TemporaryDirectory(dir=root / '.scratch') as temp:
+with tempfile.TemporaryDirectory() as temp:
     base = Path(temp)
     repo, bin_dir = base / 'repo', base / 'bin'
     repo.mkdir()
