@@ -1,0 +1,108 @@
+{
+  "attempt": 1,
+  "case": "comment",
+  "failed": false,
+  "created_issue_titles": [
+    "Real work"
+  ],
+  "created_issue_bodies": [
+    "Found by the scout at https://github.com/o/sandbox/blob/06694ad2895db12e7b2e638ebd750cebf8095153/src/example.js#L1. Delete that `TODO(factory):` comment as part of the change.\n"
+  ],
+  "dispatch": [
+    "factory-triage.yml issue=41"
+  ],
+  "summary": "## \ud83d\udd2d Scouted TODOs\n- Filed https://github.com/o/sandbox/issues/41: Real work\n\n## \ud83c\udfed Factory report\n\n| Queue | Open |\n|---|---|\n| Issues labelled `needs-triage` | 2 |\n| Issues labelled `ready-for-agent` | 0 |\n| Issues labelled `agent:working` | 0 |\n| Issues labelled `agent:failed` | 0 |\n| PRs labelled `agent:review` | 0 |\n| PRs labelled `agent:changes-requested` | 0 |\n| PRs labelled `agent:approved` | 0 |\n| PRs labelled `ready-for-human` | 0 |\n| PRs labelled `agent:failed` | 0 |\n| Approved PRs merged since 2026-10-02 | 0 |\n",
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 1,
+  "case": "single-line string",
+  "failed": false,
+  "created_issue_titles": [],
+  "created_issue_bodies": [],
+  "dispatch": [],
+  "summary": "## \ud83d\udd2d Scouted TODOs\n- Skipped TODO in a string at src/example.js:1.\n\n## \ud83c\udfed Factory report\n\n| Queue | Open |\n|---|---|\n| Issues labelled `needs-triage` | 1 |\n| Issues labelled `ready-for-agent` | 0 |\n| Issues labelled `agent:working` | 0 |\n| Issues labelled `agent:failed` | 0 |\n| PRs labelled `agent:review` | 0 |\n| PRs labelled `agent:changes-requested` | 0 |\n| PRs labelled `agent:approved` | 0 |\n| PRs labelled `ready-for-human` | 0 |\n| PRs labelled `agent:failed` | 0 |\n| Approved PRs merged since 2026-10-02 | 0 |\n",
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 1,
+  "case": "multiline string",
+  "failed": false,
+  "created_issue_titles": [
+    "Literal data"
+  ],
+  "created_issue_bodies": [
+    "Found by the scout at https://github.com/o/sandbox/blob/8f164b4beccc8d0bd16aa8e736bd76bbc00d5b25/src/example.js#L2. Delete that `TODO(factory):` comment as part of the change.\n"
+  ],
+  "dispatch": [
+    "factory-triage.yml issue=41"
+  ],
+  "summary": "## \ud83d\udd2d Scouted TODOs\n- Filed https://github.com/o/sandbox/issues/41: Literal data\n\n## \ud83c\udfed Factory report\n\n| Queue | Open |\n|---|---|\n| Issues labelled `needs-triage` | 2 |\n| Issues labelled `ready-for-agent` | 0 |\n| Issues labelled `agent:working` | 0 |\n| Issues labelled `agent:failed` | 0 |\n| PRs labelled `agent:review` | 0 |\n| PRs labelled `agent:changes-requested` | 0 |\n| PRs labelled `agent:approved` | 0 |\n| PRs labelled `ready-for-human` | 0 |\n| PRs labelled `agent:failed` | 0 |\n| Approved PRs merged since 2026-10-02 | 0 |\n",
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 2,
+  "case": "comment",
+  "failed": false,
+  "created_issue_titles": [
+    "Real work"
+  ],
+  "created_issue_bodies": [
+    "Found by the scout at https://github.com/o/sandbox/blob/1e5a17414d2b5d3058a73a0aea6fb8bdb0b90a36/src/example.js#L1. Delete that `TODO(factory):` comment as part of the change.\n"
+  ],
+  "dispatch": [
+    "factory-triage.yml issue=41"
+  ],
+  "summary": "## \ud83d\udd2d Scouted TODOs\n- Filed https://github.com/o/sandbox/issues/41: Real work\n\n## \ud83c\udfed Factory report\n\n| Queue | Open |\n|---|---|\n| Issues labelled `needs-triage` | 2 |\n| Issues labelled `ready-for-agent` | 0 |\n| Issues labelled `agent:working` | 0 |\n| Issues labelled `agent:failed` | 0 |\n| PRs labelled `agent:review` | 0 |\n| PRs labelled `agent:changes-requested` | 0 |\n| PRs labelled `agent:approved` | 0 |\n| PRs labelled `ready-for-human` | 0 |\n| PRs labelled `agent:failed` | 0 |\n| Approved PRs merged since 2026-10-02 | 0 |\n",
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 2,
+  "case": "single-line string",
+  "failed": false,
+  "created_issue_titles": [],
+  "created_issue_bodies": [],
+  "dispatch": [],
+  "summary": "## \ud83d\udd2d Scouted TODOs\n- Skipped TODO in a string at src/example.js:1.\n\n## \ud83c\udfed Factory report\n\n| Queue | Open |\n|---|---|\n| Issues labelled `needs-triage` | 1 |\n| Issues labelled `ready-for-agent` | 0 |\n| Issues labelled `agent:working` | 0 |\n| Issues labelled `agent:failed` | 0 |\n| PRs labelled `agent:review` | 0 |\n| PRs labelled `agent:changes-requested` | 0 |\n| PRs labelled `agent:approved` | 0 |\n| PRs labelled `ready-for-human` | 0 |\n| PRs labelled `agent:failed` | 0 |\n| Approved PRs merged since 2026-10-02 | 0 |\n",
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 2,
+  "case": "multiline string",
+  "failed": false,
+  "created_issue_titles": [
+    "Literal data"
+  ],
+  "created_issue_bodies": [
+    "Found by the scout at https://github.com/o/sandbox/blob/b170651cb2409525d14f0c8f086d809afb05745d/src/example.js#L2. Delete that `TODO(factory):` comment as part of the change.\n"
+  ],
+  "dispatch": [
+    "factory-triage.yml issue=41"
+  ],
+  "summary": "## \ud83d\udd2d Scouted TODOs\n- Filed https://github.com/o/sandbox/issues/41: Literal data\n\n## \ud83c\udfed Factory report\n\n| Queue | Open |\n|---|---|\n| Issues labelled `needs-triage` | 2 |\n| Issues labelled `ready-for-agent` | 0 |\n| Issues labelled `agent:working` | 0 |\n| Issues labelled `agent:failed` | 0 |\n| PRs labelled `agent:review` | 0 |\n| PRs labelled `agent:changes-requested` | 0 |\n| PRs labelled `agent:approved` | 0 |\n| PRs labelled `ready-for-human` | 0 |\n| PRs labelled `agent:failed` | 0 |\n| Approved PRs merged since 2026-10-02 | 0 |\n",
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}

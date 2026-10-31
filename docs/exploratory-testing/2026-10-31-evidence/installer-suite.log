@@ -1,0 +1,37 @@
+ok   a failed variable read stops the install before it changes anything
+ok   a failed variable read stops the install even when both commands are given
+ok   absent variables are detected from package.json
+ok   automatic detection rejects top-level test key
+ok   automatic detection rejects unrelated nested test key
+ok   automatic detection rejects null test
+ok   automatic detection rejects empty test
+ok   automatic detection rejects whitespace-only test
+ok   automatic detection rejects numeric test
+ok   automatic detection rejects boolean test
+ok   automatic detection rejects object test
+ok   automatic detection rejects array test
+ok   automatic detection rejects missing scripts
+ok   automatic detection rejects null scripts
+ok   automatic detection rejects invalid JSON
+ok   automatic detection accepts split test key
+ok   automatic detection accepts escaped test key
+ok   saved command bypasses package parsing
+ok   explicit command bypasses package parsing
+ok   saved custom commands are kept
+ok   explicit clear removes the setup command and remembers the choice
+ok   a failed disabled-state read stops before any changes
+ok   a failed disabled-state read stops even with an explicit override
+ok   ordinary reinstall 1 preserves disabled setup and test command
+ok   ordinary reinstall 2 preserves disabled setup and test command
+ok   explicit setup re-enables setup and removes disabled metadata
+ok   reinstall preserves re-enabled setup
+ok   flags override saved commands
+ok   a multi-line saved command is kept whole
+ok   FACTORY_MERGE and FACTORY_HARNESS are read
+ok   a symlink at .github/factory/implement.md stops the install before it changes anything
+ok   a symlink at .github/factory stops the install before it changes anything
+ok   a symlink at .github/workflows stops the install before it changes anything
+ok   a symlinked .github stops the install before it changes anything
+ok   an upgrade overwrites a regular installed file
+
+all passed

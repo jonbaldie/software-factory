@@ -1,0 +1,329 @@
+fresh install: exit=0, variables={"FACTORY_SETUP_COMMAND": "npm ci", "FACTORY_TEST_COMMAND": "npm test"}
+Installing the software factory into owner/repo from /home/ubuntu/Code/pstack/jonbaldie/software-factory-explore-20261030
+
+Files
+  added      .github/factory/bug.md
+  added      .github/factory/enhancement.md
+  added      .github/factory/fix.md
+  added      .github/factory/implement.md
+  added      .github/factory/prompt.sh
+  added      .github/factory/review.md
+  added      .github/factory/scout.sh
+  added      .github/factory/test-command.sh
+  added      .github/factory/ticket.jq
+  added      .github/factory/triage.md
+  added      .github/workflows/factory-fix.yml
+  added      .github/workflows/factory-implement.yml
+  added      .github/workflows/factory-review-push.yml
+  added      .github/workflows/factory-review.yml
+  added      .github/workflows/factory-scout.yml
+  added      .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug
+  enhancement
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = npm test
+  FACTORY_SETUP_COMMAND = npm ci
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  ! OPENROUTER_API_KEY is missing
+
+Next
+  1. Add the agent's API key. Give it its own credit limit. This prompts for the value:
+       gh secret set OPENROUTER_API_KEY --repo owner/repo
+  2. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  3. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+
+disable setup: exit=0, variables={"FACTORY_SETUP_DISABLED": "true", "FACTORY_TEST_COMMAND": "npm test"}
+Installing the software factory into owner/repo from /home/ubuntu/Code/pstack/jonbaldie/software-factory-explore-20261030
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/prompt.sh
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/scout.sh
+  unchanged  .github/factory/test-command.sh
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = npm test
+  FACTORY_SETUP_COMMAND (none)
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  ! OPENROUTER_API_KEY is missing
+
+Next
+  1. Add the agent's API key. Give it its own credit limit. This prompts for the value:
+       gh secret set OPENROUTER_API_KEY --repo owner/repo
+  2. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  3. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+
+reinstall after disable: exit=0, variables={"FACTORY_SETUP_DISABLED": "true", "FACTORY_TEST_COMMAND": "npm test"}
+Installing the software factory into owner/repo from /home/ubuntu/Code/pstack/jonbaldie/software-factory-explore-20261030
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/prompt.sh
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/scout.sh
+  unchanged  .github/factory/test-command.sh
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = npm test
+  FACTORY_SETUP_COMMAND (none)
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  ! OPENROUTER_API_KEY is missing
+
+Next
+  1. Add the agent's API key. Give it its own credit limit. This prompts for the value:
+       gh secret set OPENROUTER_API_KEY --repo owner/repo
+  2. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  3. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+
+enable setup: exit=0, variables={"FACTORY_SETUP_COMMAND": "npm ci", "FACTORY_TEST_COMMAND": "npm test"}
+Installing the software factory into owner/repo from /home/ubuntu/Code/pstack/jonbaldie/software-factory-explore-20261030
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/prompt.sh
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/scout.sh
+  unchanged  .github/factory/test-command.sh
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = npm test
+  FACTORY_SETUP_COMMAND = npm ci
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  ! OPENROUTER_API_KEY is missing
+
+Next
+  1. Add the agent's API key. Give it its own credit limit. This prompts for the value:
+       gh secret set OPENROUTER_API_KEY --repo owner/repo
+  2. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  3. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+
+reinstall after enable: exit=0, variables={"FACTORY_SETUP_COMMAND": "npm ci", "FACTORY_TEST_COMMAND": "npm test"}
+Installing the software factory into owner/repo from /home/ubuntu/Code/pstack/jonbaldie/software-factory-explore-20261030
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/prompt.sh
+  unchanged  .github/factory/review.md
+  unchanged  .github/factory/scout.sh
+  unchanged  .github/factory/test-command.sh
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = npm test
+  FACTORY_SETUP_COMMAND = npm ci
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  ! OPENROUTER_API_KEY is missing
+
+Next
+  1. Add the agent's API key. Give it its own credit limit. This prompts for the value:
+       gh secret set OPENROUTER_API_KEY --repo owner/repo
+  2. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  3. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+
+refuse symlinked destination: exit=1, variables={"FACTORY_SETUP_COMMAND": "npm ci", "FACTORY_TEST_COMMAND": "npm test"}
+Installing the software factory into owner/repo from /home/ubuntu/Code/pstack/jonbaldie/software-factory-explore-20261030
+install.sh: .github/factory/review.md is a symlink, so installing would write through it. Replace it with a regular file or directory and rerun. Nothing was changed.
+
+retry after removing symlink: exit=0, variables={"FACTORY_SETUP_COMMAND": "npm ci", "FACTORY_TEST_COMMAND": "npm test"}
+Installing the software factory into owner/repo from /home/ubuntu/Code/pstack/jonbaldie/software-factory-explore-20261030
+
+Files
+  unchanged  .github/factory/bug.md
+  unchanged  .github/factory/enhancement.md
+  unchanged  .github/factory/fix.md
+  unchanged  .github/factory/implement.md
+  unchanged  .github/factory/prompt.sh
+  added      .github/factory/review.md
+  unchanged  .github/factory/scout.sh
+  unchanged  .github/factory/test-command.sh
+  unchanged  .github/factory/ticket.jq
+  unchanged  .github/factory/triage.md
+  unchanged  .github/workflows/factory-fix.yml
+  unchanged  .github/workflows/factory-implement.yml
+  unchanged  .github/workflows/factory-review-push.yml
+  unchanged  .github/workflows/factory-review.yml
+  unchanged  .github/workflows/factory-scout.yml
+  unchanged  .github/workflows/factory-triage.yml
+
+Labels
+  needs-triage
+  needs-info
+  ready-for-agent
+  ready-for-human
+  wontfix
+  agent:working
+  agent:review
+  agent:changes-requested
+  agent:approved
+  agent:failed
+  agent:wip
+  bug (already there)
+  enhancement (already there)
+
+Actions
+  already allowed to create and approve pull requests
+
+Variables
+  FACTORY_TEST_COMMAND = npm test
+  FACTORY_SETUP_COMMAND = npm ci
+  FACTORY_MERGE (off, so you merge approved PRs)
+
+Secrets
+  ! OPENROUTER_API_KEY is missing
+
+Next
+  1. Add the agent's API key. Give it its own credit limit. This prompts for the value:
+       gh secret set OPENROUTER_API_KEY --repo owner/repo
+  2. Review the changes and commit them. Then push them to the default branch, or merge them in a pull request
+     if the branch is protected. The workflows only run from the default branch.
+  3. Add the needs-triage label to an issue, or ready-for-agent to a fully specified one.
+
+PASS: output, saved configuration, installed files, refusal and retry verified
