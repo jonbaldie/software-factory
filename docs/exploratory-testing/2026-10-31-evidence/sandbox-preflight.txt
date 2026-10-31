@@ -1,0 +1,20 @@
+Preflight observations transcribed from the active session, 2026-10-31 UTC.
+
+Before preparing the driver:
+  gh pr list -R jonbaldie/software-factory-sandbox --state open: []
+  gh run list -R jonbaldie/software-factory-sandbox --status in_progress: []
+  gh run list -R jonbaldie/software-factory-sandbox --status queued: []
+
+The registered driver exited 1 before creating its branch. A subsequent check returned:
+  in_progress: 41155791343 Factory 1 · Implement
+  in_progress: 41155789432 Factory 1 · Implement
+  queued: []
+  open PRs: []
+  local sandbox clone: main, no local changes
+  remote branch exploratory/scout-20261031-0130: absent
+
+At 01:38:44 UTC:
+  in_progress: 41156292781 Factory 3 · Fix
+  open PRs: 150, 151
+
+These observations describe other users' resources. This run did not cancel or modify them.

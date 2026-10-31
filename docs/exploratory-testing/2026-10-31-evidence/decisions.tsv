@@ -1,0 +1,8 @@
+ts	phase	decision	why	evidence	result
+2026-10-31T01:39:41Z	frame	Use a worktree and isolated fixture data	Keep changes and test state separate from the selected checkout	2026-10-31-installer-scout.md#starting-state	source baseline recorded
+2026-10-31T01:39:41Z	installer	Exercise install, setup changes, refusal and retry	Check saved state and installed files, not only success messages	installer-journey.log	passed with fake GitHub
+2026-10-31T01:39:41Z	sandbox	Stop before dispatch when other factory jobs started	The sandbox requires exclusive use	https://github.com/jonbaldie/software-factory-sandbox/actions/runs/41155791343	live scout blocked
+2026-10-31T01:39:41Z	scout	Replay multiline literal twice with the local workflow driver	Separate the parser observation from an unrun live GitHub journey	scout-diagnostic.log	local defect confirmed; live replay outstanding
+2026-10-31T01:39:41Z	filing	File the remaining multiline case separately from closed issue 78	The prior report noted the limitation but no separate ticket covered it	https://github.com/jonbaldie/software-factory/issues/97	needs triage
+2026-10-31T01:39:41Z	validation	Rerun the workflow suite after its initial timeout	An interrupted command is not a passing suite	labels-suite.log	164 passed
+2026-10-31T01:40:57Z	review	Add the preflight evidence and replay prerequisites after independent review	The initial report omitted evidence and described cleanup before it happened	sandbox-preflight.txt	corrected; scratch removed

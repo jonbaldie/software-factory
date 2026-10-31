@@ -4,6 +4,7 @@ Reports record the journeys tested, replay steps, evidence and filed issues.
 
 ## Reports
 
+- **2026-10-31:** [Installer and scout](2026-10-31-installer-scout.md).
 - **2026-10-25:** [Installer disabled setup](2026-10-25-installer-disabled-setup.md).
 - **2026-10-25:** [Scout and JavaScript string literals](2026-10-25-scout-string-literals.md).
 - **2026-10-19:** [Install, scout and issue pause](2026-10-19-install-scout-pause.md).
