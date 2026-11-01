@@ -895,6 +895,12 @@ SCENARIOS = [
          comments=[], agent=None, final=[], created_issue_titles=[], dispatch=[],
          summary_has=["Skipped TODO in a string at test/example.test.js:2",
                       "Skipped TODO in a string at test/example.test.js:3"]),
+    dict(name="scout skips multiline JavaScript template data", wf="factory-scout.yml", target="issue",
+         event=None, start=[],
+         files={"src/example.js": "const text = `\n// TODO(factory): Literal data\n`;\n"
+                                  "// TODO(factory): Real comment\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Real comment"],
+         dispatch=["factory-triage.yml issue=41"]),
     dict(name="scout files real comments after JavaScript strings", wf="factory-scout.yml", target="issue",
          event=None, start=[],
          files={"src/a.js": "const s = \"it's // here\"; // TODO(factory): Comment after a string\n",
