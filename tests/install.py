@@ -125,6 +125,22 @@ code, output, variables, labels, wrote = run({})
 check("absent variables are detected from package.json",
       code == 0 and variables == {"FACTORY_TEST_COMMAND": "npm test", "FACTORY_SETUP_COMMAND": "npm ci"} and wrote, output)
 
+installed = {}
+def inspect_scout(repo):
+    with open(os.path.join(repo, ".github", "factory", "scout-js.py"), "rb") as f:
+        installed["helper"] = f.read()
+    for name in ("scout-parse.cjs", "vendor/babel-parser.cjs", "vendor/LICENSE-babel.txt"):
+        with open(os.path.join(repo, ".github", "factory", name), "rb") as f:
+            installed[name] = f.read()
+
+code, output, _, _, _ = run({}, inspect=inspect_scout)
+with open(os.path.join(ROOT, "template", ".github", "factory", "scout-js.py"), "rb") as f:
+    helper = f.read()
+check("installer copies the scout JavaScript scanner", code == 0 and installed.get("helper") == helper, output)
+for name in ("scout-parse.cjs", "vendor/babel-parser.cjs", "vendor/LICENSE-babel.txt"):
+    with open(os.path.join(ROOT, "template", ".github", "factory", name), "rb") as f:
+        check(f"installer copies {name}", code == 0 and installed.get(name) == f.read(), output)
+
 def package(text):
     def prepare(repo):
         with open(os.path.join(repo, "package.json"), "w") as f:
