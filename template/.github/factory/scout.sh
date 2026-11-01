@@ -33,20 +33,31 @@ in_js_string() {
 }
 # -z ends the path and line number with NULs, so a path may contain colons. -I skips binary files, whose
 # "Binary file X matches" line has no NULs and would throw the reads out of step.
-{ git grep -z -n -I -F 'TODO(factory):' -- ':(exclude,icase)*.md' ':(exclude,icase)*.markdown' ':!.github' || true; } |
-while IFS= read -r -d '' file && IFS= read -r -d '' line && IFS= read -r hit; do
-  opener=${hit%%TODO(factory):*}
+{ git grep -z -n -I -F 'TODO(factory):' -- ':(exclude,icase)*.md' ':(exclude,icase)*.markdown' ':!.github' || true; } | python3 .github/factory/scout-js.py |
+while IFS= read -r -d '' file && IFS= read -r -d '' line && IFS= read -r -d '' kind && IFS= read -r -d '' context && IFS= read -r hit; do
+  if [[ $kind == unparsed ]]; then
+    if [[ $file != "$warned_unparsed_file" ]]; then
+      echo "- Couldn't parse $file; using line-by-line detection, which may misclassify TODOs." >> "$GITHUB_STEP_SUMMARY"
+      warned_unparsed_file=$file
+    fi
+  fi
+  opener=$context${hit%%TODO(factory):*}
   title=${hit#*TODO(factory):}
-  if [[ $file =~ \.[cCmM]?[jJtT][sS][xX]?$ ]]; then
+  if [[ $kind == unparsed ]]; then
     while in_js_string "$opener" && [[ $title == *'TODO(factory):'* ]]; do
       opener+="TODO(factory):${title%%TODO(factory):*}"
       title=${title#*TODO(factory):}
     done
     if in_js_string "$opener"; then
-      echo "- Skipped TODO in a string at $file:$line." >> "$GITHUB_STEP_SUMMARY"
-      continue
+      kind=skip
     fi
   fi
+  if [[ $kind == skip ]]; then
+    echo "- Skipped TODO in a string at $file:$line." >> "$GITHUB_STEP_SUMMARY"
+    continue
+  fi
+  [[ $kind == block ]] && opener="/*$opener"
+  [[ $kind == html ]] && opener="<!--$opener"
   title=${title#"${title%%[![:space:]]*}"}
   [[ $opener == *'/*'* ]] && title=${title%%'*/'*}
   [[ $opener == *'<!--'* ]] && title=${title%%'-->'*}

@@ -901,6 +901,148 @@ SCENARIOS = [
                                   "// TODO(factory): Real comment\n"},
          comments=[], agent=None, final=[], created_issue_titles=["Real comment"],
          dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout follows nested JavaScript templates and interpolation comments", wf="factory-scout.yml",
+         target="issue", event=None, start=[],
+         files={"src/nested.js": "const text = `outer \\` still outer\\\n"
+                                 "\\TODO(factory): Escaped data\n"
+                                 "// TODO(factory): Outer data\n"
+                                 "${{value: `inner ${1 + /* TODO(factory): Interpolation comment */ 2}\n"
+                                 "// TODO(factory): Inner data\n`}.value}\n"
+                                 "// TODO(factory): More outer data\n"
+                                 "`; // TODO(factory): After template\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Interpolation comment", "After template"],
+         dispatch=["factory-triage.yml issue=41", "factory-triage.yml issue=42"],
+         summary_has=["Skipped TODO in a string at src/nested.js:2", "Skipped TODO in a string at src/nested.js:5"],
+         created_issue_body_has=[re.compile(r"/src/nested\.js#L4\. "), re.compile(r"/src/nested\.js#L8\. ")]),
+    dict(name="scout follows JavaScript comments and escaped interpolation", wf="factory-scout.yml", target="issue",
+         event=None, start=[],
+         files={"src/comments.ts": "/* backtick ` in a comment\n"
+                                   " TODO(factory): Multiline comment */\n"
+                                   "const x = `escaped \\${ not an expression\n"
+                                   "// TODO(factory): Template data\n"
+                                   "`; // TODO(factory): Comment after closing\n"
+                                   "// backtick ` in a comment\n"
+                                   "// TODO(factory): After commented backtick\n"},
+         comments=[], agent=None, final=[],
+         created_issue_titles=["Multiline comment", "Comment after closing", "After commented backtick"],
+         dispatch=[f"factory-triage.yml issue={n}" for n in range(41, 44)]),
+    dict(name="scout handles JavaScript regex division and JSX text", wf="factory-scout.yml", target="issue",
+         event=None, start=[],
+         files={"src/a.js": "const re = /[`'\\/]/g;\n"
+                            "if (ready) /`/.test(value); // TODO(factory): After control regex\n"
+                            "const ratio = total / count; // TODO(factory): After division\n"
+                            "const text = `\n// TODO(factory): Template data\n`;\n"
+                            "// TODO(factory): After regex and template\n",
+                "src/b.jsx": "const el = <p>Don't use a ` here\n"
+                             "{/* TODO(factory): JSX comment */}</p>;\n"
+                             "// TODO(factory): After JSX\n"},
+         comments=[], agent=None, final=[],
+         created_issue_titles=["After control regex", "After division", "After regex and template", "JSX comment", "After JSX"],
+         dispatch=[f"factory-triage.yml issue={n}" for n in range(41, 46)]),
+    dict(name="scout handles block regex and TypeScript generics", wf="factory-scout.yml", target="issue",
+         event=None, start=[],
+         files={"src/a.js": "if (ok) {} /`/.test(x);\n// TODO(factory): After block regex\nconst x = `ok`;\n"
+                            "label: {} /`/.test(x);\n// TODO(factory): After labelled block\nconst y = `ok`;\n",
+                "src/b.ts": "const f = <T>(arg: T) => arg; const v = <T>value;\n// TODO(factory): After generic\n"
+                            "const a = `\n// TODO(factory): Generic template data\n`;\n",
+                "src/c.js": "const x = ok ? fooTODO(factory): Embedded marker;\n"
+                            "let y = n++ / total; /* TODO(factory): After postfix division */\n"},
+         comments=[], agent=None, final=[],
+         created_issue_titles=["After block regex", "After labelled block", "After generic", "Embedded marker;", "After postfix division"],
+         dispatch=[f"factory-triage.yml issue={n}" for n in range(41, 46)]),
+    dict(name="scout review identifier marker", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.js": "const v = cond ? fooTODOxTODO(factory): value;\n",
+                "src/z.js": "// TODO(factory): Later file\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["value;", "Later file"],
+         dispatch=["factory-triage.yml issue=41", "factory-triage.yml issue=42"]),
+    dict(name="scout review class regex", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.js": "class A {}\n/`/.test('x');\nconst t = `\n// TODO(factory): Template data\n`;\n"
+                            "// TODO(factory): Real comment\n// `\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Real comment"],
+         dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout review class regex before real comment", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.js": "class A {}\n/`/.test('x');\n// TODO(factory): Real comment\n// `\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Real comment"],
+         dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout review html comments", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.js": "<!-- a backtick `\n// TODO(factory): Real comment\n// end `\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Real comment"],
+         dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout distinguishes regex and division across declarations and expressions", wf="factory-scout.yml",
+         target="issue", event=None, start=[],
+         files={"src/a.js": "function f() {}\n/`/.test('x');\nclass A extends f() {}\n/`/.test('x');\n"
+                            "const quotient = (class {}) / 2;\nconst template = `\n// TODO(factory): Data\n`;\n"
+                            "// TODO(factory): Actual comment\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Actual comment"],
+         dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout distinguishes JSX data and interpolation", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.tsx": "const x = <div title=\"TODO(factory): Attribute data\">\n"
+                              "TODO(factory): JSX data\n{`TODO(factory): Template data`}\n"
+                              "{/* TODO(factory): JSX comment */}</div>;\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["JSX comment"],
+         dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout skips regex data and selects a same-line comment", wf="factory-scout.yml", target="issue",
+         event=None, start=[],
+         files={"src/a.js": "const re = /TODO(factory): data/; // TODO(factory): Real comment\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Real comment"],
+         dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout handles Unicode offsets and HTML comment closers", wf="factory-scout.yml", target="issue",
+         event=None, start=[],
+         files={"src/a.js": "const s = '😀 TODO(factory): Data'; // TODO(factory): After emoji\n"
+                            "--> backtick `\n// TODO(factory): After HTML comment\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["After emoji", "After HTML comment"],
+         dispatch=["factory-triage.yml issue=41", "factory-triage.yml issue=42"]),
+    dict(name="scout selects the real marker after invalid UTF-8", wf="factory-scout.yml", target="issue",
+         event=None, start=[],
+         files={"src/a.js": b'/* ' + b'\xe2\x82' * 40 + b' */ const s = "TODO(factory): Fake"; // TODO(factory): Real\n'},
+         comments=[], agent=None, final=[], created_issue_titles=["Real"],
+         dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout preserves title prefix context for selected markers", wf="factory-scout.yml", target="issue",
+         event=None, start=[],
+         files={"src/a.js": '// /* TODO(factory): Fix */ suffix\n'
+                            'const s = "TODO(factory): Fake"; // /* TODO(factory): Selected */ suffix\n'},
+         comments=[], agent=None, final=[], created_issue_titles=["Fix", "Selected"],
+         dispatch=["factory-triage.yml issue=41", "factory-triage.yml issue=42"]),
+    dict(name="scout review Flow regex and JSX", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.js": "type T = {| x: number |};\nclass A {}\n/`/.test('x');\n"
+                            "// TODO(factory): Real comment\nconst t = `hello`;\n",
+                "src/b.js": "type T = {| x: number |};\nclass A {}\n/`/.test('x');\n"
+                            "const t = `\n// TODO(factory): Fake issue\n`;\n",
+                "src/c.jsx": "type Props = {| name: string |};\nconst view = <div>\n"
+                             "TODO(factory): JSX content\n</div>;\n// TODO(factory): JSX real comment\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Real comment", "JSX real comment"],
+         dispatch=["factory-triage.yml issue=41", "factory-triage.yml issue=42"]),
+    dict(name="scout review HTML closer in JavaScript", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.js": "<!-- TODO(factory): Fix this -->\n"}, comments=[], agent=None, final=[],
+         created_issue_titles=["Fix this"], dispatch=["factory-triage.yml issue=41"]),
+    dict(name="scout review unsupported syntax uses original line behavior", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.js": "const = ;\nconst t = `\n// TODO(factory): Legacy template data\n`;\n"
+                            "const s = 'TODO(factory): ignored'; // TODO(factory): Real comment\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Legacy template data", "Real comment"],
+         dispatch=["factory-triage.yml issue=41", "factory-triage.yml issue=42"],
+         summary_has=["Couldn't parse src/a.js; using line-by-line detection, which may misclassify TODOs."]),
+    dict(name="scout keeps Flow and TypeScript grammars separate", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/mixed.ts": "type T = {| x: number |};\nconst t = `\n// TODO(factory): Legacy data\n`;\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Legacy data"],
+         dispatch=["factory-triage.yml issue=41"],
+         summary_has=["Couldn't parse src/mixed.ts; using line-by-line detection, which may misclassify TODOs."]),
+    dict(name="scout warns when syntax cannot be parsed", wf="factory-scout.yml", target="issue", event=None, start=[],
+         files={"src/a.js": "const = ;\n// TODO(factory): Comment after invalid syntax\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Comment after invalid syntax"],
+         dispatch=["factory-triage.yml issue=41"],
+         summary_has=["Couldn't parse src/a.js; using line-by-line detection, which may misclassify TODOs."]),
+    dict(name="scout reports and recovers from an unfinished template", wf="factory-scout.yml", target="issue",
+         event=None, start=[], files={"src/broken.js": "const x = `unfinished\n// TODO(factory): Visible comment\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Visible comment"],
+         dispatch=["factory-triage.yml issue=41"],
+         summary_has=["Couldn't parse src/broken.js; using line-by-line detection, which may misclassify TODOs."]),
+    dict(name="scout handles CRLF templates in unusual JavaScript paths", wf="factory-scout.yml", target="issue",
+         event=None, start=[],
+         files={"src/a = b:%\nfile.js": "const text = `\r\n// TODO(factory): Template data\r\n"
+                                         "`; // TODO(factory): Odd path comment\r\n"},
+         comments=[], agent=None, final=[], created_issue_titles=["Odd path comment"],
+         dispatch=["factory-triage.yml issue=41"],
+         created_issue_body_has=[re.compile(r"/src/a%20%3D%20b:%25%0Afile\.js#L3\. ")]),
     dict(name="scout files real comments after JavaScript strings", wf="factory-scout.yml", target="issue",
          event=None, start=[],
          files={"src/a.js": "const s = \"it's // here\"; // TODO(factory): Comment after a string\n",
@@ -928,8 +1070,8 @@ def sh(*cmd, cwd=None):
 def write(repo, files):
     for path, text in files.items():
         os.makedirs(os.path.dirname(os.path.join(repo, path)), exist_ok=True)
-        with open(os.path.join(repo, path), "w") as f:
-            f.write(text)
+        with open(os.path.join(repo, path), "wb") as f:
+            f.write(text if isinstance(text, bytes) else text.encode())
 
 
 def make_repo(root, files, main_files, branch_files):
