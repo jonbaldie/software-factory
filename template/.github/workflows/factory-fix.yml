@@ -91,10 +91,14 @@ jobs:
         if: steps.eligible.outputs.run == 'true'
         env:
           BASE: ${{ steps.pr.outputs.base }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          base_sha=$(git rev-parse "origin/$BASE")
-          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          # A pull_request merge SHA can include unmerged PR content; the default branch cannot.
+          guard_sha=$(git --no-replace-objects rev-parse "refs/remotes/origin/$DEFAULT_BRANCH^{commit}")
+          echo "guard_sha=$guard_sha" >> "$GITHUB_OUTPUT"
+          guard=$(git --no-replace-objects show "$guard_sha:.github/factory/protected-tree.sh")
+          echo "guard_digest=$(printf '%s' "$guard" | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           # Left uncommitted: conflicts stay marked for the agent, and the push step commits the merge with its work.
           if git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             merge --no-ff --no-commit "origin/$BASE"; then
@@ -106,8 +110,6 @@ jobs:
               exit 1
             fi
           fi
-          guard=$(git --no-replace-objects show "$base_sha:.github/factory/protected-tree.sh")
-          echo "guard_digest=$(printf '%s' "$guard" | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           if ! github_tree=$(bash -c "$guard" -- capture-index); then
             echo "::error::The branch conflicts with $BASE under .github/. The factory owns that folder."
             exit 1
@@ -176,7 +178,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PUBLISH_TOKEN: ${{ steps.publisher.outputs.token || github.token }}
           BRANCH: ${{ steps.pr.outputs.branch }}
-          BASE_SHA: ${{ steps.revision.outputs.base_sha }}
+          GUARD_SHA: ${{ steps.revision.outputs.guard_sha }}
           GUARD_DIGEST: ${{ steps.revision.outputs.guard_digest }}
           GITHUB_TREE: ${{ steps.revision.outputs.github_tree }}
           AGENT_SUMMARY: ${{ steps.agent.outputs.result }}
@@ -197,7 +199,7 @@ jobs:
           }
           require_current_head
           git add -A
-          guard=$(git --no-replace-objects show "$BASE_SHA:.github/factory/protected-tree.sh")
+          guard=$(git --no-replace-objects show "$GUARD_SHA:.github/factory/protected-tree.sh")
           if [ "$(printf '%s' "$guard" | sha256sum | cut -d' ' -f1)" != "$GUARD_DIGEST" ]; then
             echo "::error::The protected-tree guard changed after the agent ran"
             exit 1
