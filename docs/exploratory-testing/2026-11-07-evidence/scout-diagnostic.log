@@ -1,0 +1,103 @@
+{
+  "attempt": 1,
+  "case": "real comment",
+  "failed": false,
+  "titles": [
+    "Real work"
+  ],
+  "bodies": [
+    "Found by the scout at https://github.com/o/sandbox/blob/3557136fe57d55e2e6a71c063122b8c01d1c47da/src/example.js#L1. Delete that `TODO(factory):` comment as part of the change.\n"
+  ],
+  "dispatch": [
+    "factory-triage.yml issue=41"
+  ],
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 1,
+  "case": "multiline template data",
+  "failed": false,
+  "titles": [],
+  "bodies": [],
+  "dispatch": [],
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 1,
+  "case": "interpolation comment",
+  "failed": false,
+  "titles": [
+    "Interpolation work"
+  ],
+  "bodies": [
+    "Found by the scout at https://github.com/o/sandbox/blob/85f6af16d3394f1d3d5a0731619e13d83fe91c5d/src/example.js#L2. Delete that `TODO(factory):` comment as part of the change.\n"
+  ],
+  "dispatch": [
+    "factory-triage.yml issue=41"
+  ],
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 2,
+  "case": "real comment",
+  "failed": false,
+  "titles": [
+    "Real work"
+  ],
+  "bodies": [
+    "Found by the scout at https://github.com/o/sandbox/blob/f670550404262246224ca6af30afbc924a997c06/src/example.js#L1. Delete that `TODO(factory):` comment as part of the change.\n"
+  ],
+  "dispatch": [
+    "factory-triage.yml issue=41"
+  ],
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 2,
+  "case": "multiline template data",
+  "failed": false,
+  "titles": [],
+  "bodies": [],
+  "dispatch": [],
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+{
+  "attempt": 2,
+  "case": "interpolation comment",
+  "failed": false,
+  "titles": [
+    "Interpolation work"
+  ],
+  "bodies": [
+    "Found by the scout at https://github.com/o/sandbox/blob/20f47a23c0524d8b22d289dd44af009e0a223f6e/src/example.js#L2. Delete that `TODO(factory):` comment as part of the change.\n"
+  ],
+  "dispatch": [
+    "factory-triage.yml issue=41"
+  ],
+  "steps": [
+    "ok    actions/checkout@v7",
+    "ok    File tickets for new TODOs",
+    "ok    Factory report"
+  ]
+}
+PASS: expected issue titles in both fresh fixture attempts

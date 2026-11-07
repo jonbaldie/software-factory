@@ -1,0 +1,22 @@
+✅ plain answer
+✅ backticks in a string
+✅ code fence in a summary
+✅ prose after the block
+✅ last block wins
+✅ other fences before the answer
+✅ closing fence on the JSON line
+✅ indented closing fence
+✅ CRLF line endings
+✅ empty block before the answer
+✅ invalid block before the answer
+✅ unclosed block before the answer
+✅ enum value
+✅ invalid answer after a valid one
+✅ unclosed answer after a valid one
+✅ no block
+✅ invalid JSON
+✅ unclosed block
+✅ missing required key
+✅ wrong type
+✅ value outside the enum
+✅ wrong item type

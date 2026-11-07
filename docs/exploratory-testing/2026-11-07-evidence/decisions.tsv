@@ -1,0 +1,5 @@
+ts	phase	decision	why	evidence	result
+2026-11-07T17:31:14Z	scope	Chose the installer and local scout diagnostics	The protected-tree work is already in draft PR 101 and the live sandbox is shared	https://github.com/jonbaldie/software-factory/pull/101	Installer replay next
+2026-11-07T17:32:36Z	installer	Replayed fresh installation, setup changes, refusal, and retry	Check installed files and persisted choices rather than success output alone	installer.log	Passed with simulated GitHub
+2026-11-07T17:33:13Z	scout	Ran local workflow diagnostics for the fixed template case	Check issue 97 controls without claiming a live GitHub run	scout-diagnostic.log	Expected titles in two fresh attempts
+2026-11-07T17:35:01Z	review	Recorded the environment after the review and clarified missing live coverage	The original logs did not include versions or preflight output	environment.txt	Follow-up capture, not an original transcript
