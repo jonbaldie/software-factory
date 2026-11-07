@@ -1,0 +1,17 @@
+Follow-up environment capture, not a transcript of the earlier commands
+2026-11-07T17:34:56Z
+HEAD 4ed075f9fce2ae81938f01a7d71de3af82272c07
+origin/main 4ed075f9fce2ae81938f01a7d71de3af82272c07
+node v22.22.1
+npm 9.2.0
+jq jq-1.8.1
+python 3.14.4
+PyYAML 6.0.3
+06481b3a70a4c753ddc4dd3b8bdbe77eeea4fa784448f7a261f3a0574e311863  docs/exploratory-testing/2026-10-31-evidence/installer-journey.py
+lockfiles in factory tree:
+docs/exploratory-testing/2026-10-19-evidence/fixtures/package-lock.json
+remaining scratch entries:
+sandbox open PRs at follow-up:
+[]
+sandbox non-completed runs at follow-up:
+[]
