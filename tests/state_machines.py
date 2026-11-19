@@ -143,10 +143,10 @@ def main():
 
     sites = dispatch_sites()
     spec = doc["dispatches"]
-    declared = {(d["site"], d["target"]) for d in spec}
-    actual = {(h["site"], h["target"]) for h in sites}
+    declared = sorted((d["site"], d["line"], d["target"]) for d in spec)
+    actual = sorted((h["site"], h["lineno"], h["target"]) for h in sites)
     check(len(sites) == len(spec) == inv["dispatch_sites"], f"gh workflow run sites == {inv['dispatch_sites']} (found {len(sites)})")
-    check(declared == actual, f"dispatch (site, target) pairs match the spec (only in tree: {sorted(actual - declared)}; only in spec: {sorted(declared - actual)})")
+    check(declared == actual, f"dispatch (site, line, target) triples match the spec (only in tree: {sorted(set(actual)-set(declared))}; only in spec: {sorted(set(declared)-set(actual))})")
 
     return 1 if FAILURES else 0
 

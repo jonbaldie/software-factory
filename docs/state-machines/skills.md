@@ -201,19 +201,6 @@ reranking**.
 `tdd/tests.md` gives good/bad/tautological test criteria, not a machine.
 Allocations: `implement` and `tdd` are specified here, not in E14.
 
-`code-review` is a fixed-point + two-axis fan-out, not a state machine
-itself (listed for the guard): pin fixed point (`git diff <fp>...HEAD`,
-verify it resolves and the diff is non-empty — fail here, not in subagents)
-→ identify spec (commit refs → user path → `docs/`/`specs/`/`.scratch/` →
-ask; absent ⇒ Spec axis skipped) + standards sources (+ fixed 12-smell
-baseline, repo overrides, judgement-call only) → run **Standards** and
-**Spec** sub-agents in parallel → aggregate **without merging or
-reranking**.
-
-`implement` (1-line): tdd → typecheck/test → `code-review` → commit.
-`tdd`: the red–green loop (reference for B2 at slice granularity);
-`tdd/tests.md` gives good/bad/tautological test criteria, not a machine.
-
 ## E12. `improve-codebase-architecture` + `codebase-design`
 
 Explore/report/grill loop: scope (YAGNI: user direction, else hot spots from

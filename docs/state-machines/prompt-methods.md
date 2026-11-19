@@ -36,7 +36,7 @@ States: the run returns exactly one outcome.
 | Outcome | Exit condition | Side effects |
 |---|---|---|
 | `completed` | Work done | Summary = PR body stub with method sections (B1/B2) + Verification + Cleanup + Retained + Decisions. |
-| `needs-info` | Genuinely blocked — for bugs the agent cannot reproduce from the report; other blockers use the same exit | Undo this run's file changes (keep previous saved work); report tried/established/questions; post `<!-- factory:implement needs-info -->…`; no PR. |
+| `needs-info` | Genuinely blocked — `implement.md:20` allows this exit only when the reported bug cannot be reproduced | Undo this run's file changes (keep previous saved work); report tried/established/questions; post `<!-- factory:implement needs-info -->…`; no PR. |
 
 Evidence invariants: report failures/retries (a later pass doesn't erase
 earlier ones); claim a check only if its result is in **this** run

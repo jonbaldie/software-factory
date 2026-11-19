@@ -48,8 +48,7 @@ Before any copying, the installer refuses symlinks in the target tree
 | 11 factory labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`, `agent:working`, `agent:review`, `agent:changes-requested`, `agent:approved`, `agent:failed`, `agent:wip`) | Force-created with a fixed colour/description table. |
 | `bug`, `enhancement` | Created **only when missing** (case-insensitive) to preserve repo customisation. |
 
-The 12-label force table is the label universe used by the validator
-(`tests/state_machines.py`).
+The 11-label force table plus the 2 category labels form the label universe used by the validator (`tests/state_machines.py`).
 
 ## C6. Permissions attempt
 

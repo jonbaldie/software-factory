@@ -129,7 +129,7 @@ Storage: issue assignees; PR assignees ∪ closing-issue assignees (`sort -u`).
 
 - Every stage checks at start: if assigned, post ⏸️ and leave labels untouched
   (triage's exception: a reply on an assigned issue gets no comment at all).
-- Review re-checks mid-run (during CI wait) and at step A6.3.
+- Review re-checks at step A6.3 (after the CI wait, only when `MERGE=true`); the CI poll loop itself does not check assignees.
 - Push handler deliberately does **not** pause: a push to assigned work still
   clears approval and re-queues review (labels must reflect "needs review"
   while a human owns the work).
@@ -277,6 +277,6 @@ code, decides the outcome.
 issue machine (A12) sees it: `scout-parse.cjs` (vendored Babel parser) +
 the `in_js_string` quote lexer (`scout.sh:9-33, 38-60`) classify each TODO
 as `normal` / `block` / `html` / `skip` (inside a string) / `unparsed`.
-A `skip` posts a "Skipped TODO in a string" report entry and files nothing;
+A `skip` (inside a string, regexp, or JSX text — `scout-parse.cjs:22` ignores all three) posts a "Skipped TODO" report entry and files nothing;
 `unparsed` is still filed but noted. This decides which TODOs become issues
 at all — it is a filter in front of A12's dedup.
