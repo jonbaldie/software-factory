@@ -277,6 +277,6 @@ code, decides the outcome.
 issue machine (A12) sees it: `scout-parse.cjs` (vendored Babel parser) +
 the `in_js_string` quote lexer (`scout.sh:9-33, 38-60`) classify each TODO
 as `normal` / `block` / `html` / `skip` (inside a string) / `unparsed`.
-A `skip` (inside a string, regexp, or JSX text — `scout-parse.cjs:22` ignores all three) posts a "Skipped TODO" report entry and files nothing;
+A `skip` (`scout-parse.cjs:22` ignores `string`, `template`, `regexp`, and `jsxText`) posts the "Skipped TODO in a string" report entry (`scout.sh:56`) and files nothing;
 `unparsed` is still filed but noted. This decides which TODOs become issues
 at all — it is a filter in front of A12's dedup.
