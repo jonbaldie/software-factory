@@ -18,7 +18,12 @@
     "agent:failed",
     "agent:wip",
     "OPEN",
-    "CLOSED"
+    "CLOSED",
+    "agent:working",
+    "OPEN (PR open)",
+    "stand-down (exit 0)",
+    "agent:failed (on PR)",
+    "stand-down"
    ],
    "labels": [
     "needs-triage",
@@ -48,7 +53,22 @@
     {
      "from": "needs-triage",
      "event": "triage verdict",
-     "to": "needs-info,ready-for-agent,ready-for-human,wontfix"
+     "to": "needs-info"
+    },
+    {
+     "from": "needs-triage",
+     "event": "triage verdict",
+     "to": "ready-for-agent"
+    },
+    {
+     "from": "needs-triage",
+     "event": "triage verdict",
+     "to": "ready-for-human"
+    },
+    {
+     "from": "needs-triage",
+     "event": "triage verdict",
+     "to": "wontfix"
     },
     {
      "from": "needs-triage",
@@ -58,7 +78,7 @@
     {
      "from": "ready-for-agent",
      "event": "implement completed",
-     "to": "PR-open"
+     "to": "OPEN (PR open)"
     },
     {
      "from": "ready-for-agent",
@@ -66,13 +86,28 @@
      "to": "needs-info"
     },
     {
+     "from": "ready-for-agent",
+     "event": "first action",
+     "to": "agent:working"
+    },
+    {
      "from": "*",
      "event": "stage failure/cancel",
-     "to": "+agent:failed"
+     "to": "agent:failed"
+    },
+    {
+     "from": "ready-for-agent",
+     "event": "handoff failure after PR",
+     "to": "agent:failed (on PR)"
     },
     {
      "from": "ready-for-agent",
      "event": "open PR exists",
+     "to": "stand-down"
+    },
+    {
+     "from": "agent:working",
+     "event": "issue closed at publication",
      "to": "stand-down"
     }
    ],
@@ -108,34 +143,24 @@
    ],
    "transitions": [
     {
-     "from": "-",
-     "event": "implement opens PR",
-     "to": "agent:review"
-    },
-    {
-     "from": "agent:approved,agent:review",
+     "from": "agent:approved",
      "event": "push",
      "to": "agent:review"
     },
     {
      "from": "agent:review",
-     "event": "approve",
-     "to": "agent:approved"
+     "event": "push",
+     "to": "agent:review"
     },
     {
      "from": "agent:review",
      "event": "request_changes/tests-fail",
-     "to": "agent:changes-requested or ready-for-human"
+     "to": "agent:changes-requested"
     },
     {
-     "from": "agent:changes-requested",
-     "event": "fix finished",
-     "to": "agent:review"
-    },
-    {
-     "from": "*",
-     "event": "stage failure",
-     "to": "agent:failed"
+     "from": "agent:review",
+     "event": "request_changes/tests-fail round\u22653",
+     "to": "ready-for-human"
     }
    ],
    "notes": ""
@@ -147,7 +172,9 @@
    "storage": "concurrency groups",
    "states": [
     "factory-issue-<N>",
-    "factory-pr-<N>"
+    "factory-pr-<N>",
+    "stand-down",
+    "automatic run"
    ],
    "labels": [],
    "files": [
@@ -161,7 +188,12 @@
     {
      "from": "*",
      "event": "same group arrives",
-     "to": "queued (pr) / serialized (issue)"
+     "to": "factory-issue-<N>"
+    },
+    {
+     "from": "*",
+     "event": "same group arrives (pr)",
+     "to": "factory-pr-<N>"
     },
     {
      "from": "automatic run",
@@ -190,7 +222,7 @@
     {
      "from": "current",
      "event": "head moved mid-run",
-     "to": "stale \u2192 discard + requeue automatic"
+     "to": "stale"
     }
    ],
    "notes": ""
@@ -202,6 +234,7 @@
    "storage": "factory review comments count",
    "states": [
     "1..MAX_ROUNDS",
+    "escalated",
     "escalated"
    ],
    "labels": [],
@@ -212,7 +245,7 @@
     {
      "from": "1..MAX_ROUNDS",
      "event": "request_changes",
-     "to": "+1; escalate at MAX_ROUNDS"
+     "to": "escalated"
     }
    ],
    "notes": "Counted, not stored; stale discards refund."
@@ -241,7 +274,7 @@
     {
      "from": "merging",
      "event": "merge fails",
-     "to": "fixer or ready-for-human"
+     "to": "escalated"
     }
    ],
    "notes": ""
@@ -267,12 +300,12 @@
     {
      "from": "unassigned",
      "event": "assignee added",
-     "to": "assigned (pause, labels frozen)"
+     "to": "assigned"
     },
     {
      "from": "assigned",
      "event": "unassignee + relabel",
-     "to": "unassigned (hand back)"
+     "to": "unassigned"
     }
    ],
    "notes": ""
@@ -285,6 +318,8 @@
    "states": [
     "agent:failed",
     "agent:wip",
+    "resumable",
+    "start-over",
     "resumable",
     "start-over"
    ],
@@ -308,12 +343,17 @@
     {
      "from": "agent:failed",
      "event": "dirty tree, .github clean",
-     "to": "agent:wip (save)"
+     "to": "agent:wip"
     },
     {
      "from": "agent:wip",
      "event": "retry",
-     "to": "resumable or start-over"
+     "to": "resumable"
+    },
+    {
+     "from": "agent:wip",
+     "event": "retry",
+     "to": "start-over"
     }
    ],
    "notes": ""
@@ -326,7 +366,11 @@
    "states": [
     "outsider",
     "insider",
-    "factory-generated"
+    "factory-generated",
+    "inert",
+    "needs-triage",
+    "needs-info",
+    "ready-for-human"
    ],
    "labels": [],
    "files": [
@@ -358,7 +402,8 @@
    "states": [
     "bug",
     "enhancement",
-    "neither"
+    "neither",
+    "bug+enhancement"
    ],
    "labels": [
     "bug",
@@ -368,13 +413,14 @@
     "template/.github/workflows/factory-implement.yml",
     "template/.github/workflows/factory-review.yml",
     "template/.github/factory/bug.md",
-    "template/.github/factory/enhancement.md"
+    "template/.github/factory/enhancement.md",
+    "template/.github/factory/prompt.sh"
    ],
    "transitions": [
     {
      "from": "bug+enhancement",
      "event": "assembly",
-     "to": "bug (first match wins)"
+     "to": "bug"
     }
    ],
    "notes": ""
@@ -385,6 +431,8 @@
    "spec": "factory-pipeline.md",
    "storage": "explicit dispatches",
    "states": [
+    "label-set",
+    "dispatched",
     "label-set",
     "dispatched"
    ],
@@ -414,7 +462,9 @@
    "states": [
     "scan",
     "filed",
-    "reported"
+    "reported",
+    "filed",
+    "skip"
    ],
    "labels": [],
    "files": [
@@ -425,7 +475,7 @@
     {
      "from": "scan",
      "event": "TODO(factory) found, title new",
-     "to": "filed needs-triage"
+     "to": "filed"
     },
     {
      "from": "scan",
@@ -433,7 +483,7 @@
      "to": "skip"
     }
    ],
-   "notes": ""
+   "notes": "Existing titles paged via gh api --paginate (scout.sh:7-8)."
   },
   {
    "id": "A13",
@@ -489,18 +539,19 @@
     "template/.github/workflows/factory-triage.yml",
     "template/.github/workflows/factory-implement.yml",
     "template/.github/workflows/factory-review.yml",
-    "template/.github/workflows/factory-fix.yml"
+    "template/.github/workflows/factory-fix.yml",
+    "template/.github/factory/prompt.sh"
    ],
    "transitions": [
     {
      "from": "default-branch",
      "event": "triage/implement",
-     "to": "assemble"
+     "to": "default-branch"
     },
     {
      "from": "base-snapshot",
      "event": "review/fix",
-     "to": "assemble"
+     "to": "base-snapshot"
     }
    ],
    "notes": ""
@@ -511,6 +562,8 @@
    "spec": "factory-pipeline.md",
    "storage": "PR body",
    "states": [
+    "created",
+    "appended",
     "created",
     "appended"
    ],
@@ -523,41 +576,53 @@
     {
      "from": "-",
      "event": "implement completed",
-     "to": "created (Closes #N)"
+     "to": "created"
     },
     {
      "from": "created",
      "event": "fix",
-     "to": "appended + footer"
+     "to": "appended"
     }
    ],
    "notes": ""
   },
   {
    "id": "A16",
-   "name": "Concurrency alias",
+   "name": "Scout parser (JS-aware TODO)",
    "spec": "factory-pipeline.md",
-   "storage": "concurrency groups (alias of A3)",
+   "storage": "classifier file + report",
    "states": [
-    "factory-issue-<N>",
-    "factory-pr-<N>"
+    "normal",
+    "block",
+    "html",
+    "skip",
+    "unparsed"
    ],
    "labels": [],
    "files": [
-    "template/.github/workflows/factory-triage.yml",
-    "template/.github/workflows/factory-implement.yml",
-    "template/.github/workflows/factory-review.yml",
-    "template/.github/workflows/factory-fix.yml",
-    "template/.github/workflows/factory-review-push.yml"
+    "template/.github/factory/scout-js.py",
+    "template/.github/factory/scout-parse.cjs",
+    "template/.github/factory/scout.sh",
+    "template/.github/workflows/factory-scout.yml"
    ],
    "transitions": [
     {
-     "from": "*",
-     "event": "same group arrives",
-     "to": "queued (pr) / serialized (issue)"
+     "from": "normal",
+     "event": "TODO classified",
+     "to": "normal"
+    },
+    {
+     "from": "skip",
+     "event": "TODO inside JS string",
+     "to": "skip"
+    },
+    {
+     "from": "unparsed",
+     "event": "Babel fails",
+     "to": "unparsed"
     }
    ],
-   "notes": "Kept for stable cross-reference with the scratch inventory."
+   "notes": "Filter in front of A12."
   },
   {
    "id": "B1",
@@ -569,7 +634,8 @@
     "minimise",
     "hypothesise",
     "probe",
-    "fix"
+    "fix",
+    "needs-info"
    ],
    "labels": [],
    "files": [
@@ -579,12 +645,17 @@
     {
      "from": "red-loop",
      "event": "no matching red",
-     "to": "needs-info (stop)"
+     "to": "needs-info"
     },
     {
      "from": "probe",
      "event": "hypothesis confirmed",
      "to": "fix"
+    },
+    {
+     "from": "red-loop",
+     "event": "no matching red",
+     "to": "needs-info"
     }
    ],
    "notes": ""
@@ -624,6 +695,7 @@
    "storage": "result JSON",
    "states": [
     "completed",
+    "needs-info",
     "needs-info"
    ],
    "labels": [],
@@ -634,7 +706,7 @@
     {
      "from": "*",
      "event": "blocked on questions",
-     "to": "needs-info + revert"
+     "to": "needs-info"
     }
    ],
    "notes": ""
@@ -661,7 +733,7 @@
     {
      "from": "*",
      "event": "evidence gap",
-     "to": "request_changes (specific item)"
+     "to": "request_changes"
     }
    ],
    "notes": ""
@@ -674,7 +746,8 @@
    "states": [
     "conflicts",
     "feedback",
-    "committed-or-appended"
+    "committed-or-appended",
+    "appended"
    ],
    "labels": [],
    "files": [
@@ -689,7 +762,7 @@
     {
      "from": "feedback",
      "event": "description-only",
-     "to": "appended (no commit)"
+     "to": "appended"
     }
    ],
    "notes": ""
@@ -704,7 +777,9 @@
     "setup-command",
     "labels",
     "permissions",
-    "secret"
+    "secret",
+    "die",
+    "manual step"
    ],
    "labels": [
     "needs-triage",
@@ -728,12 +803,12 @@
     {
      "from": "-",
      "event": "no command resolvable",
-     "to": "die (nothing changed)"
+     "to": "die"
     },
     {
      "from": "-",
      "event": "perms denied",
-     "to": "manual step (never fatal)"
+     "to": "manual step"
     }
    ],
    "notes": ""
@@ -747,7 +822,8 @@
     "ids",
     "during",
     "final",
-    "dispatches"
+    "dispatches",
+    "during/final checked"
    ],
    "labels": [],
    "files": [
@@ -794,6 +870,8 @@
    "storage": "sandbox GitHub",
    "states": [
     "s1-s5",
+    "m1-m5",
+    "s1-s5",
     "m1-m5"
    ],
    "labels": [],
@@ -802,9 +880,9 @@
    ],
    "transitions": [
     {
-     "from": "s5",
+     "from": "s1-s5",
      "event": "merge suite",
-     "to": "m1"
+     "to": "m1-m5"
     }
    ],
    "notes": ""
@@ -821,7 +899,8 @@
     "ready-for-human",
     "wontfix",
     "bug",
-    "enhancement"
+    "enhancement",
+    "close + KB entry"
    ],
    "labels": [
     "needs-triage",
@@ -886,7 +965,10 @@
     "frontier",
     "in-flight",
     "merged",
-    "done"
+    "done",
+    "merger",
+    "done",
+    "frontier"
    ],
    "labels": [],
    "files": [
@@ -901,7 +983,12 @@
     {
      "from": "merger",
      "event": "merged",
-     "to": "done or frontier-re-evaluated"
+     "to": "done"
+    },
+    {
+     "from": "merger",
+     "event": "merged, frontier re-evaluated",
+     "to": "frontier"
     }
    ],
    "notes": ""
@@ -923,7 +1010,7 @@
     {
      "from": "frontier",
      "event": "answer round",
-     "to": "recomputed frontier"
+     "to": "frontier"
     }
    ],
    "notes": ""
@@ -939,11 +1026,13 @@
     "hypothesise",
     "instrument",
     "fix",
-    "cleanup"
+    "cleanup",
+    "stop + ask"
    ],
    "labels": [],
    "files": [
-    ".agents/skills/diagnosing-bugs/SKILL.md"
+    ".agents/skills/diagnosing-bugs/SKILL.md",
+    ".agents/skills/diagnosing-bugs/scripts/hitl-loop.template.sh"
    ],
    "transitions": [
     {
@@ -961,7 +1050,8 @@
    "storage": "conversation",
    "states": [
     "main-flow",
-    "boundary-decision"
+    "boundary-decision",
+    "Continue/clear/handoff/Subagent/compact"
    ],
    "labels": [],
    "files": [
@@ -1011,7 +1101,8 @@
     "slices",
     "approval",
     "published",
-    "expand-contract"
+    "expand-contract",
+    "published"
    ],
    "labels": [],
    "files": [
@@ -1021,7 +1112,7 @@
     {
      "from": "slices",
      "event": "approved",
-     "to": "published (dependency order)"
+     "to": "published"
     }
    ],
    "notes": ""
@@ -1035,7 +1126,8 @@
     "explore",
     "sections",
     "draft",
-    "written"
+    "written",
+    "sections skipped"
    ],
    "labels": [],
    "files": [
@@ -1046,7 +1138,7 @@
     {
      "from": "sections",
      "event": "triage not installed",
-     "to": "skip B"
+     "to": "sections skipped"
     }
    ],
    "notes": ""
@@ -1059,7 +1151,8 @@
    "states": [
     "stage-i/N",
     "SKIPPED",
-    "finish"
+    "finish",
+    "SKIPPED (never fail)"
    ],
    "labels": [],
    "files": [
@@ -1084,11 +1177,15 @@
     "pinned",
     "standards",
     "spec",
-    "aggregated"
+    "aggregated",
+    "fail here"
    ],
    "labels": [],
    "files": [
-    ".agents/skills/code-review/SKILL.md"
+    ".agents/skills/code-review/SKILL.md",
+    ".agents/skills/implement/SKILL.md",
+    ".agents/skills/tdd/SKILL.md",
+    ".agents/skills/tdd/tests.md"
    ],
    "transitions": [
     {
@@ -1135,7 +1232,8 @@
     "question",
     "module",
     "demo",
-    "handover"
+    "handover",
+    "handover (module lifts)"
    ],
    "labels": [],
    "files": [
@@ -1170,9 +1268,7 @@
     ".agents/skills/research/SKILL.md",
     ".agents/skills/retro/SKILL.md",
     ".agents/skills/pr/SKILL.md",
-    ".agents/skills/domain-modeling/SKILL.md",
-    ".agents/skills/tdd/SKILL.md",
-    ".agents/skills/implement/SKILL.md"
+    ".agents/skills/domain-modeling/SKILL.md"
    ],
    "transitions": [
     {
@@ -1232,6 +1328,57 @@
     "bug",
     "enhancement"
    ]
+  },
+  "require_current_head_calls": {
+   "factory-review.yml": 11,
+   "factory-fix.yml": 2
   }
- }
+ },
+ "dispatches": [
+  {
+   "site": "template/.github/workflows/factory-triage.yml",
+   "line": 158,
+   "target": "factory-implement.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-implement.yml",
+   "line": 214,
+   "target": "factory-review.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-review.yml",
+   "line": 179,
+   "target": "factory-review.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-review.yml",
+   "line": 279,
+   "target": "factory-fix.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-review.yml",
+   "line": 296,
+   "target": "factory-fix.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-fix.yml",
+   "line": 194,
+   "target": "factory-fix.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-fix.yml",
+   "line": 232,
+   "target": "factory-review.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-review-push.yml",
+   "line": 49,
+   "target": "factory-review.yml"
+  },
+  {
+   "site": "template/.github/factory/scout.sh",
+   "line": 82,
+   "target": "factory-triage.yml"
+  }
+ ]
 }

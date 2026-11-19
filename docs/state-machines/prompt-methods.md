@@ -36,7 +36,7 @@ States: the run returns exactly one outcome.
 | Outcome | Exit condition | Side effects |
 |---|---|---|
 | `completed` | Work done | Summary = PR body stub with method sections (B1/B2) + Verification + Cleanup + Retained + Decisions. |
-| `needs-info` | Genuinely blocked on questions | Undo this run's file changes (keep previous saved work); report tried/established/questions; post `<!-- factory:implement needs-info -->…`; no PR. |
+| `needs-info` | Genuinely blocked — for bugs the agent cannot reproduce from the report; other blockers use the same exit | Undo this run's file changes (keep previous saved work); report tried/established/questions; post `<!-- factory:implement needs-info -->…`; no PR. |
 
 Evidence invariants: report failures/retries (a later pass doesn't erase
 earlier ones); claim a check only if its result is in **this** run
@@ -48,7 +48,8 @@ search hit. "Previous attempt" section present ⇒ resume semantics (A8).
 ## B4. `review.md` — approve gate
 
 Approve only if all four hold: (1) does everything the ticket asks, nothing
-unrelated; (2) follows AGENTS.md/CLAUDE.md; (3) edge cases tested;
+unrelated; (2) follows AGENTS.md/CLAUDE.md plus the repo's
+`CODING_STANDARDS.md`/`CONTRIBUTING.md`; (3) edge cases tested;
 (4) evidence complete — checked against B3's summary requirements and, if a
 Method section is present, **every box on the method's "Done when"
 checklist** (that checklist is the method's whole bar for review; extra

@@ -15,21 +15,26 @@ is changed, so a missing required command fails cleanly.
 
 Reruns keep the current value (priority 2 wins over 3).
 
-## C2. Setup-command resolution
+## C2. Setup-command resolution (three-state: set / unset / disabled)
 
 | Priority | Source | Condition |
 |---|---|---|
 | 1 | `--setup-command` | Explicit argument given (`setup_given` distinguishes "cleared with ''" from "not given"). |
 | 2 | `FACTORY_SETUP_COMMAND` (existing) | Already set. |
-| 3 | `npm ci` | `package-lock.json` exists. |
-| 4 | none | If the variable was set but resolves empty, it is **deleted**. |
+| 3 | `FACTORY_SETUP_DISABLED` marker value | Records an explicit clear across reruns (`install.sh:72, 91, 192-201`). |
+| 4 | `npm ci` | `package-lock.json` exists. |
+| 5 | none | If the variable was set but resolves empty, it is **deleted**. |
 
 ## C3. Source selection
 
 | Condition | Action |
 |---|---|
-| `--ref` absent | `template/` next to the script (`BASH_SOURCE`) — clone-like local source. |
-| `--ref` given (default `v1`) | Download `jonbaldie/software-factory@<ref>` tarball to a temp dir (removed by an `EXIT` trap). |
+| `--ref` absent, local `template/` present | `template/` next to the script (`BASH_SOURCE`) — clone-like local source. |
+| `--ref` absent, no local `template/` (the `curl \| bash` case) | Download the `v1` tarball — there is no local tree to copy. |
+| `--ref` given | Download `jonbaldie/software-factory@<ref>` tarball to a temp dir (removed by an `EXIT` trap). |
+
+Before any copying, the installer refuses symlinks in the target tree
+(`install.sh:109-118`) — a factory file must never be written through one.
 
 ## C4. File install + report
 

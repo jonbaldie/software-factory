@@ -108,6 +108,9 @@ Six phases with per-phase completion criteria (skip only with justification):
 6. **Cleanup** — loop re-run, test pass, tags grepped out, throwaways
    deleted, root cause in the commit message.
 
+Interactive variant: `scripts/hitl-loop.template.sh` runs the same loop
+human-in-the-loop (a second executable protocol alongside E10).
+
 Note: the unshrunk ancestor of factory `bug.md` (B1) — the factory version
 hardens the gates and returns `needs-info` instead of asking.
 
@@ -170,8 +173,8 @@ unblocked + unclaimed, first-by-number.
 
 ## E10. `wizard/template.sh` (+ `wizard/SKILL.md`)
 
-The only skill shipped as an executable protocol. Library (above the
-`STAGES` marker, identical per wizard): `_STAGE_INDEX`/`TOTAL_STAGES`
+Executable protocols (the library lists below are identical per wizard).
+The wizard's library: `_STAGE_INDEX`/`TOTAL_STAGES`
 counter with on-screen `Stage i/N`, `banner`, `stage`, `ask` /
 `ask_secret` (Enter-keeps-current = idempotent re-runs), `write_env`
 (idempotent `.env` upsert), `set_secret` / `set_var` (`gh` absent/failing
@@ -182,7 +185,21 @@ summary. Skill process: scope (values + where each lands + secret?/public)
 matches a `secrets.*` reference), never run end-to-end (opens browsers,
 blocks on input).
 
-## E11. `code-review` + `implement` + `tdd`
+## E11. `code-review` + `implement` + `tdd` (allocations)
+
+`code-review` is a fixed-point + two-axis fan-out, not a state machine
+itself (listed for the guard): pin fixed point (`git diff <fp>...HEAD`,
+verify it resolves and the diff is non-empty — fail here, not in subagents)
+→ identify spec (commit refs → user path → `docs/`/`specs/`/`.scratch/` →
+ask; absent ⇒ Spec axis skipped) + standards sources (+ fixed 12-smell
+baseline, repo overrides, judgement-call only) → run **Standards** and
+**Spec** sub-agents in parallel → aggregate **without merging or
+reranking**.
+
+`implement` (1-line): tdd → typecheck/test → `code-review` → commit.
+`tdd`: the red–green loop (reference for B2 at slice granularity);
+`tdd/tests.md` gives good/bad/tautological test criteria, not a machine.
+Allocations: `implement` and `tdd` are specified here, not in E14.
 
 `code-review` is a fixed-point + two-axis fan-out, not a state machine
 itself (listed for the guard): pin fixed point (`git diff <fp>...HEAD`,
@@ -255,3 +272,5 @@ generalising, no DOM in the module.
 - Trivial delegates with no machine: `grill-me`, `grill-with-docs` (call
   grilling ± domain-modeling), `wait-what` (re-pitch in STE + glossary
   terms), `.agents/skills/*/agents/openai.yaml` (harness metadata).
+- `writing-for-agents`: guidance for writing skills/AGENTS.md/CLAUDE.md
+  (not itself a process).
