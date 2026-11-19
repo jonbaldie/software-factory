@@ -1,0 +1,1380 @@
+{
+ "version": 1,
+ "machines": [
+  {
+   "id": "A1",
+   "name": "Issue lifecycle",
+   "spec": "factory-pipeline.md",
+   "storage": "issue labels + agent/issue-N branch",
+   "states": [
+    "needs-triage",
+    "needs-info",
+    "ready-for-agent",
+    "ready-for-human",
+    "wontfix",
+    "bug",
+    "enhancement",
+    "agent:working",
+    "agent:failed",
+    "agent:wip",
+    "OPEN",
+    "CLOSED",
+    "agent:working",
+    "OPEN (PR open)",
+    "stand-down (exit 0)",
+    "agent:failed (on PR)",
+    "stand-down"
+   ],
+   "labels": [
+    "needs-triage",
+    "needs-info",
+    "ready-for-agent",
+    "ready-for-human",
+    "wontfix",
+    "bug",
+    "enhancement",
+    "agent:working",
+    "agent:failed",
+    "agent:wip"
+   ],
+   "files": [
+    "template/.github/workflows/factory-triage.yml",
+    "template/.github/workflows/factory-implement.yml",
+    "docs/agents/triage-labels.md",
+    "template/.github/factory/triage.md",
+    "template/.github/factory/ticket.jq"
+   ],
+   "transitions": [
+    {
+     "from": "needs-info",
+     "event": "reporter-or-maintainer comment",
+     "to": "needs-triage"
+    },
+    {
+     "from": "needs-triage",
+     "event": "triage verdict",
+     "to": "needs-info"
+    },
+    {
+     "from": "needs-triage",
+     "event": "triage verdict",
+     "to": "ready-for-agent"
+    },
+    {
+     "from": "needs-triage",
+     "event": "triage verdict",
+     "to": "ready-for-human"
+    },
+    {
+     "from": "needs-triage",
+     "event": "triage verdict",
+     "to": "wontfix"
+    },
+    {
+     "from": "needs-triage",
+     "event": "outsider verdict",
+     "to": "ready-for-human"
+    },
+    {
+     "from": "ready-for-agent",
+     "event": "implement completed",
+     "to": "OPEN (PR open)"
+    },
+    {
+     "from": "ready-for-agent",
+     "event": "implement needs-info",
+     "to": "needs-info"
+    },
+    {
+     "from": "ready-for-agent",
+     "event": "first action",
+     "to": "agent:working"
+    },
+    {
+     "from": "*",
+     "event": "stage failure/cancel",
+     "to": "agent:failed"
+    },
+    {
+     "from": "ready-for-agent",
+     "event": "handoff failure after PR",
+     "to": "agent:failed (on PR)"
+    },
+    {
+     "from": "ready-for-agent",
+     "event": "open PR exists",
+     "to": "stand-down"
+    },
+    {
+     "from": "agent:working",
+     "event": "issue closed at publication",
+     "to": "stand-down"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A2",
+   "name": "PR lifecycle",
+   "spec": "factory-pipeline.md",
+   "storage": "PR labels + factory comments + headRefOid",
+   "states": [
+    "agent:review",
+    "agent:changes-requested",
+    "agent:approved",
+    "agent:failed",
+    "ready-for-human",
+    "OPEN",
+    "CLOSED",
+    "MERGED"
+   ],
+   "labels": [
+    "agent:review",
+    "agent:changes-requested",
+    "agent:approved",
+    "agent:failed",
+    "ready-for-human"
+   ],
+   "files": [
+    "template/.github/workflows/factory-review.yml",
+    "template/.github/workflows/factory-fix.yml",
+    "template/.github/workflows/factory-review-push.yml",
+    "template/.github/workflows/factory-implement.yml"
+   ],
+   "transitions": [
+    {
+     "from": "agent:approved",
+     "event": "push",
+     "to": "agent:review"
+    },
+    {
+     "from": "agent:review",
+     "event": "push",
+     "to": "agent:review"
+    },
+    {
+     "from": "agent:review",
+     "event": "request_changes/tests-fail",
+     "to": "agent:changes-requested"
+    },
+    {
+     "from": "agent:review",
+     "event": "request_changes/tests-fail round\u22653",
+     "to": "ready-for-human"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A3",
+   "name": "Serialisation/concurrency",
+   "spec": "factory-pipeline.md",
+   "storage": "concurrency groups",
+   "states": [
+    "factory-issue-<N>",
+    "factory-pr-<N>",
+    "stand-down",
+    "automatic run"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-triage.yml",
+    "template/.github/workflows/factory-implement.yml",
+    "template/.github/workflows/factory-review.yml",
+    "template/.github/workflows/factory-fix.yml",
+    "template/.github/workflows/factory-review-push.yml"
+   ],
+   "transitions": [
+    {
+     "from": "*",
+     "event": "same group arrives",
+     "to": "factory-issue-<N>"
+    },
+    {
+     "from": "*",
+     "event": "same group arrives (pr)",
+     "to": "factory-pr-<N>"
+    },
+    {
+     "from": "automatic run",
+     "event": "expected label gone or PR not OPEN",
+     "to": "stand-down"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A4",
+   "name": "Head-commit validity",
+   "spec": "factory-pipeline.md",
+   "storage": "headRefOid vs steps.revision",
+   "states": [
+    "current",
+    "stale"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-review.yml",
+    "template/.github/workflows/factory-fix.yml",
+    "template/.github/workflows/factory-review-push.yml"
+   ],
+   "transitions": [
+    {
+     "from": "current",
+     "event": "head moved mid-run",
+     "to": "stale"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A5",
+   "name": "Fix-round counter",
+   "spec": "factory-pipeline.md",
+   "storage": "factory review comments count",
+   "states": [
+    "1..MAX_ROUNDS",
+    "escalated",
+    "escalated"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-review.yml"
+   ],
+   "transitions": [
+    {
+     "from": "1..MAX_ROUNDS",
+     "event": "request_changes",
+     "to": "escalated"
+    }
+   ],
+   "notes": "Counted, not stored; stale discards refund."
+  },
+  {
+   "id": "A6",
+   "name": "Merge gate",
+   "spec": "factory-pipeline.md",
+   "storage": "checks + mergeable + head",
+   "states": [
+    "awaiting CI",
+    "merging",
+    "merged",
+    "escalated"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-review.yml"
+   ],
+   "transitions": [
+    {
+     "from": "awaiting CI",
+     "event": "checks pass + unassigned + head current",
+     "to": "merging"
+    },
+    {
+     "from": "merging",
+     "event": "merge fails",
+     "to": "escalated"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A7",
+   "name": "Assignee pause",
+   "spec": "factory-pipeline.md",
+   "storage": "assignees",
+   "states": [
+    "unassigned",
+    "assigned"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-triage.yml",
+    "template/.github/workflows/factory-implement.yml",
+    "template/.github/workflows/factory-review.yml",
+    "template/.github/workflows/factory-fix.yml",
+    "template/.github/workflows/factory-review-push.yml"
+   ],
+   "transitions": [
+    {
+     "from": "unassigned",
+     "event": "assignee added",
+     "to": "assigned"
+    },
+    {
+     "from": "assigned",
+     "event": "unassignee + relabel",
+     "to": "unassigned"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A8",
+   "name": "Failure/recovery (+WIP)",
+   "spec": "factory-pipeline.md",
+   "storage": "agent:failed/agent:wip + branch",
+   "states": [
+    "agent:failed",
+    "agent:wip",
+    "resumable",
+    "start-over",
+    "resumable",
+    "start-over"
+   ],
+   "labels": [
+    "agent:failed",
+    "agent:wip",
+    "agent:working"
+   ],
+   "files": [
+    "template/.github/workflows/factory-triage.yml",
+    "template/.github/workflows/factory-implement.yml",
+    "template/.github/workflows/factory-review.yml",
+    "template/.github/workflows/factory-fix.yml"
+   ],
+   "transitions": [
+    {
+     "from": "*",
+     "event": "failure/cancel",
+     "to": "agent:failed"
+    },
+    {
+     "from": "agent:failed",
+     "event": "dirty tree, .github clean",
+     "to": "agent:wip"
+    },
+    {
+     "from": "agent:wip",
+     "event": "retry",
+     "to": "resumable"
+    },
+    {
+     "from": "agent:wip",
+     "event": "retry",
+     "to": "start-over"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A9",
+   "name": "Trust/authorisation",
+   "spec": "factory-pipeline.md",
+   "storage": "associations + comment visibility",
+   "states": [
+    "outsider",
+    "insider",
+    "factory-generated",
+    "inert",
+    "needs-triage",
+    "needs-info",
+    "ready-for-human"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-triage.yml",
+    "template/.github/workflows/factory-implement.yml",
+    "template/.github/workflows/factory-review.yml",
+    "template/.github/workflows/factory-fix.yml",
+    "template/.github/factory/ticket.jq"
+   ],
+   "transitions": [
+    {
+     "from": "needs-triage",
+     "event": "outsider verdict",
+     "to": "ready-for-human"
+    },
+    {
+     "from": "needs-info",
+     "event": "outsider comment",
+     "to": "inert"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A10",
+   "name": "Category dispatch",
+   "spec": "factory-pipeline.md",
+   "storage": "issue labels",
+   "states": [
+    "bug",
+    "enhancement",
+    "neither",
+    "bug+enhancement"
+   ],
+   "labels": [
+    "bug",
+    "enhancement"
+   ],
+   "files": [
+    "template/.github/workflows/factory-implement.yml",
+    "template/.github/workflows/factory-review.yml",
+    "template/.github/factory/bug.md",
+    "template/.github/factory/enhancement.md",
+    "template/.github/factory/prompt.sh"
+   ],
+   "transitions": [
+    {
+     "from": "bug+enhancement",
+     "event": "assembly",
+     "to": "bug"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A11",
+   "name": "Cross-workflow handoffs",
+   "spec": "factory-pipeline.md",
+   "storage": "explicit dispatches",
+   "states": [
+    "label-set",
+    "dispatched",
+    "label-set",
+    "dispatched"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-triage.yml",
+    "template/.github/workflows/factory-implement.yml",
+    "template/.github/workflows/factory-review.yml",
+    "template/.github/workflows/factory-fix.yml",
+    "template/.github/workflows/factory-review-push.yml",
+    "template/.github/factory/scout.sh"
+   ],
+   "transitions": [
+    {
+     "from": "label-set",
+     "event": "gh workflow run",
+     "to": "dispatched"
+    }
+   ],
+   "notes": "9 sites; counted by the validator."
+  },
+  {
+   "id": "A12",
+   "name": "Scout discovery loop",
+   "spec": "factory-pipeline.md",
+   "storage": "existing titles list",
+   "states": [
+    "scan",
+    "filed",
+    "reported",
+    "filed",
+    "skip"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-scout.yml",
+    "template/.github/factory/scout.sh"
+   ],
+   "transitions": [
+    {
+     "from": "scan",
+     "event": "TODO(factory) found, title new",
+     "to": "filed"
+    },
+    {
+     "from": "scan",
+     "event": "title known",
+     "to": "skip"
+    }
+   ],
+   "notes": "Existing titles paged via gh api --paginate (scout.sh:7-8)."
+  },
+  {
+   "id": "A13",
+   "name": "Agent outcome classification",
+   "spec": "factory-pipeline.md",
+   "storage": "transcript result line",
+   "states": [
+    "error_max_budget_usd",
+    "error_during_execution",
+    "error_structured_output",
+    "success"
+   ],
+   "labels": [],
+   "files": [
+    "run-agent/pi.mjs",
+    "run-agent/action.yml"
+   ],
+   "transitions": [
+    {
+     "from": "*",
+     "event": "overBudget",
+     "to": "error_max_budget_usd"
+    },
+    {
+     "from": "*",
+     "event": "execution fault",
+     "to": "error_during_execution"
+    },
+    {
+     "from": "*",
+     "event": "no valid structured answer",
+     "to": "error_structured_output"
+    },
+    {
+     "from": "*",
+     "event": "clean",
+     "to": "success"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A14",
+   "name": "Prompt provenance",
+   "spec": "factory-pipeline.md",
+   "storage": "default-branch vs origin/<base> snapshots",
+   "states": [
+    "default-branch",
+    "base-snapshot"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-triage.yml",
+    "template/.github/workflows/factory-implement.yml",
+    "template/.github/workflows/factory-review.yml",
+    "template/.github/workflows/factory-fix.yml",
+    "template/.github/factory/prompt.sh"
+   ],
+   "transitions": [
+    {
+     "from": "default-branch",
+     "event": "triage/implement",
+     "to": "default-branch"
+    },
+    {
+     "from": "base-snapshot",
+     "event": "review/fix",
+     "to": "base-snapshot"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A15",
+   "name": "PR body accumulation",
+   "spec": "factory-pipeline.md",
+   "storage": "PR body",
+   "states": [
+    "created",
+    "appended",
+    "created",
+    "appended"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/workflows/factory-implement.yml",
+    "template/.github/workflows/factory-fix.yml"
+   ],
+   "transitions": [
+    {
+     "from": "-",
+     "event": "implement completed",
+     "to": "created"
+    },
+    {
+     "from": "created",
+     "event": "fix",
+     "to": "appended"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "A16",
+   "name": "Scout parser (JS-aware TODO)",
+   "spec": "factory-pipeline.md",
+   "storage": "classifier file + report",
+   "states": [
+    "normal",
+    "block",
+    "html",
+    "skip",
+    "unparsed"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/factory/scout-js.py",
+    "template/.github/factory/scout-parse.cjs",
+    "template/.github/factory/scout.sh",
+    "template/.github/workflows/factory-scout.yml"
+   ],
+   "transitions": [
+    {
+     "from": "normal",
+     "event": "TODO classified",
+     "to": "normal"
+    },
+    {
+     "from": "skip",
+     "event": "TODO inside JS string",
+     "to": "skip"
+    },
+    {
+     "from": "unparsed",
+     "event": "Babel fails",
+     "to": "unparsed"
+    }
+   ],
+   "notes": "Filter in front of A12."
+  },
+  {
+   "id": "B1",
+   "name": "bug.md method",
+   "spec": "prompt-methods.md",
+   "storage": "agent run + PR sections",
+   "states": [
+    "red-loop",
+    "minimise",
+    "hypothesise",
+    "probe",
+    "fix",
+    "needs-info"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/factory/bug.md"
+   ],
+   "transitions": [
+    {
+     "from": "red-loop",
+     "event": "no matching red",
+     "to": "needs-info"
+    },
+    {
+     "from": "probe",
+     "event": "hypothesis confirmed",
+     "to": "fix"
+    },
+    {
+     "from": "red-loop",
+     "event": "no matching red",
+     "to": "needs-info"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "B2",
+   "name": "enhancement.md method",
+   "spec": "prompt-methods.md",
+   "storage": "agent run + seams/slices",
+   "states": [
+    "seams",
+    "red",
+    "green"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/factory/enhancement.md"
+   ],
+   "transitions": [
+    {
+     "from": "seams",
+     "event": "test written",
+     "to": "red"
+    },
+    {
+     "from": "red",
+     "event": "minimal code",
+     "to": "green"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "B3",
+   "name": "implement.md outcome",
+   "spec": "prompt-methods.md",
+   "storage": "result JSON",
+   "states": [
+    "completed",
+    "needs-info",
+    "needs-info"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/factory/implement.md"
+   ],
+   "transitions": [
+    {
+     "from": "*",
+     "event": "blocked on questions",
+     "to": "needs-info"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "B4",
+   "name": "review.md gate",
+   "spec": "prompt-methods.md",
+   "storage": "verdict + required_changes",
+   "states": [
+    "approve",
+    "request_changes"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/factory/review.md"
+   ],
+   "transitions": [
+    {
+     "from": "*",
+     "event": "all 4 checks hold",
+     "to": "approve"
+    },
+    {
+     "from": "*",
+     "event": "evidence gap",
+     "to": "request_changes"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "B5",
+   "name": "fix.md sequence",
+   "spec": "prompt-methods.md",
+   "storage": "staged diff + summary",
+   "states": [
+    "conflicts",
+    "feedback",
+    "committed-or-appended",
+    "appended"
+   ],
+   "labels": [],
+   "files": [
+    "template/.github/factory/fix.md"
+   ],
+   "transitions": [
+    {
+     "from": "conflicts",
+     "event": "resolved",
+     "to": "feedback"
+    },
+    {
+     "from": "feedback",
+     "event": "description-only",
+     "to": "appended"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "C",
+   "name": "Installer resolution",
+   "spec": "installer.md",
+   "storage": "FACTORY_* vars + gh labels",
+   "states": [
+    "test-command",
+    "setup-command",
+    "labels",
+    "permissions",
+    "secret",
+    "die",
+    "manual step"
+   ],
+   "labels": [
+    "needs-triage",
+    "needs-info",
+    "ready-for-agent",
+    "ready-for-human",
+    "wontfix",
+    "bug",
+    "enhancement",
+    "agent:working",
+    "agent:review",
+    "agent:changes-requested",
+    "agent:approved",
+    "agent:failed",
+    "agent:wip"
+   ],
+   "files": [
+    "install.sh"
+   ],
+   "transitions": [
+    {
+     "from": "-",
+     "event": "no command resolvable",
+     "to": "die"
+    },
+    {
+     "from": "-",
+     "event": "perms denied",
+     "to": "manual step"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "D1",
+   "name": "labels.py scenarios",
+   "spec": "machines.json",
+   "storage": "scenario defs in tests/labels.py",
+   "states": [
+    "ids",
+    "during",
+    "final",
+    "dispatches",
+    "during/final checked"
+   ],
+   "labels": [],
+   "files": [
+    "tests/labels.py",
+    "tests/fakebin/gh",
+    "tests/fakebin/git"
+   ],
+   "transitions": [
+    {
+     "from": "ids",
+     "event": "scenario run",
+     "to": "during/final checked"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "D2",
+   "name": "pi.py extraction",
+   "spec": "machines.json",
+   "storage": "fake pi outputs",
+   "states": [
+    "success",
+    "error_structured_output"
+   ],
+   "labels": [],
+   "files": [
+    "tests/pi.py",
+    "run-agent/pi.mjs"
+   ],
+   "transitions": [
+    {
+     "from": "*",
+     "event": "invalid fence/block/type",
+     "to": "error_structured_output"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "D3",
+   "name": "smoke.py live stages",
+   "spec": "machines.json",
+   "storage": "sandbox GitHub",
+   "states": [
+    "s1-s5",
+    "m1-m5",
+    "s1-s5",
+    "m1-m5"
+   ],
+   "labels": [],
+   "files": [
+    "tests/smoke.py"
+   ],
+   "transitions": [
+    {
+     "from": "s1-s5",
+     "event": "merge suite",
+     "to": "m1-m5"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E1",
+   "name": "triage skill",
+   "spec": "skills.md",
+   "storage": "issue labels + .out-of-scope/",
+   "states": [
+    "needs-triage",
+    "needs-info",
+    "ready-for-agent",
+    "ready-for-human",
+    "wontfix",
+    "bug",
+    "enhancement",
+    "close + KB entry"
+   ],
+   "labels": [
+    "needs-triage",
+    "needs-info",
+    "ready-for-agent",
+    "ready-for-human",
+    "wontfix",
+    "bug",
+    "enhancement"
+   ],
+   "files": [
+    ".agents/skills/triage/SKILL.md",
+    ".agents/skills/triage/AGENT-BRIEF.md",
+    ".agents/skills/triage/OUT-OF-SCOPE.md"
+   ],
+   "transitions": [
+    {
+     "from": "needs-triage",
+     "event": "wontfix (rejected)",
+     "to": "close + KB entry"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E2",
+   "name": "wayfinder skill",
+   "spec": "skills.md",
+   "storage": "tracker map/children",
+   "states": [
+    "open-blocked",
+    "frontier",
+    "claimed",
+    "resolved",
+    "out-of-scope"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/wayfinder/SKILL.md",
+    "docs/agents/issue-tracker.md"
+   ],
+   "transitions": [
+    {
+     "from": "frontier",
+     "event": "claim",
+     "to": "claimed"
+    },
+    {
+     "from": "claimed",
+     "event": "resolve",
+     "to": "resolved"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E3",
+   "name": "implement-spec skill",
+   "spec": "skills.md",
+   "storage": "task graph + integration branch",
+   "states": [
+    "frontier",
+    "in-flight",
+    "merged",
+    "done",
+    "merger",
+    "done",
+    "frontier"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/implement-spec/SKILL.md"
+   ],
+   "transitions": [
+    {
+     "from": "frontier",
+     "event": "implementer done",
+     "to": "merger"
+    },
+    {
+     "from": "merger",
+     "event": "merged",
+     "to": "done"
+    },
+    {
+     "from": "merger",
+     "event": "merged, frontier re-evaluated",
+     "to": "frontier"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E4",
+   "name": "grilling skill",
+   "spec": "skills.md",
+   "storage": "decision tree",
+   "states": [
+    "frontier",
+    "E-L-I-M-I-N-A-T-E-D"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/grilling/SKILL.md"
+   ],
+   "transitions": [
+    {
+     "from": "frontier",
+     "event": "answer round",
+     "to": "frontier"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E5",
+   "name": "diagnosing-bugs skill",
+   "spec": "skills.md",
+   "storage": "console + hypotheses",
+   "states": [
+    "loop",
+    "minimise",
+    "hypothesise",
+    "instrument",
+    "fix",
+    "cleanup",
+    "stop + ask"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/diagnosing-bugs/SKILL.md",
+    ".agents/skills/diagnosing-bugs/scripts/hitl-loop.template.sh"
+   ],
+   "transitions": [
+    {
+     "from": "loop",
+     "event": "no red possible",
+     "to": "stop + ask"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E6",
+   "name": "ask-matt + boundaries",
+   "spec": "skills.md",
+   "storage": "conversation",
+   "states": [
+    "main-flow",
+    "boundary-decision",
+    "Continue/clear/handoff/Subagent/compact"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/ask-matt/SKILL.md",
+    ".agents/skills/ask-matt/PHASE-BOUNDARIES.md"
+   ],
+   "transitions": [
+    {
+     "from": "boundary-decision",
+     "event": "first yes wins",
+     "to": "Continue/clear/handoff/Subagent/compact"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E7",
+   "name": "teach skill",
+   "spec": "skills.md",
+   "storage": "MISSION/RESOURCES/records",
+   "states": [
+    "mission",
+    "resources",
+    "lesson",
+    "record",
+    "superseded"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/teach/SKILL.md"
+   ],
+   "transitions": [
+    {
+     "from": "lesson",
+     "event": "genuine understanding",
+     "to": "record"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E8",
+   "name": "to-tickets skill",
+   "spec": "skills.md",
+   "storage": "ticket DAG",
+   "states": [
+    "slices",
+    "approval",
+    "published",
+    "expand-contract",
+    "published"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/to-tickets/SKILL.md"
+   ],
+   "transitions": [
+    {
+     "from": "slices",
+     "event": "approved",
+     "to": "published"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E9",
+   "name": "setup skill",
+   "spec": "skills.md",
+   "storage": "AGENTS block + domain docs",
+   "states": [
+    "explore",
+    "sections",
+    "draft",
+    "written",
+    "sections skipped"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/setup-matt-pocock-skills/SKILL.md",
+    ".agents/skills/setup-matt-pocock-skills/issue-tracker-local.md"
+   ],
+   "transitions": [
+    {
+     "from": "sections",
+     "event": "triage not installed",
+     "to": "sections skipped"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E10",
+   "name": "wizard template",
+   "spec": "skills.md",
+   "storage": ".env + gh vars",
+   "states": [
+    "stage-i/N",
+    "SKIPPED",
+    "finish",
+    "SKIPPED (never fail)"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/wizard/template.sh",
+    ".agents/skills/wizard/SKILL.md"
+   ],
+   "transitions": [
+    {
+     "from": "stage-i/N",
+     "event": "gh fails",
+     "to": "SKIPPED (never fail)"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E11",
+   "name": "code-review skill",
+   "spec": "skills.md",
+   "storage": "diff + two sub-agents",
+   "states": [
+    "pinned",
+    "standards",
+    "spec",
+    "aggregated",
+    "fail here"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/code-review/SKILL.md",
+    ".agents/skills/implement/SKILL.md",
+    ".agents/skills/tdd/SKILL.md",
+    ".agents/skills/tdd/tests.md"
+   ],
+   "transitions": [
+    {
+     "from": "pinned",
+     "event": "diff empty",
+     "to": "fail here"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E12",
+   "name": "improve-architecture + codebase-design",
+   "spec": "skills.md",
+   "storage": "candidate report",
+   "states": [
+    "scope",
+    "explore",
+    "report",
+    "grill"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/improve-codebase-architecture/SKILL.md",
+    ".agents/skills/codebase-design/SKILL.md",
+    ".agents/skills/codebase-design/DESIGN-IT-TWICE.md",
+    ".agents/skills/codebase-design/DEEPENING.md"
+   ],
+   "transitions": [
+    {
+     "from": "report",
+     "event": "user picks",
+     "to": "grill"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E13",
+   "name": "prototype logic skill",
+   "spec": "skills.md",
+   "storage": "pure module + HTML demo",
+   "states": [
+    "question",
+    "module",
+    "demo",
+    "handover",
+    "handover (module lifts)"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/prototype/LOGIC.md"
+   ],
+   "transitions": [
+    {
+     "from": "demo",
+     "event": "validated",
+     "to": "handover (module lifts)"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "E14",
+   "name": "Minor/format processes",
+   "spec": "skills.md",
+   "storage": "docs + transcripts",
+   "states": [
+    "proposed",
+    "accepted",
+    "deprecated",
+    "superseded"
+   ],
+   "labels": [],
+   "files": [
+    ".agents/skills/domain-modeling/ADR-FORMAT.md",
+    ".agents/skills/to-spec/SKILL.md",
+    ".agents/skills/to-questionnaire/SKILL.md",
+    ".agents/skills/handoff/SKILL.md",
+    ".agents/skills/research/SKILL.md",
+    ".agents/skills/retro/SKILL.md",
+    ".agents/skills/pr/SKILL.md",
+    ".agents/skills/domain-modeling/SKILL.md"
+   ],
+   "transitions": [
+    {
+     "from": "proposed",
+     "event": "accepted",
+     "to": "accepted"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "F",
+   "name": "Excluded evidence",
+   "spec": "machines.json",
+   "storage": "n/a (not machines)",
+   "states": [
+    "archive"
+   ],
+   "labels": [],
+   "files": [
+    "docs/exploratory-testing/",
+    ".audit/"
+   ],
+   "transitions": [],
+   "notes": ""
+  }
+ ],
+ "invariants": {
+  "triage_states": [
+   "needs-triage",
+   "needs-info",
+   "ready-for-agent",
+   "ready-for-human",
+   "wontfix"
+  ],
+  "max_rounds": 3,
+  "dispatch_sites": 9,
+  "label_roots": {
+   "install_force": [
+    "needs-triage",
+    "needs-info",
+    "ready-for-agent",
+    "ready-for-human",
+    "wontfix",
+    "agent:working",
+    "agent:review",
+    "agent:changes-requested",
+    "agent:approved",
+    "agent:failed",
+    "agent:wip"
+   ],
+   "category_only_if_missing": [
+    "bug",
+    "enhancement"
+   ]
+  },
+  "require_current_head_calls": {
+   "factory-review.yml": 11,
+   "factory-fix.yml": 2
+  }
+ },
+ "dispatches": [
+  {
+   "site": "template/.github/workflows/factory-triage.yml",
+   "line": 158,
+   "target": "factory-implement.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-implement.yml",
+   "line": 214,
+   "target": "factory-review.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-review.yml",
+   "line": 179,
+   "target": "factory-review.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-review.yml",
+   "line": 279,
+   "target": "factory-fix.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-review.yml",
+   "line": 296,
+   "target": "factory-fix.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-fix.yml",
+   "line": 194,
+   "target": "factory-fix.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-fix.yml",
+   "line": 232,
+   "target": "factory-review.yml"
+  },
+  {
+   "site": "template/.github/workflows/factory-review-push.yml",
+   "line": 49,
+   "target": "factory-review.yml"
+  },
+  {
+   "site": "template/.github/factory/scout.sh",
+   "line": 82,
+   "target": "factory-triage.yml"
+  }
+ ]
+}
