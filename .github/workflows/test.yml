@@ -29,3 +29,6 @@ jobs:
 
       - name: Installer
         run: uv run tests/install.py
+
+      - name: State machine specs
+        run: uv run tests/state_machines.py
