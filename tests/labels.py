@@ -321,6 +321,9 @@ with open(os.path.join(ROOT, "template/.github/factory/protected-tree.sh")) as f
 # author, author_association: who opened issue #39. The default is an outsider, "reporter".
 # assignees: the target's assignees. issue_assignees: issue #39's, when the target is the PR.
 # closed_mid_run: someone closes issue #39 while the agent runs.
+# issue_lookup_failed: `gh issue view` fails from the start. issue_lookup_failed_mid_run: it fails after the agent runs.
+# close_during_checks / fail_issue_lookup_during_checks: issue #39 closes, or its lookup starts failing, at the reviewer's required-CI check.
+# closing_issue_numbers: the PR's closingIssuesReferences (default [39]); [] is a PR with no closing issue.
 # assigned_mid_run: someone assigns the target while the agent runs.
 # pushed_mid_run: someone pushes a new PR commit while the agent runs.
 # push_on_publish: someone pushes after the fixer's head check, just before its git push.
@@ -386,6 +389,67 @@ SCENARIOS = [
            follow_up=dict(wf="factory-implement.yml", event="ready-for-agent", issue_state="OPEN", agent=implements,
                           final=["bug", "ready-for-agent"], dispatch=[AUTO_REVIEW], failed=False, pr_created=True))
       for event in ("ready-for-agent", None)],
+    # Issue #103: review and fix must stand down for a closed linked issue, at entry and at publication.
+    *[dict(name=f"review, closed linked issue at entry via {event or 'dispatch'}", wf="factory-review.yml",
+           event=event, issue_state="CLOSED", start=["agent:review"], comments=[], agent=approve,
+           during=None, final=["agent:review"], dispatch=[], failed=False, merged=False, last_comment=None,
+           follow_up=dict(wf="factory-review.yml", event="agent:review", issue_state="OPEN", agent=approve,
+                          final=["agent:approved"], dispatch=[], failed=False, merged=False))
+      for event in ("agent:review", None)],
+    *[dict(name=f"fix, closed linked issue at entry via {event or 'dispatch'}", wf="factory-fix.yml",
+           event=event, issue_state="CLOSED", start=["agent:changes-requested"], comments=[REVIEW_ROUND_1], agent=fixes,
+           during=None, final=["agent:changes-requested"], dispatch=[], failed=False, publish_tokens=[], last_comment=None,
+           follow_up=dict(wf="factory-fix.yml", event="agent:changes-requested", issue_state="OPEN", agent=fixes,
+                          final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False))
+      for event in ("agent:changes-requested", None)],
+    dict(name="review, closed linked issue during the agent publishes no verdict or merge", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, closed_mid_run=True, comments=[], agent=approve,
+         during=["agent:review"], final=["agent:review"], dispatch=[], failed=False, merged=False,
+         last_comment="⏹️ Issue #39 is closed", comment_has=["remove and re-add `agent:review`"],
+         comment_lacks=["<!-- factory:review approve -->", "<!-- factory:review request_changes -->"],
+         follow_up=dict(wf="factory-review.yml", event="agent:review", issue_state="OPEN", agent=approve,
+                        final=["agent:approved"], dispatch=[], failed=False, merged=False)),
+    dict(name="review, closed linked issue during the agent dispatches no fix", wf="factory-review.yml", event=None,
+         start=["agent:review"], closed_mid_run=True, comments=[], agent=request_changes,
+         during=["agent:review"], final=["agent:review"], dispatch=[], failed=False,
+         last_comment="⏹️ Issue #39 is closed", comment_lacks=["<!-- factory:review request_changes -->"]),
+    dict(name="fix, closed linked issue during the agent publishes no commit", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], closed_mid_run=True, comments=[REVIEW_ROUND_1], agent=fixes,
+         during=["agent:changes-requested"], final=["agent:changes-requested"], dispatch=[], failed=False,
+         publish_tokens=[], last_comment="⏹️ Issue #39 is closed", comment_has=["nothing was published", "remove and re-add `agent:changes-requested`"],
+         pr_body_lacks=["Added the test for tabs."],
+         follow_up=dict(wf="factory-fix.yml", event="agent:changes-requested", issue_state="OPEN", agent=fixes,
+                        final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False)),
+    dict(name="review, linked-issue lookup fails at entry", wf="factory-review.yml", event="agent:review",
+         issue_lookup_failed=True, start=["agent:review"], comments=[], agent=approve,
+         during=None, final=["agent:failed"], dispatch=[], failed=True, merged=False,
+         last_comment="💥 The review stage failed", comment_lacks=["<!-- factory:review"]),
+    dict(name="fix, linked-issue lookup fails at entry", wf="factory-fix.yml", event="agent:changes-requested",
+         issue_lookup_failed=True, start=["agent:changes-requested"], comments=[REVIEW_ROUND_1], agent=fixes,
+         during=None, final=["agent:failed"], dispatch=[], failed=True, publish_tokens=[],
+         last_comment="💥 The fix stage failed"),
+    dict(name="review, linked-issue lookup fails during the agent publishes no verdict or merge", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, issue_lookup_failed_mid_run=True, comments=[], agent=approve,
+         during=["agent:review"], final=["agent:failed"], dispatch=[], failed=True, merged=False,
+         last_comment="💥 The review stage failed", comment_lacks=["<!-- factory:review"]),
+    dict(name="fix, linked-issue lookup fails during the agent publishes no commit", wf="factory-fix.yml", event=None,
+         start=["agent:changes-requested"], issue_lookup_failed_mid_run=True, comments=[REVIEW_ROUND_1], agent=fixes,
+         during=["agent:changes-requested"], final=["agent:failed"], dispatch=[], failed=True, publish_tokens=[],
+         last_comment="💥 The fix stage failed", pr_body_lacks=["Added the test for tabs."]),
+    dict(name="review, linked issue closes during required CI so the factory does not merge", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, checks_pending=True, close_during_checks=True, comments=[], agent=approve,
+         during=["agent:review"], final=["agent:approved"], dispatch=[], failed=False, merged=False,
+         last_comment="⏹️ Issue #39 is closed"),
+    dict(name="review, linked-issue lookup fails during required CI so the factory does not merge", wf="factory-review.yml", event=None,
+         start=["agent:review"], vars=MERGE_ON, checks_pending=True, fail_issue_lookup_during_checks=True, comments=[], agent=approve,
+         during=["agent:review"], final=["agent:failed"], dispatch=[], failed=True, merged=False,
+         last_comment="💥 The review stage failed"),
+    dict(name="review, a PR with no closing issue is reviewed as before", wf="factory-review.yml", event="agent:review",
+         closing_issue_numbers=[], issue_state="CLOSED", start=["agent:review"], comments=[], agent=approve,
+         during=["agent:review"], final=["agent:approved"], dispatch=[], failed=False, merged=False),
+    dict(name="fix, a PR with no closing issue is fixed as before", wf="factory-fix.yml", event="agent:changes-requested",
+         closing_issue_numbers=[], issue_state="CLOSED", start=["agent:changes-requested"], comments=[REVIEW_ROUND_1], agent=fixes,
+         during=["agent:changes-requested"], final=["agent:review"], dispatch=[AUTO_REVIEW], failed=False),
     dict(name="test executor, compound failure blocks implementation", wf="factory-implement.yml",
          target="issue", event="ready-for-agent", start=["bug", "ready-for-agent"], comments=[], agent=implements,
          vars={"FACTORY_TEST_COMMAND": "printf 'before failure\\n'; false; printf 'cleanup reached\\n'"},
@@ -1325,12 +1389,16 @@ def run_scenario(sc, trace):
         "checks_missing": sc.get("checks_missing", False),
         "push_during_checks": sc.get("push_during_checks", False),
         "assign_during_checks": sc.get("assign_during_checks", False),
+        "close_during_checks": sc.get("close_during_checks", False),
+        "fail_issue_lookup_during_checks": sc.get("fail_issue_lookup_during_checks", False),
+        "issue_lookup_failed": sc.get("issue_lookup_failed", False),
         "pr": {"mergeStateStatus": "BLOCKED" if sc.get("checks_missing") else "CLEAN", "number": 40, "baseRefName": sc.get("base", "main"), "headRefName": "agent/issue-39", "headRefOid": head,
                "state": sc.get("pr_state", "CLOSED" if sc["wf"] == "factory-implement.yml" else "OPEN"),
                "url": "https://github.com/o/sandbox/pull/40",
                "mergeable": sc.get("merge_blocked", "MERGEABLE"),
                "body": "Adds isBlank.\n\nCloses #39", "labels": [] if on_issue else labels, "assignees": [] if on_issue else assignees,
-               "comments": [] if on_issue else comments, "closingIssuesReferences": [{"number": 39}]},
+               "comments": [] if on_issue else comments,
+               "closingIssuesReferences": [{"number": n} for n in sc.get("closing_issue_numbers", [39])]},
         "issues": {"39": {"number": 39, "title": "Add isBlank", "body": "Return true for blank strings.",
                           "author": author, "author_association": sc.get("author_association", "NONE"),
                           "state": sc.get("issue_state", "OPEN"), "assignees": assignees if on_issue else [{"login": a} for a in sc.get("issue_assignees", [])],
@@ -1420,9 +1488,11 @@ def run_scenario(sc, trace):
                     with open(interp(step["with"]["prompt-file"], ctx), encoding="utf-8") as f:
                         prompt = f.read()
                     ok, outputs = sc["agent"](repo)
-                    if sc.get("assigned_mid_run") or sc.get("pushed_mid_run") or sc.get("closed_mid_run"):
+                    if sc.get("assigned_mid_run") or sc.get("pushed_mid_run") or sc.get("closed_mid_run") or sc.get("issue_lookup_failed_mid_run"):
                         with open(state_path) as f:
                             st = json.load(f)
+                        if sc.get("issue_lookup_failed_mid_run"):
+                            st["issue_lookup_failed"] = True
                         if sc.get("closed_mid_run"):
                             st["issues"]["39"]["state"] = "CLOSED"
                         if sc.get("assigned_mid_run"):

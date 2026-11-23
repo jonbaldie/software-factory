@@ -125,6 +125,8 @@ elif (kind, verb) == ("pr", "view"):
         fail("GitHub could not return the PR head")
     emit(pr)
 elif (kind, verb) == ("issue", "view"):
+    if st.get("issue_lookup_failed"):
+        fail("GitHub could not return the issue")
     emit(st["issues"][pos[2]])
 elif (kind, verb) == ("issue", "list"):
     listed(st["issues"].values())
@@ -197,6 +199,10 @@ elif (kind, verb) == ("pr", "checks"):
         pr["headRefOid"] = "a" * 40
     if st.get("assign_during_checks"):
         pr["assignees"] = [{"login": "maintainer"}]
+    if st.get("close_during_checks"):
+        st["issues"]["39"]["state"] = "CLOSED"
+    if st.get("fail_issue_lookup_during_checks"):
+        st["issue_lookup_failed"] = True
     save()
     emit([{"bucket": "pending" if pending else "pass"}])
 elif (kind, verb) == ("workflow", "run"):
