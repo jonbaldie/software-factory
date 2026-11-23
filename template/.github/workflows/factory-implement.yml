@@ -70,6 +70,7 @@ jobs:
           node-version: 22
 
       - name: Claim the ticket
+        id: claim
         if: steps.eligible.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,6 +94,16 @@ jobs:
           } >> "$RUNNER_TEMP/prompt.md"
           # The prompt is built from the default branch, so the prompts are current. The agent then works on the saved branch.
           if [ -n "$wip_base" ]; then git switch -q -c "$branch" "origin/$branch"; fi
+          guard=$(git --no-replace-objects show "$GITHUB_SHA:.github/factory/protected-tree.sh")
+          merge_base=$(git merge-base HEAD "$GITHUB_SHA")
+          baseline=$(bash -c "$guard" -- capture-revision "$merge_base")
+          if ! history_digest=$(bash -c "$guard" -- capture-history "$GITHUB_SHA"); then
+            echo "::error::Couldn't capture the protected start history"
+            exit 1
+          fi
+          echo "baseline=$baseline" >> "$GITHUB_OUTPUT"
+          echo "history_digest=$history_digest" >> "$GITHUB_OUTPUT"
+          echo "guard_digest=$(printf '%s' "$guard" | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - name: Set up the project
         if: steps.eligible.outputs.run == 'true' && env.SETUP_COMMAND != ''
@@ -164,15 +175,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PUBLISH_TOKEN: ${{ steps.publisher.outputs.token || github.token }}
+          PROTECTED_BASELINE: ${{ steps.claim.outputs.baseline }}
+          PROTECTED_HISTORY: ${{ steps.claim.outputs.history_digest }}
+          GUARD_DIGEST: ${{ steps.claim.outputs.guard_digest }}
         run: |
           branch="agent/issue-$ISSUE"
           title=$(gh issue view "$ISSUE" --json title -q .title)
 
           git switch -q -C "$branch" # already on it when continuing from agent:wip
           git add -A
-          # Compare with where the run started, so commits the agent made count too. Continuing from agent:wip, that's
-          # where the branch left the default branch, so the default branch's own .github/ changes since then don't count.
-          if ! git diff --cached --quiet "$(git merge-base HEAD "$GITHUB_SHA")" -- .github; then
+          guard=$(git --no-replace-objects show "$GITHUB_SHA:.github/factory/protected-tree.sh")
+          if [ "$(printf '%s' "$guard" | sha256sum | cut -d' ' -f1)" != "$GUARD_DIGEST" ]; then
+            echo "::error::The protected-tree guard changed after the agent ran"
+            exit 1
+          fi
+          if ! bash -c "$guard" -- verify "$PROTECTED_BASELINE" "$GITHUB_SHA" "$PROTECTED_HISTORY"; then
             echo "::error::The agent changed files under .github/, which the factory owns"
             exit 1
           fi
@@ -222,6 +239,9 @@ jobs:
           TESTS_OUTCOME: ${{ steps.tests.outcome }}
           PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
           JOB_STATUS: ${{ job.status }}
+          PROTECTED_BASELINE: ${{ steps.claim.outputs.baseline }}
+          PROTECTED_HISTORY: ${{ steps.claim.outputs.history_digest }}
+          GUARD_DIGEST: ${{ steps.claim.outputs.guard_digest }}
         run: |
           # Once the PR exists, review is the stage to retry: an implementation retry leaves an open PR alone.
           # agent:failed goes on the PR, where review's start clears it. Nothing is pushed again.
@@ -252,8 +272,11 @@ jobs:
           if [ "$(git rev-parse HEAD)" != "$GITHUB_SHA" ] && ! { git rev-parse -q --verify "origin/$branch" >/dev/null &&
             git merge-base --is-ancestor HEAD "origin/$branch"; }; then unpushed=true; fi
           saved=none
-          if $agent_ran && { [ -n "$(git status --porcelain)" ] || $unpushed; } && [ -z "$(git status --porcelain -- .github)" ] &&
-            git diff --quiet "$(git merge-base HEAD "$GITHUB_SHA")" -- .github; then
+          if $agent_ran && { [ -n "$(git status --porcelain)" ] || $unpushed; } && [ -n "$PROTECTED_BASELINE" ] &&
+            guard=$(git --no-replace-objects show "$GITHUB_SHA:.github/factory/protected-tree.sh") &&
+            [ "$(printf '%s' "$guard" | sha256sum | cut -d' ' -f1)" = "$GUARD_DIGEST" ] &&
+            bash -c "$guard" -- clean && git add -A &&
+            bash -c "$guard" -- verify "$PROTECTED_BASELINE" "$GITHUB_SHA" "$PROTECTED_HISTORY"; then
             if [ "$JOB_STATUS" = cancelled ]; then reason="The run timed out or was cancelled."
             elif [ "$TESTS_OUTCOME" = failure ]; then reason="The tests failed."
             elif [ "$AGENT_OUTCOME" = failure ]; then reason="The agent stopped with an error."

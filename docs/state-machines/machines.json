@@ -332,7 +332,8 @@
     "template/.github/workflows/factory-triage.yml",
     "template/.github/workflows/factory-implement.yml",
     "template/.github/workflows/factory-review.yml",
-    "template/.github/workflows/factory-fix.yml"
+    "template/.github/workflows/factory-fix.yml",
+    "template/.github/factory/protected-tree.sh"
    ],
    "transitions": [
     {
@@ -540,7 +541,8 @@
     "template/.github/workflows/factory-implement.yml",
     "template/.github/workflows/factory-review.yml",
     "template/.github/workflows/factory-fix.yml",
-    "template/.github/factory/prompt.sh"
+    "template/.github/factory/prompt.sh",
+    "template/.github/factory/protected-tree.sh"
    ],
    "transitions": [
     {
@@ -1338,7 +1340,7 @@
   },
   {
    "site": "template/.github/workflows/factory-implement.yml",
-   "line": 214,
+   "line": 231,
    "target": "factory-review.yml"
   },
   {
@@ -1358,12 +1360,12 @@
   },
   {
    "site": "template/.github/workflows/factory-fix.yml",
-   "line": 194,
+   "line": 196,
    "target": "factory-fix.yml"
   },
   {
    "site": "template/.github/workflows/factory-fix.yml",
-   "line": 232,
+   "line": 238,
    "target": "factory-review.yml"
   },
   {

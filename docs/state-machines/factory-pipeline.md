@@ -4,7 +4,8 @@ Storage keys: **issue labels**, **PR labels**, **factory review comments**
 (bearing `<!-- factory:review … -->` markers), **branches** (`agent/issue-N`),
 **workflow dispatches**. Files: `template/.github/workflows/factory-*.yml`,
 `template/.github/factory/*.md`, `template/.github/factory/ticket.jq`,
-`template/.github/factory/scout.sh`, `run-agent/`.
+`template/.github/factory/scout.sh`, `template/.github/factory/protected-tree.sh`,
+`run-agent/`.
 The 9 sites are enumerated in [`machines.json`](machines.json) (`dispatches`)
 and checked in CI against the tree.
 
@@ -143,9 +144,10 @@ with retry instructions, no dispatch. Implement adds the WIP sub-machine:
 
 - Eligible: the agent step ran (success/failure/cancelled) AND the tree is
   dirty **or HEAD is ahead of the origin branch** (`unpushed` commits are a
-  reason to save) AND no `.github/` changes (diff vs `merge-base(HEAD, GITHUB_SHA)`,
-  so the agent's own commits count; resumed WIP's base excludes main's own
-  `.github/` moves).
+  reason to save) AND no `.github/` changes (the shared protected-tree guard
+  verifies the staged tree against the baseline captured before the agent
+  ran, so the agent's own commits count; resumed WIP's base excludes main's
+  own `.github/` moves).
 - Reason from the failing step (`JOB_STATUS`, `AGENT_OUTCOME`,
   `TESTS_OUTCOME`, `PUBLISH_OUTCOME`): timeout/cancel · tests · agent error
   · pushing the finished work failed · run failure
@@ -258,10 +260,19 @@ code, decides the outcome.
 - Review & fix: prompts unpacked from `origin/<base>` via `git archive`
   **outside the checkout** (the agent can't commit them; PRs opened before
   a prompt change still get the new prompt).
-- `.github/` guard: implement diffs vs `merge-base(HEAD, GITHUB_SHA)`;
-  fix diffs the **staged tree vs `origin/BASE`** (the base merge brings
-  base's `.github/` in — any remainder came from the agent). Fix also
-  scans conflicted files for leftover `<<<<<<<`/`>>>>>>>` markers.
+- `.github/` guard (shared `protected-tree.sh` helper): implement captures
+  the tree at `merge-base(HEAD, GITHUB_SHA)` before the agent runs, plus a
+  digest of the pinned start history; publication and WIP recovery verify
+  the staged tree against that baseline, advancing the baseline only to a
+  merge-base already in the pinned start history (so default-only changes
+  count, agent changes do not). Fix snapshots the protected portion of the
+  merged index (via an alternate index, leaving unrelated conflicts alone)
+  before the agent runs and verifies the staged tree against that snapshot,
+  preserving pre-existing PR/base changes. Both stages load the helper from
+  trusted default-branch code (`GITHUB_SHA` / the pinned default-branch SHA)
+  and check its digest, so the agent cannot replace its own guard; guard
+  failures fail closed. Fix separately scans unmerged files for leftover
+  conflict markers before publishing.
 
 ## A15. PR body accumulation
 

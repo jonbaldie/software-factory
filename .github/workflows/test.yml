@@ -24,6 +24,9 @@ jobs:
       - name: Factory labels
         run: uv run tests/labels.py
 
+      - name: Protected tree
+        run: uv run tests/protected-tree.py
+
       - name: pi harness
         run: uv run tests/pi.py
 
