@@ -58,6 +58,15 @@ jobs:
           fi
           # An assignee on the PR or its issue owns the work, so every later step is skipped and the labels stay as they are.
           issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
+          # Read live state: a queued label event or manual dispatch can target a PR whose linked issue is already closed.
+          # A failed lookup fails this step, so it cannot be mistaken for an open issue.
+          for n in $issues; do
+            state=$(gh issue view "$n" --json state -q .state)
+            if [ "$state" != OPEN ]; then
+              echo "Issue #$n is $state; skipping review and leaving the PR's labels alone."
+              exit 0
+            fi
+          done
           owners=$( { gh pr view "$PR" --json assignees -q '.assignees[].login'
             for n in $issues; do gh issue view "$n" --json assignees -q '.assignees[].login'; done; } | sort -u | sed 's/^/@/' | paste -sd' ' -)
           if [ -n "$owners" ]; then
@@ -186,6 +195,20 @@ jobs:
             # A push during publication invalidates a rejection just as it invalidates an approval.
             require_current_head
           }
+          # The linked issue may close while the agent runs. Check again before publishing a verdict and before merging.
+          # A failed lookup fails this step, so it cannot allow a verdict or a merge.
+          require_open_linked_issue() {
+            issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
+            for n in $issues; do
+              state=$(gh issue view "$n" --json state -q .state)
+              if [ "$state" != OPEN ]; then
+                echo "Issue #$n is $state; stopping the review."
+                gh pr comment "$PR" --body "⏹️ Issue #$n is closed, so the factory stopped the review. [Review run]($RUN_URL). To resume, reopen it, then remove and re-add \`agent:review\`."
+                exit 0
+              fi
+            done
+          }
+          require_open_linked_issue
           require_current_head
 
           verdict=$(jq -r .verdict <<<"$REVIEW")
@@ -243,6 +266,7 @@ jobs:
                 sleep 5
               done
               require_current_head
+              require_open_linked_issue
               # Someone may have taken the work over while the reviewer ran, and a merge can't be taken back.
               issues=$(gh pr view "$PR" --json closingIssuesReferences -q '.closingIssuesReferences[].number')
               owners=$( { gh pr view "$PR" --json assignees -q '.assignees[].login'

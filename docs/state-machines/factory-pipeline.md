@@ -64,6 +64,8 @@ Transitions:
 | review `approve` | `agent:review` → `agent:approved` | Head must still be the reviewed sha (A4); then A6 merge gate or wait. |
 | review `request_changes` or tests failing | `agent:review` → `agent:changes-requested` (round < 3) · `ready-for-human` (round ≥ 3) | Round counted per A5; dispatches fix. |
 | fix finish | `agent:changes-requested` → `agent:review` | Dispatch review `automatic=true`. |
+| linked issue closed at entry | `agent:review` / `agent:changes-requested` → stand down | Re-checked from `closingIssuesReferences` before the agent runs (A7): `exit 0`, no agent, labels unchanged, no comment. |
+| linked issue closed at publication | `agent:review` / `agent:changes-requested` → stand down | Review re-checks before publishing a verdict and before merging; fix re-checks before pushing: post a ⏹️ stand-down comment, `exit 0`, labels unchanged — no verdict, merge, commit or dispatch. To resume: reopen, remove and re-add the stage label. A failed state lookup fails the step instead of counting as open. |
 | stage failure | * → `agent:failed` | Retry: re-add `agent:review` / `agent:changes-requested`. Manual re-review of an approved PR: adding `agent:review` clears `agent:approved` at run start. |
 
 ## A3. Serialisation (concurrency)
@@ -120,7 +122,7 @@ Cap `MAX_ROUNDS = 3` (declared in `factory-review.yml`, mirrored in
 |---|---|
 | 1. Head | `require_current_head()` still holds after labelling approved. |
 | 2. CI wait | Poll `gh pr checks --required`, 60 × 5 s: wait only while buckets ∈ {pending, pass, skipping}, ≥1 pending. Empty result breaks too, if `mergeStateStatus` ∉ {BLOCKED, UNKNOWN}; failed checks break immediately (GitHub's rules then govern). Head re-checked each iteration. |
-| 3. Assignee (only when `MERGE=true`) | Re-check just before merging (A7): assigned ⇒ leave approved, open. The CI poll loop itself does not check assignees. |
+| 3. Assignee + linked-issue state (only when `MERGE=true`) | Re-check just before merging (A7): assigned ⇒ leave approved, open; linked issue closed ⇒ post a ⏹️ stand-down comment, `exit 0`, leave approved, open. The CI poll loop itself does not check assignees or issue state. |
 | 4. Merge | `gh pr merge --squash --delete-branch --match-head-commit "$REVIEWED_SHA"`. |
 | 5. On failure | `require_current_head()` again; wait for `mergeable` to leave UNKNOWN (6 × 5 s); `CONFLICTING` + rounds left ⇒ fixer (consumes round); else `ready-for-human` with a "GitHub blocked the merge" comment. |
 
@@ -135,6 +137,16 @@ Storage: issue assignees; PR assignees ∪ closing-issue assignees (`sort -u`).
   clears approval and re-queues review (labels must reflect "needs review"
   while a human owns the work).
 - Hand-back protocol: unassign, then remove and re-add the stage label.
+
+### Closed linked issue (review and fix, issue #103)
+
+Storage: `closingIssuesReferences` → issue `state` (implement already did this for its own issue).
+
+- Review and fix check every closing issue at entry (label event or manual dispatch): closed ⇒ log and `exit 0`, no agent, labels unchanged, no comment — mirroring implement's entry stand-down.
+- Review re-checks (`require_open_linked_issue`) before publishing its verdict comment and again after the CI wait, just before merging; fix re-checks before pushing its commit. Closed ⇒ post a ⏹️ comment naming the issue and the hand-back protocol, `exit 0`, labels unchanged — no approval, merge, commit or onward dispatch. (An approval already published before a mid-CI closure is left in place, as with an assignee; only the merge is withheld.)
+- A PR with no closing issue skips the loop and behaves as before; an open linked issue changes nothing.
+- A failed `gh issue view` fails the step under `bash -eo pipefail` (no `|| true`), so Report failure adds `agent:failed` and nothing is published — a failed lookup is never treated as open.
+- Hand-back protocol: reopen the issue, then remove and re-add the stage label.
 
 ## A8. Failure / recovery
 
@@ -197,8 +209,8 @@ counts them):
 | 1 | triage → implement | — (open-PR guard dedups) |
 | 2 | implement → review | `true` |
 | 3 | fix → review | `true` |
-| 4 | review → fix (merge conflict, line 279) | — |
-| 5 | review → fix (rejection, line 296) | — |
+| 4 | review → fix (merge conflict, line 303) | — |
+| 5 | review → fix (rejection, line 320) | — |
 | 6 | review self-requeue (stale head) | `true` |
 | 7 | fix self-retry (stale head) | `true` |
 | 8 | push → review | `true` |
