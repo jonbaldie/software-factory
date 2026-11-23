@@ -70,6 +70,34 @@ Still not covered live: a push in the narrow interval between the final head che
 
 ## Runs
 
+### 2026-11-23, issue #103: review and fix stand down for closed linked issues
+
+Focused live guard check; triggers and queues are unchanged, so the event/merge suites were not rerun.
+Candidate installed by [sandbox #179](https://github.com/jonbaldie/software-factory-sandbox/pull/179), merged at
+[`830d486`](https://github.com/jonbaldie/software-factory-sandbox/commit/830d486dc614cb310f024397329b063544ece266)
+after [CI passed](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/45245339523).
+The installer also brought the sandbox's scout and protected-tree templates up to date with the candidate.
+
+- Fixture [issue #180](https://github.com/jonbaldie/software-factory-sandbox/issues/180) was closed, then
+  [PR #181](https://github.com/jonbaldie/software-factory-sandbox/pull/181) was opened closing it (`Closes #180`).
+  Before: a label event on such a PR ran the agent (the bug in #103).
+- [Review run](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/45245569575) on `agent:review`:
+  job finished in 5s with only *Check whether the review should run* executed; *Agent reviews the change* and
+  *Act on the verdict* were skipped. The PR kept `agent:review`, stayed open, and gained no comments or approval.
+- [Fix run](https://github.com/jonbaldie/software-factory-sandbox/actions/runs/45245675628) on `agent:changes-requested`:
+  job finished in 7s with only *Check whether the fix should run* executed; *Agent addresses the feedback* and
+  *Push and hand back to the reviewer* were skipped. The PR kept `agent:changes-requested`, its head was unchanged,
+  and no commit or comment was published.
+- Both stand-downs used real GitHub state lookups (`closingIssuesReferences` → issue `state`) with no model spend,
+  because the entry guard runs before the agent.
+- Local regression: `uv run tests/labels.py` — 239 passed, 0 failed (15 new closed-linked-issue scenarios, including
+  mid-run closure, failed state lookups, manual dispatch, and the no-closing-issue control); `tests/state_machines.py`,
+  `tests/pi.py` and `tests/install.py` also pass.
+- Cleanup: fixture PR #181 closed without merging; `fixture-103-closed-linked` and `issue103-install` branches deleted.
+  The installer's `FACTORY_SETUP_COMMAND=npm ci` was deleted again, restoring the original two-variable configuration
+  (`FACTORY_APP_CLIENT_ID`, `FACTORY_TEST_COMMAND=npm test`); `FACTORY_MERGE` stayed unset. No factory run was in progress.
+  The candidate installation remains on the sandbox's `main` for future tests. No Docker resources were created.
+
 ### 2026-10-26, issue #28: shared trusted prompt builder
 
 Focused live helper checks; triggers and queues are unchanged, so the event/merge suites were not rerun.
